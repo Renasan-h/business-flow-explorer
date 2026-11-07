@@ -118,8 +118,32 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
   };
   const sendColor = mode === 'technical' ? 0x22d3ee : 0x2563eb;
   const receiveColor = mode === 'technical' ? 0xa78bfa : 0xf59e0b;
-  const sendOffset = drawLane(start.position, end.position, -13, sendColor, 0.95);
-  drawLane(end.position, start.position, -13, receiveColor, 0.65);
+  const inactiveColor = mode === 'technical' ? 0x64748b : 0x9ca3af;
+
+  // シナリオ全体から通信経路を収集し、未使用中の経路もグレーで表示する。
+  const connections = new Map<string, [string, string]>();
+  for (const scenarioStep of scenario.steps) {
+   for (const transfer of scenarioStep.actions) {
+    const pair = [transfer.from, transfer.to].sort() as [string, string];
+    connections.set(pair.join(':'), pair);
+   }
+  }
+  let sendOffset = { x: 0, y: 0 };
+  for (const [firstId, secondId] of connections.values()) {
+   const first = byId.get(firstId);
+   const second = byId.get(secondId);
+   if (!first || !second) continue;
+   const active = (firstId === action.from && secondId === action.to)
+    || (firstId === action.to && secondId === action.from);
+   // 現在の接続は送受信をカラー表示し、それ以外は両方向ともグレーにする。
+   if (active) {
+    sendOffset = drawLane(start.position, end.position, -13, sendColor, 0.95);
+    drawLane(end.position, start.position, -13, receiveColor, 0.85);
+   } else {
+    drawLane(first.position, second.position, -13, inactiveColor, 0.45);
+    drawLane(second.position, first.position, -13, inactiveColor, 0.45);
+   }
+  }
 
   for (const actor of scenario.actors) {
    const active = actor.id === action.from || actor.id === action.to;
@@ -133,6 +157,11 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
     : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
    label(symbol[actor.type], actor.position.x, actor.position.y - 9, 28);
    label(actor.name, actor.position.x, actor.position.y + 21, 12);
+   // 指定されたインスタンス名とIPアドレスをノード上部に表示する。
+   const details = [actor.instanceName, actor.ip].filter(Boolean);
+   if (details.length > 0) {
+    label(details.join('  /  '), actor.position.x, actor.position.y - 58, 11);
+   }
   }
   const packet = new Graphics().circle(0, 0, 10).fill(sendColor).stroke({ color: 0xffffff, width: 2 });
   layer.addChild(packet);
