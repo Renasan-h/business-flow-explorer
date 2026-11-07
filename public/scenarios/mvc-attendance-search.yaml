@@ -1,0 +1,89 @@
+schemaVersion: "1.0"
+metadata:
+  id: mvc-attendance-search
+  title: MVC勤怠管理・月次勤怠照会
+  description: 社員が月次勤怠一覧を検索し、Controller・Service・Repository・Database・Viewを経由して画面が返るまでを追跡します。
+  category: architecture
+actors:
+  - id: browser
+    name: 社員ブラウザ
+    type: person
+    position: { x: 95, y: 190 }
+  - id: controller
+    name: Controller
+    type: server
+    ip: 10.30.1.10
+    instanceName: attendance-web-01
+    position: { x: 260, y: 95 }
+  - id: service
+    name: Service
+    type: service
+    instanceName: attendance-service
+    position: { x: 435, y: 95 }
+  - id: repository
+    name: Repository
+    type: service
+    instanceName: attendance-repository
+    position: { x: 610, y: 95 }
+  - id: database
+    name: 勤怠DB
+    type: database
+    ip: 10.30.2.20
+    instanceName: attendance-db-01
+    position: { x: 610, y: 285 }
+  - id: view
+    name: View
+    type: server
+    instanceName: attendance-list-view
+    position: { x: 260, y: 285 }
+steps:
+  - id: search-request
+    title: 月次勤怠の検索
+    description: 社員が対象年月を指定し、ブラウザから勤怠一覧のGETリクエストを送信します。
+    actions:
+      - { type: transfer, from: browser, to: controller, payload: "GET /attendance?month=2026-11", durationMs: 1500 }
+  - id: controller-to-service
+    title: Controllerが検索を依頼
+    description: Controllerが入力値とログインユーザーを確認し、Serviceへ勤怠検索を依頼します。
+    actions:
+      - { type: transfer, from: controller, to: service, payload: "findMonthlyAttendance(userId, month)", durationMs: 1400 }
+  - id: service-to-repository
+    title: Serviceがデータ取得を依頼
+    description: Serviceが閲覧権限などの業務ルールを確認し、Repositoryへ取得を依頼します。
+    actions:
+      - { type: transfer, from: service, to: repository, payload: "findByUserIdAndMonth", durationMs: 1400 }
+  - id: query-database
+    title: 勤怠DBへSQL実行
+    description: RepositoryがSQLを実行し、指定ユーザーと対象年月の打刻・勤務実績を取得します。
+    actions:
+      - { type: transfer, from: repository, to: database, payload: "SELECT attendance WHERE user_id AND month", durationMs: 1600 }
+  - id: database-result
+    title: 勤怠データを返却
+    description: データベースが該当する勤怠レコードをRepositoryへ返します。
+    actions:
+      - { type: transfer, from: database, to: repository, payload: "勤怠レコード一覧", durationMs: 1400 }
+  - id: repository-result
+    title: Repositoryが結果を返却
+    description: Repositoryが取得結果をアプリケーションのデータオブジェクトとしてServiceへ返します。
+    actions:
+      - { type: transfer, from: repository, to: service, payload: "AttendanceRecord一覧", durationMs: 1300 }
+  - id: calculate-summary
+    title: Serviceが月次集計を返却
+    description: Serviceが総労働時間・残業時間などを計算し、表示用データをControllerへ返します。
+    actions:
+      - { type: transfer, from: service, to: controller, payload: "月次勤怠集計DTO", durationMs: 1500 }
+  - id: render-view
+    title: ControllerがViewを選択
+    description: Controllerが表示用データをModelとして渡し、勤怠一覧Viewの描画を依頼します。
+    actions:
+      - { type: transfer, from: controller, to: view, payload: "attendance/list + Model", durationMs: 1400 }
+  - id: view-result
+    title: ViewがHTMLを生成
+    description: Viewがテンプレートと表示用データからHTMLを生成し、Controllerへ返します。
+    actions:
+      - { type: transfer, from: view, to: controller, payload: "描画済みHTML", durationMs: 1400 }
+  - id: response
+    title: 勤怠一覧をブラウザへ返却
+    description: ControllerがHTTP 200とHTMLを返し、社員のブラウザに月次勤怠一覧が表示されます。
+    actions:
+      - { type: transfer, from: controller, to: browser, payload: "HTTP 200 / 月次勤怠一覧", durationMs: 1500 }
