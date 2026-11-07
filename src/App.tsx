@@ -204,11 +204,10 @@ export default function App() {
  const [speed, setSpeed] = useState<PlaybackSpeed>(1);
  useEffect(() => { listScenarios().then(p => { setPaths(p); setSelected(p[0] || ''); }).catch(e => setError(String(e))); }, []);
  useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
- // ステップ完了時は自動的に次へ進み、最終ステップのみ再生を停止する。
+ // 最終ステップの完了後は先頭に戻し、再生状態と速度を維持してループ再生する。
  const advance = () => {
   if (!scenario) return;
-  if (step >= scenario.steps.length - 1) { setPlaying(false); return; }
-  setStep(step + 1);
+  setStep(currentStep => (currentStep + 1) % scenario.steps.length);
  };
  const current = scenario?.steps[step];
  return <div className="app">
