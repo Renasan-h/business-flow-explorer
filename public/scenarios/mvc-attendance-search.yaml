@@ -8,34 +8,28 @@ actors:
   - id: browser
     name: 社員ブラウザ
     type: person
-    position: { x: 95, y: 190 }
   - id: controller
     name: Controller
     type: server
     ip: 10.30.1.10
     instanceName: attendance-web-01
-    position: { x: 260, y: 95 }
   - id: service
     name: Service
     type: service
     instanceName: attendance-service
-    position: { x: 435, y: 95 }
   - id: repository
     name: Repository
     type: service
     instanceName: attendance-repository
-    position: { x: 610, y: 95 }
   - id: database
     name: 勤怠DB
     type: database
     ip: 10.30.2.20
     instanceName: attendance-db-01
-    position: { x: 610, y: 285 }
   - id: view
     name: View
     type: server
     instanceName: attendance-list-view
-    position: { x: 260, y: 285 }
 steps:
   - id: search-request
     title: 月次勤怠の検索
