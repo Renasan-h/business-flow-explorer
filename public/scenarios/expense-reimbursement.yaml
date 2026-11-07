@@ -8,32 +8,26 @@ actors:
   - id: employee
     name: 申請社員
     type: person
-    position: { x: 115, y: 100 }
   - id: workflow
     name: 経費精算API
     type: server
     ip: 10.20.1.10
     instanceName: expense-api-01
-    position: { x: 350, y: 180 }
   - id: database
     name: 精算DB
     type: database
     ip: 10.20.2.15
     instanceName: expense-db-primary
-    position: { x: 580, y: 95 }
   - id: manager
     name: 承認上長
     type: person
-    position: { x: 115, y: 285 }
   - id: accounting
     name: 経理担当
     type: person
-    position: { x: 350, y: 310 }
   - id: bank
     name: 振込システム
     type: service
     instanceName: bank-transfer-gw
-    position: { x: 580, y: 290 }
 steps:
   - id: submit
     title: 経費申請
