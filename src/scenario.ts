@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { parse } from 'yaml';
-const actor = z.object({ id:z.string(), name:z.string(), type:z.enum(['person','server','database','service']), position:z.object({x:z.number(),y:z.number()}) });
+const actor = z.object({ id:z.string(), name:z.string(), ip:z.string().optional(), instanceName:z.string().optional(), type:z.enum(['person','server','database','service']), position:z.object({x:z.number(),y:z.number()}) });
 const action = z.object({ type:z.literal('transfer'),from:z.string(),to:z.string(),payload:z.string(),durationMs:z.number().positive() });
 const schema = z.object({
  schemaVersion:z.literal('1.0'),
