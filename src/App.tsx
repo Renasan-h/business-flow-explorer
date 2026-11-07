@@ -232,11 +232,28 @@ export default function App() {
    .catch(error => { if (!cancelled) setError(String(error)); });
   return () => { cancelled = true; };
  }, []);
- useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
- // 最終ステップの完了後は先頭に戻し、再生状態と速度を維持してループ再生する。
+ useEffect(() => { if (!selected) return; setPlaying(false); setFinished(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
+ // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
+ const [finished, setFinished] = useState(false);
  const advance = () => {
   if (!scenario) return;
-  setStep(currentStep => (currentStep + 1) % scenario.steps.length);
+  setStep(currentStep => {
+   if (currentStep >= scenario.steps.length - 1) {
+    setPlaying(false);
+    setFinished(true);
+    return currentStep;
+   }
+   return currentStep + 1;
+  });
+ };
+ // 終了後の再生は先頭から開始し、通常の一時停止からは現在位置で再開する。
+ const togglePlayback = () => {
+  if (playing) { setPlaying(false); return; }
+  if (finished) {
+   setFinished(false);
+   setStep(0);
+  }
+  setPlaying(true);
  };
  const current = scenario?.steps[step];
  return <div className="app">
@@ -246,7 +263,7 @@ export default function App() {
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch"><button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
-    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={() => setPlaying(p => !p)}>{playing ? '⏸ 一時停止' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
