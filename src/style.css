@@ -1,3 +1,26 @@
 :root{font-family:Inter,system-ui,"Noto Sans JP",sans-serif;color:#e4edfa;background:#0b1220}*{box-sizing:border-box}body{margin:0}button{font:inherit;cursor:pointer;border:1px solid #344765;background:#18243b;color:#dce8fb;border-radius:9px;padding:10px 13px}button:hover{border-color:#5c9be0}button:disabled{opacity:.35;cursor:default}button.selected{background:#17528a;border-color:#38bdf8;color:#fff}.app header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #24344d}.app header span,.hint{color:#8ca3c0;font-size:12px}.layout{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:calc(100vh - 68px)}aside{padding:25px 18px;border-right:1px solid #24344d}aside button{display:block;width:100%;margin:10px 0;text-align:left}main{padding:24px;max-width:1250px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:25px;margin:0}h3{font-size:16px}.top p{color:#91a6c0;margin:7px 0 18px}.switch{display:flex;gap:6px}.scene{width:100%;overflow:hidden;background:#0a1427;border:1px solid #314763;border-radius:18px;display:flex;justify-content:center}.scene canvas{display:block;max-width:100%;height:auto}.controls{display:flex;gap:10px;align-items:center;margin:16px 0;flex-wrap:wrap}.controls span{margin-left:auto;color:#8ca3c0}.steps{display:flex;gap:8px;flex-wrap:wrap}.steps button{font-size:12px}.explanation{background:#141f32;border:1px solid #283c58;padding:18px 22px;border-radius:14px;margin-top:18px}.explanation h2{margin:0;font-size:18px}.explanation p{color:#b5c8de}.explanation code{color:#67e8f9}.error{color:#fca5a5}@media(max-width:800px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #24344d}.top{align-items:flex-start;flex-direction:column}.app header span{display:none}main{padding:14px}}
 /* 再生速度をプルダウンではなく、ワンクリックで選べるセグメントボタンにする。 */
 .playback-speed{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.playback-speed-label{font-size:13px;color:#a9bfda;white-space:nowrap}.speed-options{display:inline-flex;gap:3px;padding:4px;border:1px solid #344765;border-radius:12px;background:#101b2e}.speed-options button{padding:7px 12px;border:1px solid transparent;background:transparent;border-radius:8px;font-size:13px;min-width:48px}.speed-options button:hover{background:#223957}.speed-options button.selected{background:#17528a;border-color:#38bdf8;color:#fff}.speed-options button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+
+/* 画面全体の配色をCSS変数で管理し、テーマ変更時に一括切り替えする。 */
+:root{color-scheme:dark;--page:#0b1220;--text:#e4edfa;--button-bg:#18243b;--button-text:#dce8fb;--button-border:#344765;--border:#24344d;--muted:#8ca3c0;--secondary:#91a6c0;--panel:#141f32;--panel-border:#283c58;--selected:#17528a;--selected-border:#38bdf8;--selected-text:#fff;--segment-bg:#101b2e;--segment-hover:#223957;--code:#67e8f9}
+:root[data-theme="light"]{color-scheme:light;--page:#f6f8fc;--text:#18283d;--button-bg:#fff;--button-text:#263d62;--button-border:#c6d2e1;--border:#d9e1ec;--muted:#536982;--secondary:#536982;--panel:#fff;--panel-border:#d5e0eb;--selected:#dceafe;--selected-border:#3975c6;--selected-text:#17437c;--segment-bg:#e9eff7;--segment-hover:#d9e7f9;--code:#075e85}
+:root{background:var(--page);color:var(--text)}
+button{background:var(--button-bg);color:var(--button-text);border-color:var(--button-border)}
+button.selected,.speed-options button.selected{background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.app header,aside{border-color:var(--border)}
+.app header span,.hint,.controls span{color:var(--muted)}
+.top p,.playback-speed-label{color:var(--secondary)}
+.explanation{background:var(--panel);border-color:var(--panel-border)}
+.explanation p{color:var(--secondary)}
+.explanation code{color:var(--code)}
+.speed-options{background:var(--segment-bg);border-color:var(--button-border)}
+.speed-options button{color:var(--button-text)}
+.speed-options button:hover{background:var(--segment-hover)}
+.scene{background:var(--panel);border-color:var(--panel-border)}
+.header-actions{display:flex;align-items:center;gap:18px}
+.theme-switch{display:flex;gap:3px;padding:3px;background:var(--segment-bg);border:1px solid var(--button-border);border-radius:12px}
+.theme-switch button{font-size:12px;padding:7px 11px;border-color:transparent;background:transparent}
+.theme-switch button.selected{background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.theme-switch button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
+@media(max-width:800px){aside{border-color:var(--border)}.header-actions{gap:8px}.app header{padding:14px}}
