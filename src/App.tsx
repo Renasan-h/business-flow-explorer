@@ -98,23 +98,34 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
    const length = Math.hypot(dx, dy) || 1;
    const nx = -dy / length;
    const ny = dx / length;
-   const sx = from.x + nx * offset;
-   const sy = from.y + ny * offset;
-   const ex = to.x + nx * offset;
-   const ey = to.y + ny * offset;
+   // ノードの矩形境界からさらに玉の半径分を空け、線上だけを移動させる。
+   const radius = 12;
+   const halfWidth = 55 + radius;
+   const halfHeight = 39 + radius;
+   const trim = Math.min(
+    length / 2,
+    Math.min(
+     Math.abs(dx) > 0.0001 ? halfWidth / Math.abs(dx / length) : Infinity,
+     Math.abs(dy) > 0.0001 ? halfHeight / Math.abs(dy / length) : Infinity,
+    ),
+   );
+   const sx = from.x + nx * offset + (dx / length) * trim;
+   const sy = from.y + ny * offset + (dy / length) * trim;
+   const ex = to.x + nx * offset - (dx / length) * trim;
+   const ey = to.y + ny * offset - (dy / length) * trim;
    const line = new Graphics()
     .moveTo(sx, sy).lineTo(ex, ey)
     .stroke({ color, width: 3, alpha });
    const ux = dx / length;
    const uy = dy / length;
-   const arrowX = sx + dx * 0.65;
-   const arrowY = sy + dy * 0.65;
+   const arrowX = sx + (ex - sx) * 0.65;
+   const arrowY = sy + (ey - sy) * 0.65;
    line.moveTo(arrowX - ux * 9 - uy * 6, arrowY - uy * 9 + ux * 6)
     .lineTo(arrowX, arrowY)
     .lineTo(arrowX - ux * 9 + uy * 6, arrowY - uy * 9 - ux * 6)
     .stroke({ color, width: 3, alpha });
    layer.addChild(line);
-   return { x: nx * offset, y: ny * offset };
+   return { start: { x: sx, y: sy }, end: { x: ex, y: ey } };
   };
   const sendColor = mode === 'technical' ? 0x22d3ee : 0x2563eb;
   const receiveColor = mode === 'technical' ? 0xa78bfa : 0xf59e0b;
@@ -128,7 +139,7 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
     connections.set(pair.join(':'), pair);
    }
   }
-  let sendOffset = { x: 0, y: 0 };
+  let sendRoute = { start: start.position, end: end.position };
   for (const [firstId, secondId] of connections.values()) {
    const first = byId.get(firstId);
    const second = byId.get(secondId);
@@ -137,7 +148,7 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
     || (firstId === action.to && secondId === action.from);
    // 現在の接続は送受信をカラー表示し、それ以外は両方向ともグレーにする。
    if (active) {
-    sendOffset = drawLane(start.position, end.position, -13, sendColor, 0.95);
+    sendRoute = drawLane(start.position, end.position, -13, sendColor, 0.95);
     drawLane(end.position, start.position, -13, receiveColor, 0.85);
    } else {
     drawLane(first.position, second.position, -13, inactiveColor, 0.45);
@@ -166,8 +177,8 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
   const packet = new Graphics().circle(0, 0, 10).fill(sendColor).stroke({ color: 0xffffff, width: 2 });
   layer.addChild(packet);
   packetRef.current = packet;
-  const from = { x: start.position.x + sendOffset.x, y: start.position.y + sendOffset.y };
-  const to = { x: end.position.x + sendOffset.x, y: end.position.y + sendOffset.y };
+  const from = sendRoute.start;
+  const to = sendRoute.end;
   routeRef.current = { start: from, end: to, duration: action.durationMs };
   const progress = Math.min(elapsedRef.current / action.durationMs, 1);
   const eased = progress * progress * (3 - 2 * progress);
