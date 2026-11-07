@@ -7,6 +7,9 @@ const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, l
 function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenario; step: number; mode: Mode; playing: boolean; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const done = useRef(onFinished);
+ const playingRef = useRef(playing);
+ // Keep PixiJS ticker callbacks in sync with the latest React playback state.
+ playingRef.current = playing;
  useEffect(() => { done.current = onFinished; }, [onFinished]);
  useEffect(() => {
   const el = host.current;
@@ -61,7 +64,7 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
    let elapsed = 0;
    let completed = false;
    instance.ticker.add(ticker => {
-    if (!playing || completed) return;
+    if (!playingRef.current || completed) return;
     elapsed += ticker.deltaMS;
     const progress = Math.min(elapsed / action.durationMs, 1);
     const eased = progress * progress * (3 - 2 * progress);
@@ -84,7 +87,12 @@ export default function App() {
  const [playing, setPlaying] = useState(false);
  useEffect(() => { listScenarios().then(p => { setPaths(p); setSelected(p[0] || ''); }).catch(e => setError(String(e))); }, []);
  useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
- const advance = () => { setPlaying(false); setStep(i => scenario ? Math.min(i + 1, scenario.steps.length - 1) : i); };
+ // Continue to the next step automatically; stop only after the final step.
+ const advance = () => {
+  if (!scenario) return;
+  if (step >= scenario.steps.length - 1) { setPlaying(false); return; }
+  setStep(step + 1);
+ };
  const current = scenario?.steps[step];
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><span>Scenario-driven visualization</span></header>
