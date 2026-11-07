@@ -24,3 +24,20 @@ button.selected,.speed-options button.selected{background:var(--selected);border
 .theme-switch button.selected{background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
 .theme-switch button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
 @media(max-width:800px){aside{border-color:var(--border)}.header-actions{gap:8px}.app header{padding:14px}}
+
+/* テーマをルート要素だけでなくページ全域へ適用し、スクロール領域も統一する。 */
+html,body,#root,.app{min-height:100%;background:var(--page);color:var(--text)}
+body{min-height:100vh}
+#root,.app{min-height:100vh}
+.app header{background:var(--page)}
+.layout{background:var(--page)}
+aside{background:var(--page)}
+main{background:var(--page)}
+button:hover:not(:disabled){border-color:var(--selected-border)}
+button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
+:root[data-theme="light"] .error{color:#b42318}
+:root[data-theme="light"] .scene{background:#f0f5fc}
+:root[data-theme="light"] .switch button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .steps button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .controls button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .explanation{box-shadow:0 1px 3px rgba(22,42,70,.05)}
