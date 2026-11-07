@@ -1,0 +1,92 @@
+schemaVersion: "1.0"
+metadata:
+  id: expense-reimbursement
+  title: 経費精算・承認ワークフロー
+  description: 社員の経費申請から上長承認、経理確認、振込処理、完了通知までを追跡します。
+  category: accounting
+actors:
+  - id: employee
+    name: 申請社員
+    type: person
+    position: { x: 115, y: 100 }
+  - id: workflow
+    name: 経費精算API
+    type: server
+    ip: 10.20.1.10
+    instanceName: expense-api-01
+    position: { x: 350, y: 180 }
+  - id: database
+    name: 精算DB
+    type: database
+    ip: 10.20.2.15
+    instanceName: expense-db-primary
+    position: { x: 580, y: 95 }
+  - id: manager
+    name: 承認上長
+    type: person
+    position: { x: 115, y: 285 }
+  - id: accounting
+    name: 経理担当
+    type: person
+    position: { x: 350, y: 310 }
+  - id: bank
+    name: 振込システム
+    type: service
+    instanceName: bank-transfer-gw
+    position: { x: 580, y: 290 }
+steps:
+  - id: submit
+    title: 経費申請
+    description: 社員が領収書と経費明細を入力し、精算APIへ申請します。
+    actions:
+      - { type: transfer, from: employee, to: workflow, payload: 経費申請・領収書, durationMs: 1600 }
+  - id: persist
+    title: 申請内容の登録
+    description: 精算APIが申請情報をデータベースへ保存し、ステータスを承認待ちにします。
+    actions:
+      - { type: transfer, from: workflow, to: database, payload: 申請データ保存, durationMs: 1200 }
+  - id: request-approval
+    title: 上長へ承認依頼
+    description: 精算APIから上長に承認依頼を通知します。
+    actions:
+      - { type: transfer, from: workflow, to: manager, payload: 承認依頼通知, durationMs: 1300 }
+  - id: approve
+    title: 上長による承認
+    description: 上長が申請内容と領収書を確認し、承認します。
+    actions:
+      - { type: transfer, from: manager, to: workflow, payload: 承認結果, durationMs: 1500 }
+  - id: approval-save
+    title: 承認結果の記録
+    description: 精算APIが承認者・承認日時・ステータスをデータベースへ保存します。
+    actions:
+      - { type: transfer, from: workflow, to: database, payload: 承認履歴保存, durationMs: 1100 }
+  - id: accounting-check
+    title: 経理確認依頼
+    description: 承認済み申請を経理担当へ回付します。
+    actions:
+      - { type: transfer, from: workflow, to: accounting, payload: 経理確認依頼, durationMs: 1300 }
+  - id: accounting-confirm
+    title: 経理担当による確認
+    description: 経理担当が勘定科目・金額・証憑を確認し、支払可能として確定します。
+    actions:
+      - { type: transfer, from: accounting, to: workflow, payload: 支払確定, durationMs: 1500 }
+  - id: transfer-request
+    title: 振込依頼
+    description: 精算APIが振込システムへ支払データを連携します。
+    actions:
+      - { type: transfer, from: workflow, to: bank, payload: 振込依頼データ, durationMs: 1600 }
+  - id: transfer-result
+    title: 振込結果の受信
+    description: 振込システムから受付結果を受信します。実際の入金完了とは区別します。
+    actions:
+      - { type: transfer, from: bank, to: workflow, payload: 振込受付結果, durationMs: 1400 }
+  - id: update-status
+    title: 支払受付状況の保存
+    description: 精算APIが振込受付済みのステータスを記録します。
+    actions:
+      - { type: transfer, from: workflow, to: database, payload: 振込受付済み, durationMs: 1100 }
+  - id: notify
+    title: 申請者へ通知
+    description: 社員へ振込依頼の受付完了を通知します。
+    actions:
+      - { type: transfer, from: workflow, to: employee, payload: 振込受付通知, durationMs: 1400 }
