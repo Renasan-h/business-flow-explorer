@@ -6,75 +6,148 @@ type Mode = 'technical' | 'illustration';
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
 function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenario; step: number; mode: Mode; playing: boolean; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
- const done = useRef(onFinished);
- const playingRef = useRef(playing);
- // PixiJSのTickerがReactの最新の再生状態を参照できるようにする。
- playingRef.current = playing;
- useEffect(() => { done.current = onFinished; }, [onFinished]);
+ const appRef = useRef<Application | null>(null);
+ const layerRef = useRef<Container | null>(null);
+ const packetRef = useRef<Graphics | null>(null);
+ const routeRef = useRef<{ start: { x: number; y: number }; end: { x: number; y: number }; duration: number } | null>(null);
+ const elapsedRef = useRef(0);
+ const lastStepRef = useRef(step);
+ const stateRef = useRef({ playing, onFinished });
+ const [ready, setReady] = useState(false);
+
+ // Tickerは初回のみ登録するため、再生状態と完了処理をRefで同期する。
+ stateRef.current = { playing, onFinished };
+
  useEffect(() => {
-  const el = host.current;
-  if (!el) return;
-  let disposed = false;
-  let app: Application | undefined;
-  (async () => {
-   const instance = new Application();
-   await instance.init({ width: 720, height: 390, background: palette[mode].bg, antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true });
-   if (disposed) { instance.destroy(true); return; }
-   app = instance;
-   el.appendChild(instance.canvas);
-   const colors = palette[mode];
+  const hostElement = host.current;
+  if (!hostElement) return;
+  let cancelled = false;
+  const app = new Application();
+  void app.init({
+   width: 720, height: 390, background: palette.technical.bg,
+   antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
+  }).then(() => {
+   if (cancelled) { app.destroy(true); return; }
+   hostElement.appendChild(app.canvas);
    const layer = new Container();
-   instance.stage.addChild(layer);
-   const byId = new Map(scenario.actors.map(a => [a.id, a]));
-   const current = scenario.steps[step];
-   const action = current.actions[0];
-   const start = byId.get(action.from)!;
-   const end = byId.get(action.to)!;
-   const label = (text: string, x: number, y: number, size = 15) => {
-    const t = new Text({ text, style: new TextStyle({ fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center' }) });
-    t.anchor.set(0.5); t.position.set(x, y); layer.addChild(t);
-   };
-   const draw = (g: Graphics, x: number, y: number, active: boolean) => {
-    g.roundRect(x - 55, y - 39, 110, 78, mode === 'illustration' ? 20 : 12)
-     .fill(active ? (mode === 'technical' ? 0x205a83 : 0xdbeafe) : colors.node)
-     .stroke({ width: active ? 3 : 1.5, color: colors.border });
-   };
-   for (const a of scenario.actors) {
-    for (const b of scenario.actors) {
-     if (a.id >= b.id) continue;
-     const line = new Graphics().moveTo(a.position.x, a.position.y).lineTo(b.position.x, b.position.y).stroke({ color: colors.line, width: 1, alpha: 0.25 });
-     layer.addChild(line);
-    }
-   }
-   for (const a of scenario.actors) {
-    const g = new Graphics();
-    draw(g, a.position.x, a.position.y, a.id === action.from || a.id === action.to);
-    layer.addChild(g);
-    const symbols: Record<string, string> = mode === 'technical'
-      ? { person: '◎', server: '▤', database: '◉', service: '◇' }
-      : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
-    label(symbols[a.type], a.position.x, a.position.y - 9, 29);
-    label(a.name, a.position.x, a.position.y + 21, 12);
-   }
-   const route = new Graphics().moveTo(start.position.x, start.position.y).lineTo(end.position.x, end.position.y).stroke({ color: mode === 'technical' ? 0x22d3ee : 0x4378e0, width: 4, alpha: 0.8 });
-   layer.addChildAt(route, 0);
-   const packet = new Graphics().circle(0, 0, mode === 'technical' ? 10 : 13).fill(mode === 'technical' ? 0x22d3ee : 0xf59e0b).stroke({ color: 0xffffff, width: 2 });
-   layer.addChild(packet);
-   label(action.payload, 360, 360, 14);
-   let elapsed = 0;
-   let completed = false;
-   instance.ticker.add(ticker => {
-    if (!playingRef.current || completed) return;
-    elapsed += ticker.deltaMS;
-    const progress = Math.min(elapsed / action.durationMs, 1);
+   app.stage.addChild(layer);
+   appRef.current = app;
+   layerRef.current = layer;
+   app.ticker.add(ticker => {
+    const route = routeRef.current;
+    const packet = packetRef.current;
+    if (!route || !packet || !stateRef.current.playing) return;
+    elapsedRef.current = Math.min(elapsedRef.current + ticker.deltaMS, route.duration);
+    const progress = elapsedRef.current / route.duration;
     const eased = progress * progress * (3 - 2 * progress);
-    packet.position.set(start.position.x + (end.position.x - start.position.x) * eased, start.position.y + (end.position.y - start.position.y) * eased);
-    if (progress >= 1) { completed = true; done.current(); }
+    packet.position.set(
+     route.start.x + (route.end.x - route.start.x) * eased,
+     route.start.y + (route.end.y - route.start.y) * eased,
+    );
+    if (progress >= 1) {
+     // 完了通知が連続して発火しないよう、次の描画更新まで停止する。
+     routeRef.current = null;
+     stateRef.current.onFinished();
+    }
    });
-   packet.position.set(start.position.x, start.position.y);
-  })().catch(error => { if (!disposed) console.error(error); });
-  return () => { disposed = true; if (app) { app.destroy(true, { children: true }); el.replaceChildren(); } };
- }, [scenario, step, mode]);
+   setReady(true);
+  }).catch(error => console.error('PixiJS初期化エラー', error));
+  return () => {
+   cancelled = true;
+   setReady(false);
+   routeRef.current = null;
+   packetRef.current = null;
+   layerRef.current = null;
+   appRef.current = null;
+   if (app.renderer) app.destroy(true, { children: true });
+  };
+ }, []);
+
+ useEffect(() => {
+  const app = appRef.current;
+  const layer = layerRef.current;
+  if (!ready || !app || !layer) return;
+
+  // ステップが変わったときだけ再生位置を初期化し、表示モード変更では維持する。
+  if (lastStepRef.current !== step) {
+   elapsedRef.current = 0;
+   lastStepRef.current = step;
+  }
+  const colors = palette[mode];
+  app.renderer.background.color = colors.bg;
+  layer.removeChildren().forEach(child => child.destroy({ children: true }));
+  const byId = new Map(scenario.actors.map(actor => [actor.id, actor]));
+  const action = scenario.steps[step].actions[0];
+  const start = byId.get(action.from);
+  const end = byId.get(action.to);
+  if (!start || !end) return;
+
+  const label = (value: string, x: number, y: number, size = 14) => {
+   const text = new Text({ text: value, style: new TextStyle({
+    fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center',
+   }) });
+   text.anchor.set(0.5);
+   text.position.set(x, y);
+   layer.addChild(text);
+  };
+
+  // 送信と受信の経路を平行に配置し、矢印で通信方向を明示する。
+  const drawLane = (from: { x: number; y: number }, to: { x: number; y: number }, offset: number, color: number, alpha: number) => {
+   const dx = to.x - from.x;
+   const dy = to.y - from.y;
+   const length = Math.hypot(dx, dy) || 1;
+   const nx = -dy / length;
+   const ny = dx / length;
+   const sx = from.x + nx * offset;
+   const sy = from.y + ny * offset;
+   const ex = to.x + nx * offset;
+   const ey = to.y + ny * offset;
+   const line = new Graphics()
+    .moveTo(sx, sy).lineTo(ex, ey)
+    .stroke({ color, width: 3, alpha });
+   const ux = dx / length;
+   const uy = dy / length;
+   const arrowX = sx + dx * 0.65;
+   const arrowY = sy + dy * 0.65;
+   line.moveTo(arrowX - ux * 9 - uy * 6, arrowY - uy * 9 + ux * 6)
+    .lineTo(arrowX, arrowY)
+    .lineTo(arrowX - ux * 9 + uy * 6, arrowY - uy * 9 - ux * 6)
+    .stroke({ color, width: 3, alpha });
+   layer.addChild(line);
+   return { x: nx * offset, y: ny * offset };
+  };
+  const sendColor = mode === 'technical' ? 0x22d3ee : 0x2563eb;
+  const receiveColor = mode === 'technical' ? 0xa78bfa : 0xf59e0b;
+  const sendOffset = drawLane(start.position, end.position, -13, sendColor, 0.95);
+  drawLane(end.position, start.position, -13, receiveColor, 0.65);
+
+  for (const actor of scenario.actors) {
+   const active = actor.id === action.from || actor.id === action.to;
+   const g = new Graphics()
+    .roundRect(actor.position.x - 55, actor.position.y - 39, 110, 78, mode === 'illustration' ? 20 : 12)
+    .fill(active ? (mode === 'technical' ? 0x205a83 : 0xdbeafe) : colors.node)
+    .stroke({ color: colors.border, width: active ? 3 : 1.5 });
+   layer.addChild(g);
+   const symbol: Record<string, string> = mode === 'technical'
+    ? { person: '◎', server: '▤', database: '◉', service: '◇' }
+    : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
+   label(symbol[actor.type], actor.position.x, actor.position.y - 9, 28);
+   label(actor.name, actor.position.x, actor.position.y + 21, 12);
+  }
+  const packet = new Graphics().circle(0, 0, 10).fill(sendColor).stroke({ color: 0xffffff, width: 2 });
+  layer.addChild(packet);
+  packetRef.current = packet;
+  const from = { x: start.position.x + sendOffset.x, y: start.position.y + sendOffset.y };
+  const to = { x: end.position.x + sendOffset.x, y: end.position.y + sendOffset.y };
+  routeRef.current = { start: from, end: to, duration: action.durationMs };
+  const progress = Math.min(elapsedRef.current / action.durationMs, 1);
+  const eased = progress * progress * (3 - 2 * progress);
+  packet.position.set(from.x + (to.x - from.x) * eased, from.y + (to.y - from.y) * eased);
+  label(action.payload, 360, 360);
+  label('送信', 65, 345, 12);
+  label('受信', 125, 345, 12);
+ }, [scenario, step, mode, ready]);
+
  return <div className="scene" ref={host} aria-label="グラフィックシミュレーション" />;
 }
 export default function App() {
