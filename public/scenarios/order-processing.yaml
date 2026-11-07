@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 metadata:
   id: order-processing
-  title: 注文処理
+  title: ECサイトの注文処理
   description: 注文受付から決済まで
   category: sales
 actors:
