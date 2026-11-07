@@ -1,7 +1,7 @@
 schemaVersion: "1.0"
 metadata:
   id: mvc-attendance-search
-  title: MVC勤怠管理・月次勤怠照会
+  title: 勤怠管理（月次照会・MVC構成）
   description: 社員が月次勤怠一覧を検索し、Controller・Service・Repository・Database・Viewを経由して画面が返るまでを追跡します。
   category: architecture
 actors:
