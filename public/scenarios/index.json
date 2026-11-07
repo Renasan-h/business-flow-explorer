@@ -1,1 +1,4 @@
-["/scenarios/order-processing.yaml"]
+[
+  "/scenarios/order-processing.yaml",
+  "/scenarios/expense-reimbursement.yaml"
+]
