@@ -3,8 +3,10 @@ import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { listScenarios, loadScenario, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
+type PlaybackSpeed = 0.5 | 1 | 1.5 | 2;
+const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
-function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenario; step: number; mode: Mode; playing: boolean; onFinished: () => void }) {
+function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario: Scenario; step: number; mode: Mode; playing: boolean; speed: PlaybackSpeed; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
@@ -12,11 +14,11 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
  const routeRef = useRef<{ start: { x: number; y: number }; end: { x: number; y: number }; duration: number } | null>(null);
  const elapsedRef = useRef(0);
  const lastStepRef = useRef(step);
- const stateRef = useRef({ playing, onFinished });
+ const stateRef = useRef({ playing, speed, onFinished });
  const [ready, setReady] = useState(false);
 
  // Tickerは初回のみ登録するため、再生状態と完了処理をRefで同期する。
- stateRef.current = { playing, onFinished };
+ stateRef.current = { playing, speed, onFinished };
 
  useEffect(() => {
   const hostElement = host.current;
@@ -37,7 +39,8 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
     const route = routeRef.current;
     const packet = packetRef.current;
     if (!route || !packet || !stateRef.current.playing) return;
-    elapsedRef.current = Math.min(elapsedRef.current + ticker.deltaMS, route.duration);
+    // 速度変更時も現在位置を維持し、次のフレームから倍率を反映する。
+    elapsedRef.current = Math.min(elapsedRef.current + ticker.deltaMS * stateRef.current.speed, route.duration);
     const progress = elapsedRef.current / route.duration;
     const eased = progress * progress * (3 - 2 * progress);
     packet.position.set(
@@ -198,6 +201,7 @@ export default function App() {
  const [mode, setMode] = useState<Mode>('technical');
  const [step, setStep] = useState(0);
  const [playing, setPlaying] = useState(false);
+ const [speed, setSpeed] = useState<PlaybackSpeed>(1);
  useEffect(() => { listScenarios().then(p => { setPaths(p); setSelected(p[0] || ''); }).catch(e => setError(String(e))); }, []);
  useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // ステップ完了時は自動的に次へ進み、最終ステップのみ再生を停止する。
@@ -214,7 +218,7 @@ export default function App() {
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch"><button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
-    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} playing={playing} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={() => setPlaying(p => !p)}>{playing ? '⏸ 一時停止' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setStep(i => i + 1); }}>次へ ▶</button><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={() => setPlaying(p => !p)}>{playing ? '⏸ 一時停止' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setStep(i => i + 1); }}>次へ ▶</button><label htmlFor="playback-speed">再生速度</label><select id="playback-speed" aria-label="再生速度" value={speed} onChange={event => setSpeed(Number(event.target.value) as PlaybackSpeed)}>{playbackSpeeds.map(value => <option key={value} value={value}>{value}x</option>)}</select><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
