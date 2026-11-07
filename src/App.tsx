@@ -8,7 +8,7 @@ function Scene({ scenario, step, mode, playing, onFinished }: { scenario: Scenar
  const host = useRef<HTMLDivElement>(null);
  const done = useRef(onFinished);
  const playingRef = useRef(playing);
- // Keep PixiJS ticker callbacks in sync with the latest React playback state.
+ // PixiJSのTickerがReactの最新の再生状態を参照できるようにする。
  playingRef.current = playing;
  useEffect(() => { done.current = onFinished; }, [onFinished]);
  useEffect(() => {
@@ -87,7 +87,7 @@ export default function App() {
  const [playing, setPlaying] = useState(false);
  useEffect(() => { listScenarios().then(p => { setPaths(p); setSelected(p[0] || ''); }).catch(e => setError(String(e))); }, []);
  useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
- // Continue to the next step automatically; stop only after the final step.
+ // ステップ完了時は自動的に次へ進み、最終ステップのみ再生を停止する。
  const advance = () => {
   if (!scenario) return;
   if (step >= scenario.steps.length - 1) { setPlaying(false); return; }
