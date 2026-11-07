@@ -1,0 +1,110 @@
+// 通信グラフをもとに、接続距離と交差が小さくなるノード配置を求める。
+type Point = { x: number; y: number };
+type Node = { id: string; position?: Point };
+type Transfer = { from: string; to: string };
+type Workflow = { actors: Node[]; steps: { actions: Transfer[] }[] };
+
+function intersects(a: Point, b: Point, c: Point, d: Point): boolean {
+ const cross = (p: Point, q: Point, r: Point) =>
+  (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+ const ab1 = cross(a, b, c);
+ const ab2 = cross(a, b, d);
+ const cd1 = cross(c, d, a);
+ const cd2 = cross(c, d, b);
+ return ab1 * ab2 < 0 && cd1 * cd2 < 0;
+}
+
+export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] }): (T & { position: Point })[] {
+ const actors = scenario.actors;
+ const count = actors.length;
+ // ノードが増えた場合は行数を増やす。ノード間の最低限の間隔を確保する。
+ const columns = Math.min(3, count);
+ const rows = Math.ceil(count / columns);
+ const slots: Point[] = Array.from({ length: count }, (_, index) => {
+  const row = Math.floor(index / columns);
+  const inRow = Math.min(columns, count - row * columns);
+  const col = index % columns;
+  return {
+   x: 120 + (inRow === 1 ? 0.5 : col / (inRow - 1)) * 480,
+   y: rows === 1 ? 195 : 100 + row * (190 / (rows - 1)),
+  };
+ });
+ const indexById = new Map(actors.map((actor, index) => [actor.id, index]));
+ const edges = new Map<string, { a: number; b: number; weight: number }>();
+ for (const step of scenario.steps) for (const action of step.actions) {
+  const from = indexById.get(action.from);
+  const to = indexById.get(action.to);
+  if (from === undefined || to === undefined || from === to) continue;
+  const [a, b] = from < to ? [from, to] : [to, from];
+  const key = `${a}:${b}`;
+  const edge = edges.get(key);
+  if (edge) edge.weight += 1;
+  else edges.set(key, { a, b, weight: 1 });
+ }
+ const links = [...edges.values()];
+ const degree = actors.map((_, index) =>
+  links.reduce((sum, edge) => sum + (edge.a === index || edge.b === index ? edge.weight : 0), 0));
+ const pinned = actors.map(actor => actor.position !== undefined);
+ const positions = actors.map((actor, index) => actor.position ?? slots[index]);
+ const free = actors.map((_, index) => index).filter(index => !pinned[index]);
+
+ // 配置候補を採点する。短い通信線、少ない交差、中心に近いハブを優先する。
+ const score = () => {
+  let cost = 0;
+  for (const edge of links) {
+   const a = positions[edge.a];
+   const b = positions[edge.b];
+   cost += edge.weight * Math.hypot(a.x - b.x, a.y - b.y) / 100;
+  }
+  for (let i = 0; i < links.length; i++) for (let j = i + 1; j < links.length; j++) {
+   const a = links[i];
+   const b = links[j];
+   if (a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b) continue;
+   if (intersects(positions[a.a], positions[a.b], positions[b.a], positions[b.b])) cost += 9;
+  }
+  for (let i = 0; i < count; i++) {
+   cost += degree[i] * Math.hypot(positions[i].x - 360, positions[i].y - 195) / 600;
+  }
+  return cost;
+ };
+ // ノード数が少ない業務フローでは全候補を比較し、局所最適への偏りを防ぐ。
+ let best = score();
+ let bestPositions = positions.map(p => ({ ...p }));
+ const explore = (index: number) => {
+  if (index === free.length) {
+   const current = score();
+   if (current < best - 0.00001) {
+    best = current;
+    bestPositions = positions.map(p => ({ ...p }));
+   }
+   return;
+  }
+  for (let j = index; j < free.length; j++) {
+   const a = free[index];
+   const b = free[j];
+   [positions[a], positions[b]] = [positions[b], positions[a]];
+   explore(index + 1);
+   [positions[a], positions[b]] = [positions[b], positions[a]];
+  }
+ };
+ if (free.length <= 8) explore(0);
+ else {
+  // 大規模なシナリオでは計算量を抑えるため、改善する交換だけを繰り返す。
+  for (let pass = 0; pass < 12; pass++) {
+   let improved = false;
+   for (let i = 0; i < free.length; i++) for (let j = i + 1; j < free.length; j++) {
+    const a = free[i];
+    const b = free[j];
+    [positions[a], positions[b]] = [positions[b], positions[a]];
+    const current = score();
+    if (current < best - 0.00001) {
+     best = current;
+     bestPositions = positions.map(p => ({ ...p }));
+     improved = true;
+    } else [positions[a], positions[b]] = [positions[b], positions[a]];
+   }
+   if (!improved) break;
+  }
+ }
+ return actors.map((actor, index) => ({ ...actor, position: bestPositions[index] }));
+}
