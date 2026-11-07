@@ -3,10 +3,11 @@ import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { listScenarios, loadScenario, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
+type Theme = 'dark' | 'light';
 type PlaybackSpeed = 0.5 | 1 | 1.5 | 2;
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
-function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario: Scenario; step: number; mode: Mode; playing: boolean; speed: PlaybackSpeed; onFinished: () => void }) {
+function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
@@ -76,7 +77,8 @@ function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario:
    elapsedRef.current = 0;
    lastStepRef.current = step;
   }
-  const colors = palette[mode];
+  // 表示モードと配色テーマを独立させ、どちらの組み合わせでも視認性を保つ。
+  const colors = theme === 'dark' ? palette.technical : palette.illustration;
   app.renderer.background.color = colors.bg;
   layer.removeChildren().forEach(child => child.destroy({ children: true }));
   const byId = new Map(scenario.actors.map(actor => [actor.id, actor]));
@@ -130,9 +132,9 @@ function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario:
    layer.addChild(line);
    return { start: { x: sx, y: sy }, end: { x: ex, y: ey } };
   };
-  const sendColor = mode === 'technical' ? 0x22d3ee : 0x2563eb;
-  const receiveColor = mode === 'technical' ? 0xa78bfa : 0xf59e0b;
-  const inactiveColor = mode === 'technical' ? 0x64748b : 0x9ca3af;
+  const sendColor = theme === 'dark' ? 0x22d3ee : 0x2563eb;
+  const receiveColor = theme === 'dark' ? 0xa78bfa : 0xf59e0b;
+  const inactiveColor = theme === 'dark' ? 0x64748b : 0x9ca3af;
 
   // シナリオ全体から通信経路を収集し、未使用中の経路もグレーで表示する。
   const connections = new Map<string, [string, string]>();
@@ -163,7 +165,7 @@ function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario:
    const active = actor.id === action.from || actor.id === action.to;
    const g = new Graphics()
     .roundRect(actor.position.x - 55, actor.position.y - 39, 110, 78, mode === 'illustration' ? 20 : 12)
-    .fill(active ? (mode === 'technical' ? 0x205a83 : 0xdbeafe) : colors.node)
+    .fill(active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node)
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
    layer.addChild(g);
    const symbol: Record<string, string> = mode === 'technical'
@@ -189,7 +191,7 @@ function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario:
   label(action.payload, 360, 360);
   label('送信', 65, 345, 12);
   label('受信', 125, 345, 12);
- }, [scenario, step, mode, ready]);
+ }, [scenario, step, mode, theme, ready]);
 
  return <div className="scene" ref={host} aria-label="グラフィックシミュレーション" />;
 }
@@ -200,6 +202,19 @@ export default function App() {
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [error, setError] = useState('');
  const [mode, setMode] = useState<Mode>('technical');
+ // 保存済みの選択を優先し、初回はOSの配色設定を使用する。
+ const [theme, setTheme] = useState<Theme>(() => {
+  try {
+   const saved = localStorage.getItem('business-flow-theme');
+   if (saved === 'dark' || saved === 'light') return saved;
+  } catch { /* ストレージを利用できない環境ではOS設定を優先する。 */ }
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+ });
+ useEffect(() => {
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem('business-flow-theme', theme); }
+  catch { /* 保存できない場合も現在の画面では切り替えを維持する。 */ }
+ }, [theme]);
  const [step, setStep] = useState(0);
  const [playing, setPlaying] = useState(false);
  const [speed, setSpeed] = useState<PlaybackSpeed>(1);
@@ -225,13 +240,13 @@ export default function App() {
  };
  const current = scenario?.steps[step];
  return <div className="app">
-  <header><strong>◈ Business Flow Explorer</strong><span>Scenario-driven visualization</span></header>
+  <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
    <aside><h3>シナリオ</h3>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch"><button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
-    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={() => setPlaying(p => !p)}>{playing ? '⏸ 一時停止' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={() => setPlaying(p => !p)}>{playing ? '⏸ 一時停止' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
