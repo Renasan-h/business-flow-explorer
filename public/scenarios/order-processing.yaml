@@ -1,0 +1,37 @@
+schemaVersion: "1.0"
+metadata:
+  id: order-processing
+  title: 注文処理
+  description: 注文受付から決済まで
+  category: sales
+actors:
+  - { id: customer, name: 顧客, type: person, position: { x: 120, y: 190 } }
+  - { id: order, name: 注文サーバー, type: server, position: { x: 350, y: 190 } }
+  - { id: inventory, name: 在庫DB, type: database, position: { x: 580, y: 90 } }
+  - { id: payment, name: 決済サービス, type: service, position: { x: 580, y: 300 } }
+steps:
+  - id: receive
+    title: 注文受付
+    description: 顧客から注文サーバーへ注文を送信します。
+    actions:
+      - { type: transfer, from: customer, to: order, payload: 注文データ, durationMs: 1500 }
+  - id: stock
+    title: 在庫照会
+    description: 在庫データベースに照会します。
+    actions:
+      - { type: transfer, from: order, to: inventory, payload: 在庫照会, durationMs: 1500 }
+  - id: stock-result
+    title: 在庫回答
+    description: 在庫結果を返します。
+    actions:
+      - { type: transfer, from: inventory, to: order, payload: 在庫あり, durationMs: 1500 }
+  - id: pay
+    title: 決済処理
+    description: 決済サービスに依頼します。
+    actions:
+      - { type: transfer, from: order, to: payment, payload: 決済要求, durationMs: 1500 }
+  - id: done
+    title: 完了通知
+    description: 顧客に注文完了を通知します。
+    actions:
+      - { type: transfer, from: order, to: customer, payload: 完了通知, durationMs: 1500 }
