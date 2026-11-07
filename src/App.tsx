@@ -195,6 +195,7 @@ function Scene({ scenario, step, mode, playing, speed, onFinished }: { scenario:
 }
 export default function App() {
  const [paths, setPaths] = useState<string[]>([]);
+ const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
  const [selected, setSelected] = useState('');
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [error, setError] = useState('');
@@ -202,7 +203,20 @@ export default function App() {
  const [step, setStep] = useState(0);
  const [playing, setPlaying] = useState(false);
  const [speed, setSpeed] = useState<PlaybackSpeed>(1);
- useEffect(() => { listScenarios().then(p => { setPaths(p); setSelected(p[0] || ''); }).catch(e => setError(String(e))); }, []);
+ // シナリオ一覧の表示名はファイル名ではなく、各YAMLの必須項目metadata.titleから取得する。
+ useEffect(() => {
+  let cancelled = false;
+  listScenarios()
+   .then(async paths => {
+    const scenarios = await Promise.all(paths.map(path => loadScenario(path)));
+    if (cancelled) return;
+    setPaths(paths);
+    setScenarioTitles(Object.fromEntries(paths.map((path, index) => [path, scenarios[index].metadata.title])));
+    setSelected(paths[0] || '');
+   })
+   .catch(error => { if (!cancelled) setError(String(error)); });
+  return () => { cancelled = true; };
+ }, []);
  useEffect(() => { if (!selected) return; setPlaying(false); setStep(0); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // 最終ステップの完了後は先頭に戻し、再生状態と速度を維持してループ再生する。
  const advance = () => {
@@ -213,7 +227,7 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><span>Scenario-driven visualization</span></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{p.split('/').pop()?.replace('.yaml','')}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
+   <aside><h3>シナリオ</h3>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch"><button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
