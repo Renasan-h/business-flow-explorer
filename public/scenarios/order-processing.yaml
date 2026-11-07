@@ -6,9 +6,9 @@ metadata:
   category: sales
 actors:
   - { id: customer, name: 顧客, type: person, position: { x: 120, y: 190 } }
-  - { id: order, name: 注文サーバー, type: server, position: { x: 350, y: 190 } }
-  - { id: inventory, name: 在庫DB, type: database, position: { x: 580, y: 90 } }
-  - { id: payment, name: 決済サービス, type: service, position: { x: 580, y: 300 } }
+  - { id: order, name: 注文サーバー, ip: 10.0.1.10, instanceName: order-api-01, type: server, position: { x: 350, y: 190 } }
+  - { id: inventory, name: 在庫DB, ip: 10.0.1.20, instanceName: inventory-db-01, type: database, position: { x: 580, y: 90 } }
+  - { id: payment, name: 決済サービス, instanceName: payment-gateway, type: service, position: { x: 580, y: 300 } }
 steps:
   - id: receive
     title: 注文受付
