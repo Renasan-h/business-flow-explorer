@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parse } from 'yaml';
+import { layoutActors } from './layout';
 const actor = z.object({ id:z.string(), name:z.string(), ip:z.string().optional(), instanceName:z.string().optional(), type:z.enum(['person','server','database','service']), position:z.object({x:z.number(),y:z.number()}).optional() });
 const action = z.object({ type:z.literal('transfer'),from:z.string(),to:z.string(),payload:z.string(),durationMs:z.number().positive() });
 const schema = z.object({
@@ -18,26 +19,11 @@ export type Scenario = Omit<ParsedScenario, 'actors'> & {
  actors: (ParsedScenario['actors'][number] & { position: { x: number; y: number } })[];
 };
 
-// 記述順にノードを自動配置する。個別のposition指定があればそちらを優先する。
-function assignPositions(scenario: ParsedScenario): Scenario {
- const count = scenario.actors.length;
- const columns = Math.min(3, count);
- const rows = Math.ceil(count / columns);
- const actors = scenario.actors.map((actor, index) => {
-  const row = Math.floor(index / columns);
-  const itemsInRow = Math.min(columns, count - row * columns);
-  const column = index % columns;
-  // ノード本体と上部の補足情報が画面端に重ならないよう余白を確保する。
-  const x = 120 + (itemsInRow === 1 ? 0.5 : column / (itemsInRow - 1)) * 480;
-  const y = rows === 1 ? 195 : 105 + (row / (rows - 1)) * 180;
-  return { ...actor, position: actor.position ?? { x, y } };
- });
- return { ...scenario, actors };
-}
 export async function loadScenario(path:string):Promise<Scenario>{
  const response=await fetch(path,{cache:'no-store'});
  if(!response.ok) throw new Error('Scenario load failed: '+path);
- return assignPositions(schema.parse(parse(await response.text())));
+ const scenario = schema.parse(parse(await response.text()));
+ return { ...scenario, actors: layoutActors(scenario) };
 }
 export async function listScenarios():Promise<string[]>{
  const response=await fetch('/scenarios/index.json',{cache:'no-store'});
