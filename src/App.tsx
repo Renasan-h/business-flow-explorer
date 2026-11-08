@@ -179,6 +179,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
   for (const scenarioStep of scenario.steps) {
    for (const transfer of scenarioStep.actions) {
     connections.add(JSON.stringify([transfer.from, transfer.to]));
+    // 双方向は通信ステップを増やさず、描画用の逆方向だけを登録する。
+    if (scenarioStep.bidirectional) connections.add(JSON.stringify([transfer.to, transfer.from]));
    }
   }
   let sendRoute = { start: start.position, end: end.position };
