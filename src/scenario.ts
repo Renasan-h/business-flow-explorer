@@ -22,6 +22,8 @@ const step = z.object({
  title: z.string(),
  description: z.string(),
  order: z.number().finite().optional(),
+ // 未指定時は直線。折れ線を選んだ通信だけYAMLに保存する。
+ routing: z.enum(['straight', 'orthogonal']).optional(),
  actions: z.array(action).min(1),
 });
 const metadata = z.object({
