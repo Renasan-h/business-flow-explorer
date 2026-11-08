@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
+import { NODE_TYPES, NODE_ICONS, nodeGlyph } from './nodeCatalog';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
@@ -241,7 +242,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        <rect x={actor.position.x - NODE_WIDTH / 2} y={actor.position.y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" fill={source === actor.id ? '#165c73' : selectedActor === actor.id ? '#1e5a88' : '#20314a'} stroke={source === actor.id || selectedActor === actor.id ? '#22d3ee' : '#7398c9'} strokeWidth="2"/>
        <circle cx={actor.position.x - NODE_WIDTH / 2 + 13} cy={actor.position.y - NODE_HEIGHT / 2 + 13} r="15" fill="#22d3ee" />
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
-       <text x={actor.position.x} y={actor.position.y - 8} textAnchor="middle" fill="#f0f6ff" fontSize="15">{actor.type === 'database' ? '◉' : actor.type === 'person' ? '◎' : actor.type === 'server' ? '▤' : '◇'}</text>
+       <text x={actor.position.x} y={actor.position.y - 8} textAnchor="middle" fill="#f0f6ff" fontSize="15">{nodeGlyph(actor.type, actor.icon)}</text>
        <text x={actor.position.x} y={actor.position.y + 15} textAnchor="middle" fill="#f0f6ff" fontSize="12">{actor.name.length > 12 ? actor.name.slice(0, 11) + '…' : actor.name}</text>
        {/* ノード端からドラッグする接続ハンドル。 */}
        <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
@@ -260,7 +261,14 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
     {activeActor && <><h3>ノード設定（No. {nodeNumbers[activeActor.id]}）</h3>
      <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
-     <label>種類<select value={activeActor.type} onChange={e => changeActor(activeActor.id, { type: e.target.value as Actor['type'] })}><option value="person">人物</option><option value="server">サーバー</option><option value="service">サービス</option><option value="database">DB</option></select></label>
+     <label>種類<select value={activeActor.type} onChange={e => changeActor(activeActor.id, { type: e.target.value as Actor['type'] })}>{NODE_TYPES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+     <label>アイコン<select value={activeActor.icon ?? activeActor.type} onChange={e => changeActor(activeActor.id, { icon: e.target.value as Actor['icon'] })}>{NODE_ICONS.map(item => <option key={item.value} value={item.value}>{item.glyph} {item.label}</option>)}</select></label>
+     <label>説明<textarea value={activeActor.description ?? ''} onChange={e => changeActor(activeActor.id, { description: e.target.value })} placeholder="ノードの役割や処理内容"/></label>
+     <label>環境<input value={activeActor.environment ?? ''} onChange={e => changeActor(activeActor.id, { environment: e.target.value })} placeholder="例: 開発 / 検証 / 本番"/></label>
+     <label>接続先・URL<input value={activeActor.endpoint ?? ''} onChange={e => changeActor(activeActor.id, { endpoint: e.target.value })} placeholder="例: https://api.example.com"/></label>
+     <label>インスタンス名<input value={activeActor.instanceName ?? ''} onChange={e => changeActor(activeActor.id, { instanceName: e.target.value })}/></label>
+     <label>IPアドレス<input value={activeActor.ip ?? ''} onChange={e => changeActor(activeActor.id, { ip: e.target.value })}/></label>
+     <label>タグ（カンマ区切り）<input value={(activeActor.tags ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })} placeholder="例: 認証, 社内"/></label>
      <div className="editor-coordinates"><label>X<input type="number" value={Math.round(activeActor.position.x)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, x: Number(e.target.value) } })}/></label><label>Y<input type="number" value={Math.round(activeActor.position.y)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, y: Number(e.target.value) } })}/></label></div>
      <button onClick={() => { setActors(v => v.filter(actor => actor.id !== activeActor.id)); setSteps(v => v.filter(step => step.actions.every(action => action.from !== activeActor.id && action.to !== activeActor.id))); setSelectedActor(null); }}>ノードと関連通信を削除</button>
     </>}
