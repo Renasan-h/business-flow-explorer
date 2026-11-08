@@ -9,4 +9,14 @@ actorFiles:
 steps:
   - file: fragments/member-access.yaml
   - file: fragments/member-initial-data.yaml
+    handoff:
+      from: web
+      to: api
+      payload: "{{registrationRequest}}"
+      durationMs: 1200
   - file: fragments/member-confirm.yaml
+    handoff:
+      from: db
+      to: web
+      payload: "{{initialData}}"
+      durationMs: 1200
