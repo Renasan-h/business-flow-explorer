@@ -119,38 +119,27 @@ steps:
 
 ## サブシナリオと共通Actorファイル
 
-サブシナリオは `@相対パス.yaml` で読み込みます。**記載した順番で再生**され、別ファイルの `order` は全体の順番を変更しません。
+親シナリオの `steps` 配列内で、通常ステップとサブシナリオの参照を混在させられます。**再生順は `steps` の記述順そのもの**です。
 
 ```yaml
 # public/scenarios/member-registration-modular.yaml
-@fragments/member-access.yaml
-@fragments/member-initial-data.yaml
-@fragments/member-confirm.yaml
-
 schemaVersion: "1.0"
 metadata:
   id: member-registration-modular
   title: 会員登録（分割シナリオ例）
   description: 分割ファイルの読み込み例
   category: membership
+
 actorFiles:
   - actors/member-actors.yaml
+
+steps:
+  - file: fragments/member-access.yaml
+  - file: fragments/member-initial-data.yaml
+  - file: fragments/member-confirm.yaml
 ```
 
-共通Actor定義は `actorFiles` にファイルパスを列挙します。各ファイルは次の形式です。
-
-```yaml
-# public/scenarios/actors/member-actors.yaml
-actors:
-  - id: customer
-    name: 顧客
-    type: person
-  - id: web
-    name: Webサーバー
-    type: server
-```
-
-サブシナリオは `steps` のみでも記述できます。
+サブシナリオの内容は通常の `steps` と同じ形式です。1ファイルに複数ステップを定義した場合も、そのファイル内の記述順に展開します。
 
 ```yaml
 # public/scenarios/fragments/member-access.yaml
@@ -166,13 +155,27 @@ steps:
         durationMs: 1500
 ```
 
-- `@...` は行頭に単独で記述し、参照元ファイルを基準に相対解決します。入れ子のサブシナリオも利用できます。
-- `actorFiles` も参照元ファイルからの相対パスです。指定先にはActor定義のみを記述します。
-- `actor.id` が重複する場合は統合し、定義が矛盾する場合はエラーになります。
-- **サブシナリオ間は参照の記述順**です。同じファイル内で `order` を指定した場合のみ昇順に並び替え、未指定のステップはその後に記述順で配置します。
-- 親ファイル自身に `steps` がある場合は、参照したサブシナリオの後に再生されます。
+共通Actorは `actorFiles` に指定できます。
+
+```yaml
+# public/scenarios/actors/member-actors.yaml
+actors:
+  - id: customer
+    name: 顧客
+    type: person
+  - id: web
+    name: Webサーバー
+    type: server
+```
+
+- `steps: - file: ...` の参照先は、指定元のYAMLファイルからの相対パスです。
+- 通常のステップとサブシナリオを任意の順番で混在させられます。
+- サブシナリオ内でも別のサブシナリオを参照できます。
+- `order` を指定しても並び替えません。再生順は常に `steps` の記述順です。
+- `actorFiles` はActor定義専用です。同じActor IDは統合し、矛盾する定義はエラーになります。
 - 循環参照、重複したstep ID、未定義のActor参照はエラーになります。
-- 親ファイルには `schemaVersion` と `metadata` が必要です。 `index.json` に登録するのは親ファイルのみです。
+- 親シナリオには `schemaVersion` と `metadata` が必要です。 `index.json` には親ファイルのみ登録します。
+- 旧形式のファイル先頭に記述する `@ファイル名` はサポートしません。
 
 ## 技術構成
 
