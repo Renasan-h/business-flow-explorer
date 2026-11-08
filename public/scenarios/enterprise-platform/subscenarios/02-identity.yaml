@@ -1,0 +1,83 @@
+# 本人確認・OTP（正常系の通信例）
+steps:
+  - id: enterprise-02-01
+    title: 本人確認依頼
+    description: 本人確認・OTPにおける api から identity への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: identity
+        payload: "本人確認依頼"
+        durationMs: 1100
+  - id: enterprise-02-02
+    title: 本人確認結果: 合格
+    description: 本人確認・OTPにおける identity から api への通信です。
+    actions:
+      - type: transfer
+        from: identity
+        to: api
+        payload: "本人確認結果: 合格"
+        durationMs: 1100
+  - id: enterprise-02-03
+    title: OTP発行依頼
+    description: 本人確認・OTPにおける api から auth への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: auth
+        payload: "OTP発行依頼"
+        durationMs: 1100
+  - id: enterprise-02-04
+    title: OTPメール送信依頼
+    description: 本人確認・OTPにおける auth から mail への通信です。
+    actions:
+      - type: transfer
+        from: auth
+        to: mail
+        payload: "OTPメール送信依頼"
+        durationMs: 1100
+  - id: enterprise-02-05
+    title: 認証コード通知
+    description: 本人確認・OTPにおける mail から requester への通信です。
+    actions:
+      - type: transfer
+        from: mail
+        to: requester
+        payload: "認証コード通知"
+        durationMs: 1100
+  - id: enterprise-02-06
+    title: OTP入力
+    description: 本人確認・OTPにおける requester から web への通信です。
+    actions:
+      - type: transfer
+        from: requester
+        to: web
+        payload: "OTP入力"
+        durationMs: 1100
+  - id: enterprise-02-07
+    title: OTP照合
+    description: 本人確認・OTPにおける web から auth への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: auth
+        payload: "OTP照合"
+        durationMs: 1100
+  - id: enterprise-02-08
+    title: OTP検証成功
+    description: 本人確認・OTPにおける auth から api への通信です。
+    actions:
+      - type: transfer
+        from: auth
+        to: api
+        payload: "OTP検証成功"
+        durationMs: 1100
+  - id: enterprise-02-09
+    title: INSERT C_TBL 認証履歴
+    description: 本人確認・OTPにおける api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "INSERT C_TBL 認証履歴"
+        durationMs: 1100
