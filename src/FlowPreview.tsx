@@ -16,6 +16,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const [index, setIndex] = useState(0);
  const [playing, setPlaying] = useState(false);
  const [progress, setProgress] = useState(0);
+ // 双方向通信は同一ステップ内で往路・復路を順番に再生する。
+ const [returning, setReturning] = useState(false);
  const [speed, setSpeed] = useState(1);
  const [allLines, setAllLines] = useState(true);
  const [scale, setScale] = useState(1);
@@ -33,9 +35,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? ((step?.bidirectional || steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)))
-  ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12)
-  : routeConnection(actors, action.from, action.to, step?.routing ?? 'straight')) : [];
+ const hasReverse = Boolean(step?.bidirectional) || Boolean(action && steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)));
+ const activeRoute = action ? offsetRoute(routeConnection(actors, returning ? action.to : action.from, returning ? action.from : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
  const bounds = useMemo(() => {
   const xs = visibleActors.map(actor => actor.position.x);
   const ys = visibleActors.map(actor => actor.position.y);
@@ -87,20 +88,23 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  }, [playing, action, speed, index]);
  useEffect(() => {
   if (!playing || progress < 1) return;
+  if (step?.bidirectional && !returning) { setReturning(true); setProgress(0); return; }
   if (index >= steps.length - 1) { setPlaying(false); return; }
   setIndex(i => i + 1);
+  setReturning(false);
   setProgress(0);
- }, [progress, playing, index, steps.length]);
+ }, [progress, playing, index, steps.length, step?.bidirectional, returning]);
  // 手動選択時は再生を止め、通信パケットを始点へ戻す。
- const choose = (next: number) => { setIndex(next); setProgress(0); setPlaying(false); };
+ const choose = (next: number) => { setIndex(next); setReturning(false); setProgress(0); setPlaying(false); };
  const play = () => {
-  if (index === steps.length - 1 && progress >= 1) { setIndex(0); setProgress(0); }
+  if (index === steps.length - 1 && progress >= 1) { setIndex(0); setReturning(false); setProgress(0); }
   setPlaying(value => !value);
  };
  const removeStep = (id: string) => {
   // 削除後に選択位置が範囲外にならないように補正する。
   setPlaying(false);
   setProgress(0);
+  setReturning(false);
   setIndex(current => Math.min(current, Math.max(0, steps.length - 2)));
   onDeleteStep(id);
  };
@@ -115,7 +119,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
    {branchGroups(actors, allSteps).map(group => <label key={group.actor.id}>{group.actor.name}
     <select value={branchChoices[group.actor.id] ?? group.options[0].id} onChange={event => {
      setBranchChoices(current => ({ ...current, [group.actor.id]: event.target.value }));
-     setPlaying(false); setProgress(0); setIndex(0);
+     setPlaying(false); setProgress(0); setReturning(false); setIndex(0);
     }}>
      {group.options.map(option => <option key={option.id} value={option.id}>{option.branchLabel || option.title}</option>)}
     </select>
