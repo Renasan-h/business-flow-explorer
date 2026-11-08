@@ -24,7 +24,7 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? routeConnection(actors, action.from, action.to) : [];
+ const activeRoute = action ? routeConnection(actors, action.from, action.to, step?.routing ?? 'straight') : [];
  const bounds = useMemo(() => {
   const xs = actors.map(actor => actor.position.x);
   const ys = actors.map(actor => actor.position.y);
@@ -35,8 +35,8 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
  }, [actors]);
  const edges = useMemo(() => {
-  const found = new Map<string, { from: string; to: string }>();
-  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to })));
+  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal' }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight' })));
   return [...found.values()];
  }, [steps]);
 
@@ -96,7 +96,7 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
        if (!from || !to) return null;
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
-       return <path key={edge.from + edge.to} d={routePath(routeConnection(actors, edge.from, edge.to))} fill="none"
+       return <path key={edge.from + edge.to} d={routePath(routeConnection(actors, edge.from, edge.to, edge.routing))} fill="none"
         stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>;
       })}
       {actors.map(actor => {
