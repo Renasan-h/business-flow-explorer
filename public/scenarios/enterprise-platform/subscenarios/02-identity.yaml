@@ -10,7 +10,7 @@ steps:
         payload: "本人確認依頼"
         durationMs: 1100
   - id: enterprise-02-02
-    title: 本人確認結果: 合格
+    title: "本人確認結果: 合格"
     description: 本人確認・OTPにおける identity から api への通信です。
     actions:
       - type: transfer
