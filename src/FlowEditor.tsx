@@ -284,7 +284,17 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
      <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
      <label>種類<select value={activeActor.type} onChange={e => changeActor(activeActor.id, { type: e.target.value as Actor['type'] })}>{NODE_TYPES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-     <label>アイコン<select value={activeActor.icon ?? activeActor.type} onChange={e => changeActor(activeActor.id, { icon: e.target.value as Actor['icon'] })}>{NODE_ICONS.map(item => <option key={item.value} value={item.value}>{item.glyph} {item.label}</option>)}</select></label>
+     <div className="editor-icon-field">
+      <span>アイコン</span>
+      <div className="editor-icon-grid" role="group" aria-label="ノードのアイコンを選択">
+       {NODE_ICONS.map(item => <button type="button" key={item.value} className={item.value === (activeActor.icon ?? activeActor.type) ? 'selected' : ''}
+        title={item.label} aria-label={item.label} aria-pressed={item.value === (activeActor.icon ?? activeActor.type)}
+        onClick={() => changeActor(activeActor.id, { icon: item.value })}>
+        <svg viewBox="0 0 32 32" aria-hidden="true"><NodeIcon type={item.value} x={16} y={16} size={25}/></svg>
+        <small>{item.label}</small>
+       </button>)}
+      </div>
+     </div>
      <label>説明<textarea value={activeActor.description ?? ''} onChange={e => changeActor(activeActor.id, { description: e.target.value })} placeholder="ノードの役割や処理内容"/></label>
      <label>環境<input value={activeActor.environment ?? ''} onChange={e => changeActor(activeActor.id, { environment: e.target.value })} placeholder="例: 開発 / 検証 / 本番"/></label>
      <label>接続先・URL<input value={activeActor.endpoint ?? ''} onChange={e => changeActor(activeActor.id, { endpoint: e.target.value })} placeholder="例: https://api.example.com"/></label>
