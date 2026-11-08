@@ -45,3 +45,15 @@ export function playbackSteps(actors: Actor[], steps: Step[], choices: Record<st
  }
  return allowed.filter(step => step.actions.some(action => reached.has(action.from)));
 }
+
+/**
+ * 分岐選択後に表示するノードを決定する。
+ * 非選択側だけで使うノードは隠し、選択経路から合流する共有ノードは残す。
+ * 分岐がないシナリオは従来どおり全ノードを表示する。
+ */
+export function playbackActors(actors: Actor[], steps: Step[], choices: Record<string, string>): Actor[] {
+ if (!branchGroups(actors, steps).length) return actors;
+ const selectedSteps = playbackSteps(actors, steps, choices);
+ const visible = new Set(selectedSteps.flatMap(step => step.actions.flatMap(action => [action.from, action.to])));
+ return actors.filter(actor => visible.has(actor.id));
+}
