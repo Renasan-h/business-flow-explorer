@@ -171,32 +171,29 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    return { start: { x: sx, y: sy }, end: { x: ex, y: ey } };
   };
   const sendColor = theme === 'dark' ? 0x22d3ee : 0x2563eb;
-  const receiveColor = theme === 'dark' ? 0xa78bfa : 0xf59e0b;
   const inactiveColor = theme === 'dark' ? 0x64748b : 0x9ca3af;
 
   // シナリオ全体から通信経路を収集し、未使用中の経路もグレーで表示する。
-  const connections = new Map<string, [string, string]>();
+  // 有向接続を保持し、逆向きの接続が存在するときだけ2本に分ける。
+  const connections = new Set<string>();
   for (const scenarioStep of scenario.steps) {
    for (const transfer of scenarioStep.actions) {
-    const pair = [transfer.from, transfer.to].sort() as [string, string];
-    connections.set(pair.join(':'), pair);
+    connections.add(JSON.stringify([transfer.from, transfer.to]));
    }
   }
   let sendRoute = { start: start.position, end: end.position };
-  for (const [firstId, secondId] of connections.values()) {
-   const first = byId.get(firstId);
-   const second = byId.get(secondId);
-   if (!first || !second) continue;
-   const active = (firstId === action.from && secondId === action.to)
-    || (firstId === action.to && secondId === action.from);
-   // 現在の接続は送受信をカラー表示し、それ以外は両方向ともグレーにする。
+  for (const connection of connections) {
+   const [fromId, toId] = JSON.parse(connection) as [string, string];
+   const fromActor = byId.get(fromId);
+   const toActor = byId.get(toId);
+   if (!fromActor || !toActor) continue;
+   const bidirectional = connections.has(JSON.stringify([toId, fromId]));
+   const active = fromId === action.from && toId === action.to;
+   const laneOffset = bidirectional ? -13 : 0;
    if (active) {
-    sendRoute = drawLane(start.position, end.position, -13, sendColor, 0.95);
-    drawLane(end.position, start.position, -13, receiveColor, 0.85);
+    sendRoute = drawLane(fromActor.position, toActor.position, laneOffset, sendColor, 0.95);
    } else if (!focus) {
-    // 全体表示時のみ、現在の通信に無関係な経路を控えめに描画する。
-    drawLane(first.position, second.position, -13, inactiveColor, 0.24);
-    drawLane(second.position, first.position, -13, inactiveColor, 0.24);
+    drawLane(fromActor.position, toActor.position, laneOffset, inactiveColor, 0.24);
    }
   }
 
