@@ -121,7 +121,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [showLines, setShowLines] = useState(true);
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
- if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onClose={() => setPreview(false)}/>;
+ if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onClose={() => setPreview(false)}/>;
  return <div className="flow-editor">
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
@@ -294,7 +294,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       <button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); }}>{index + 1}. {step.title}</button>
       <button disabled={index === 0} aria-label="上へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index-1], copy[index]] = [copy[index], copy[index-1]]; return copy; })}>↑</button>
       <button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button>
-      <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>×</button>
+      <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>削除</button>
      </div>)}</div>
    </aside>
   </div>
