@@ -1,14 +1,6 @@
-# サブシナリオ間で共有するActor定義
+# シナリオで必要なActorだけを選択して組み立てる。
 actors:
-  - id: customer
-    name: 顧客
-    type: person
-  - id: web
-    name: Webサーバー
-    type: server
-  - id: api
-    name: 会員登録API
-    type: service
-  - id: db
-    name: DB1
-    type: database
+  - file: customer.yaml
+  - file: web.yaml
+  - file: api.yaml
+  - file: db.yaml
