@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
-import { NODE_TYPES, NODE_ICONS, nodeGlyph } from './nodeCatalog';
+import { NODE_TYPES, NODE_ICONS } from './nodeCatalog';
+import { NodeIcon } from './NodeIcon';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
@@ -263,7 +264,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        <rect x={actor.position.x - NODE_WIDTH / 2} y={actor.position.y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" fill={source === actor.id ? '#165c73' : selectedActor === actor.id ? '#1e5a88' : '#20314a'} stroke={source === actor.id || selectedActor === actor.id ? '#22d3ee' : '#7398c9'} strokeWidth="2"/>
        <circle cx={actor.position.x - NODE_WIDTH / 2 + 13} cy={actor.position.y - NODE_HEIGHT / 2 + 13} r="15" fill="#22d3ee" />
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
-       <text x={actor.position.x} y={actor.position.y - 8} textAnchor="middle" fill="#f0f6ff" fontSize="15">{nodeGlyph(actor.type, actor.icon)}</text>
+       <NodeIcon type={actor.type} icon={actor.icon} x={actor.position.x} y={actor.position.y - 10} size={29} color="#f0f6ff"/>
        <text x={actor.position.x} y={actor.position.y + 15} textAnchor="middle" fill="#f0f6ff" fontSize="12">{actor.name.length > 12 ? actor.name.slice(0, 11) + '…' : actor.name}</text>
        {/* ノード端からドラッグする接続ハンドル。 */}
        <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
