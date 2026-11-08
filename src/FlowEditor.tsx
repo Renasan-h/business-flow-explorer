@@ -375,11 +375,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>}
    </div>
    <aside className="editor-inspector">
-    <h3>シナリオ設定</h3>
+    <details className="editor-section"><summary>シナリオ設定</summary>
     <label>タイトル<input value={metadata.title} onChange={e => setMetadata(v => ({ ...v, title: e.target.value }))}/></label>
     <label>ID<input value={metadata.id} onChange={e => setMetadata(v => ({ ...v, id: e.target.value }))}/></label>
     <label>説明<textarea value={metadata.description} onChange={e => setMetadata(v => ({ ...v, description: e.target.value }))}/></label>
-    {activeActor && <><h3>ノード設定（No. {nodeNumbers[activeActor.id]}）</h3>
+    </details>
+    {activeActor && <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumbers[activeActor.id]}）</summary>
      <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
      {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
@@ -404,8 +405,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <div className="editor-coordinates"><label>X<input type="number" value={Math.round(activeActor.position.x)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, x: Number(e.target.value) } })}/></label><label>Y<input type="number" value={Math.round(activeActor.position.y)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, y: Number(e.target.value) } })}/></label></div>
      <button type="button" className="editor-duplicate-node" onClick={() => duplicateActor(activeActor.id)}>ノードを複製</button>
      <button onClick={() => deleteActor(activeActor.id)}>ノードと関連通信を削除</button>
-    </>}
-    {activeStep && <><h3>通信設定</h3>
+    </details>}
+    {activeStep && <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
      {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
       <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
@@ -419,8 +420,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       <label>通信時間 (ms)<input type="number" min="1" value={action.durationMs} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, durationMs: Number(e.target.value) } : a) })}/></label>
      </div>)}
      <button onClick={() => deleteStep(activeStep.id)}>通信を削除</button>
-    </>}
-    <h3>通信の再生順</h3>
+    </details>}
+    <details className="editor-section" open><summary>通信の再生順（{steps.length}件）</summary>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
     <div className="editor-step-list">{steps.map((step, index) =>
      <div key={step.id} className={dropTarget === step.id && draggedStep !== step.id ? 'editor-step-drop-target' : '' }
@@ -453,6 +454,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       <button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button>
       <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>削除</button>
      </div>)}</div>
+    </details>
    </aside>
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
