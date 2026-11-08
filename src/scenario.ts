@@ -30,9 +30,11 @@ const metadata = z.object({
  description: z.string(),
  category: z.string(),
 });
+// Actor定義とファイル参照を同じ配列に混在させる。
+const actorEntry = z.union([actor, z.object({ file: z.string().min(1) }).strict()]);
 const stepEntry = z.union([step, z.object({ file: z.string().min(1) }).strict()]);
 const fragmentSchema = z.object({
- actors: z.array(actor).optional(),
+ actors: z.array(actorEntry).optional(),
  steps: z.array(stepEntry).optional(),
  actorFiles: z.array(z.string().min(1)).optional(),
 });
@@ -102,7 +104,18 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
   }
   fragment.actors.forEach(addActor);
  }
- (data.actors ?? []).forEach(addActor);
+ // actors配列に記述された順番でActor定義と外部ファイルを展開する。
+ for (const entry of data.actors ?? []) {
+  if ('file' in entry) {
+   const fragment = await readFragments(new URL(entry.file, url).href, nextAncestors);
+   if (fragment.root || fragment.steps.length > 0) {
+    throw new Error('actors内のfileにはActor定義のみを指定してください: ' + entry.file);
+   }
+   fragment.actors.forEach(addActor);
+  } else {
+   addActor(entry);
+  }
+ }
  // stepsの配列順に通常ステップとサブシナリオを展開する。
  for (const entry of data.steps ?? []) {
   if ('file' in entry) {
