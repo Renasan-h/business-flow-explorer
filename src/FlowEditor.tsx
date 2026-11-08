@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
-import { routeConnection, routePath, pointOnRoute } from './connectionRouting';
+import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -121,7 +121,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [showLines, setShowLines] = useState(true);
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
- if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onClose={() => setPreview(false)}/>;
+ if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onExit={onClose} onClose={() => setPreview(false)}/>;
  return <div className="flow-editor">
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
@@ -211,11 +211,16 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        if (!from || !to) return null;
        const active = selectedStep === step.id;
        const points = routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
-       const path = routePath(points);
-       const middle = pointOnRoute(points, .5);
+       const forward = offsetRoute(points, -12);
+       const reverse = offsetRoute([...points].reverse(), -12);
+       const path = routePath(forward);
+       const reversePath = routePath(reverse);
+       const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
+        <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
+        <path d={reversePath} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
        </g>;
       }))}
