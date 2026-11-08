@@ -15,7 +15,7 @@ const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(val
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
 /** PixiJS描画担当。Reactの状態はstateRef経由でTickerに渡し、再生中の再初期化を防ぐ。 */
-function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onFinished: () => void }) {
+function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
@@ -26,8 +26,27 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
  const stateRef = useRef({ playing, speed, onFinished });
  const [ready, setReady] = useState(false);
  const pointerRef = useRef<{ id: number; x: number; y: number; pan: {x:number;y:number} } | null>(null);
- const viewportRef = useRef({zoom, pan, onPan});
- viewportRef.current = {zoom, pan, onPan};
+ const viewportRef = useRef({zoom, pan, onPan, onZoom});
+ viewportRef.current = {zoom, pan, onPan, onZoom};
+ // PixiJSキャンバス上のCtrl+ホイールは画面全体でなくフロー図のみ拡縮する。
+ useEffect(() => {
+  const element = host.current;
+  if (!element) return;
+  const wheel = (event: WheelEvent) => {
+   if (!event.ctrlKey) return;
+   event.preventDefault();
+   const bounds = element.getBoundingClientRect();
+   const cx = (event.clientX - bounds.left) * VIEW_WIDTH / bounds.width;
+   const cy = (event.clientY - bounds.top) * VIEW_HEIGHT / bounds.height;
+   const { zoom, pan, onZoom, onPan } = viewportRef.current;
+   const next = clampZoom(zoom * Math.exp(-event.deltaY * .002));
+   if (next === zoom) return;
+   onPan({ x: cx - (cx - pan.x) * next / zoom, y: cy - (cy - pan.y) * next / zoom });
+   onZoom(next);
+  };
+  element.addEventListener('wheel', wheel, { passive: false });
+  return () => element.removeEventListener('wheel', wheel);
+ }, []);
 
  // Tickerは初回のみ登録するため、再生状態と完了処理をRefで同期する。
  stateRef.current = { playing, speed, onFinished };
@@ -335,7 +354,7 @@ export default function App() {
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
-    {scenario && current && <><div className="scene-toolbar"><span>通信経路の表示</span><div className="switch"><button type="button" className={focus ? 'selected' : ''} aria-pressed={focus} onClick={() => setFocus(true)}>現在の通信</button><button type="button" className={!focus ? 'selected' : ''} aria-pressed={!focus} onClick={() => setFocus(false)}>全体の接続</button></div></div><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={() => { setZoom(1); setPan({x:0,y:0}); }}>等倍</button><span className="viewport-hint">ドラッグで移動</span></div><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+    {scenario && current && <><div className="scene-toolbar"><span>通信経路の表示</span><div className="switch"><button type="button" className={focus ? 'selected' : ''} aria-pressed={focus} onClick={() => setFocus(true)}>現在の通信</button><button type="button" className={!focus ? 'selected' : ''} aria-pressed={!focus} onClick={() => setFocus(false)}>全体の接続</button></div></div><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={() => { setZoom(1); setPan({x:0,y:0}); }}>等倍</button><span className="viewport-hint">ドラッグで移動 / Ctrl + ホイールで拡大・縮小</span></div><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
