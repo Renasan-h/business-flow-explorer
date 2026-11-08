@@ -8,8 +8,8 @@ const W = 150;
 const H = 76;
 
 /** 編集中のデータを保存せずに確認する独立プレビュー。 */
-export default function FlowPreview({ actors, steps, title, onClose }: {
- actors: Actor[]; steps: Step[]; title: string; onClose: () => void;
+export default function FlowPreview({ actors, steps, title, onClose, onDeleteStep }: {
+ actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void;
 }) {
  const [index, setIndex] = useState(0);
  const [playing, setPlaying] = useState(false);
@@ -66,6 +66,13 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
   if (index === steps.length - 1 && progress >= 1) { setIndex(0); setProgress(0); }
   setPlaying(value => !value);
  };
+ const removeStep = (id: string) => {
+  // 削除後に選択位置が範囲外にならないように補正する。
+  setPlaying(false);
+  setProgress(0);
+  setIndex(current => Math.min(current, Math.max(0, steps.length - 2)));
+  onDeleteStep(id);
+ };
  const invalid = steps.filter(item => item.actions.some(a => !byId.has(a.from) || !byId.has(a.to)));
  return <div className="preview-screen">
   <div className="preview-header">
@@ -115,7 +122,10 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
     <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{action?.payload}</p></div>
    </div>
    <aside className="preview-steps"><h3>再生ステップ</h3>{steps.map((item, i) =>
-    <button key={item.id} className={i === index ? 'selected' : ''} onClick={() => choose(i)}>{i + 1}. {item.title}</button>)}</aside>
+    <div key={item.id} className="preview-step-row">
+     <button className={i === index ? 'selected' : ''} onClick={() => choose(i)}>{i + 1}. {item.title}</button>
+     <button type="button" className="preview-step-delete" aria-label={item.title + 'を削除'} onClick={() => removeStep(item.id)}>削除</button>
+    </div>)}</aside>
   </div>
  </div>;
 }
