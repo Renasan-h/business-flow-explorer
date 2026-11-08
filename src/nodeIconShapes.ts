@@ -21,3 +21,30 @@ const icons: Record<string, IconCommand[]> = {
 export function iconCommands(type: string, icon?: string): IconCommand[] {
  return icons[icon ?? type] ?? icons.other;
 }
+
+/**
+ * Illustrationモード専用のピクトグラム。Technicalの線画とは別の形状を持つ。
+ * 24x24の共通座標を使い、PixiJS上で解像度に依存せず描画する。
+ */
+const illustrationIcons: Record<string, IconCommand[]> = {
+ person: [['circle',12,6,4],['poly',3,22,4,16,8,13,16,13,20,16,21,22],['line',8,17,8,21],['line',16,17,16,21]],
+ server: [['rect',4,2,16,20],['line',4,9,20,9],['line',4,16,20,16],['circle',7,6,1],['circle',7,13,1],['circle',7,19,1],['line',11,6,17,6]],
+ database: [['poly',3,5,6,2,18,2,21,5,18,8,6,8,3,5],['poly',3,5,3,19,6,22,18,22,21,19,21,5],['poly',3,12,6,15,18,15,21,12]],
+ service: [['poly',12,2,15,5,19,4,20,8,23,12,20,16,19,20,15,19,12,22,9,19,5,20,4,16,1,12,4,8,5,4,9,5,12,2],['circle',12,12,5]],
+ browser: [['rect',2,3,20,18],['line',2,9,22,9],['circle',5,6,1],['circle',8,6,1],['poly',8,16,11,19,17,12]],
+ api: [['poly',3,7,8,3,12,7,8,11,3,7],['poly',21,17,16,13,12,17,16,21,21,17],['line',11,7,19,7],['line',19,7,16,4],['line',13,17,5,17],['line',5,17,8,20]],
+ cloud: [['poly',5,20,2,17,2,13,5,10,9,10,11,5,15,4,19,7,20,11,23,14,22,18,19,20,5,20],['line',12,10,12,18],['poly',8,14,12,10,16,14]],
+ network: [['rect',9,2,6,5],['rect',1,17,7,5],['rect',16,17,7,5],['line',12,7,12,12],['line',4,12,20,12],['line',4,12,4,17],['line',20,12,20,17]],
+ storage: [['rect',2,5,20,14],['rect',5,8,14,8],['line',8,19,8,22],['line',16,19,16,22],['circle',17,12,1]],
+ queue: [['rect',2,8,5,8],['rect',10,8,5,8],['rect',18,8,5,8],['line',7,12,10,12],['line',15,12,18,12],['poly',16,10,18,12,16,14]],
+ batch: [['rect',3,4,18,16],['poly',9,8,16,12,9,16,9,8],['line',6,2,18,2],['line',6,22,18,22]],
+ external: [['rect',3,9,12,12],['poly',13,3,21,3,21,11],['line',21,3,10,14],['line',8,17,12,17]],
+ device: [['rect',6,2,12,20],['rect',8,5,8,12],['circle',12,19,1]],
+ document: [['poly',5,2,16,2,21,7,21,22,5,22,5,2],['poly',16,2,16,7,21,7],['line',8,11,17,11],['line',8,15,17,15],['line',8,19,14,19]],
+ decision: [['poly',12,1,23,12,12,23,1,12,12,1],['poly',8,11,11,14,17,8],['line',12,16,12,19]],
+ other: [['poly',12,2,15,9,22,9,17,14,19,22,12,18,5,22,7,14,2,9,9,9,12,2]],
+};
+/** モードごとの独立したアイコン定義を返す。 */
+export function illustrationIconCommands(type: string): IconCommand[] {
+ return illustrationIcons[type] ?? illustrationIcons.other;
+}
