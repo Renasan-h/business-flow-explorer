@@ -85,3 +85,27 @@ SVGの編集画面では、マウスの画面座標とノードのワールド�
 - 直線は途中の別ノードを自動迂回しません。折れ線は手動で選択します。
 - YAML保存はファイル出力のみです。シナリオ一覧への自動反映はありません。
 - このガイドとコメントは処理の理解を助けるものであり、ビルドやブラウザの動作検証の代わりにはなりません。
+
+## 8. ノードの汎用属性とアイコン
+
+`src/nodeCatalog.ts`にノード種別と表示アイコンの候補をまとめています。種類とアイコンは独立しており、種類を変更せず表示だけ変えることができます。
+
+ノードのYAML例:
+
+```yaml
+- id: api-gateway
+  name: API Gateway
+  type: api
+  icon: cloud
+  description: 外部リクエストの認証とルーティング
+  environment: production
+  endpoint: https://api.example.com
+  instanceName: gateway-01
+  ip: 192.0.2.10
+  tags: [認証, 外部公開]
+  position: { x: 300, y: 200 }
+```
+
+`icon`、`description`、`environment`、`endpoint`、`tags`、`instanceName`、`ip`は任意項目です。既存のYAMLでは`icon`未指定時に`type`の標準アイコンが表示されます。
+
+新しい種類・アイコンを増やす場合は`nodeCatalog.ts`を編集してください。YAMLの検証は`scenario.ts`、編集UIは`FlowEditor.tsx`、表示は`App.tsx`と`FlowPreview.tsx`で共通の`nodeGlyph`を利用します。
