@@ -198,7 +198,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        const to = actors.find(actor => actor.id === action.to);
        if (!from || !to) return null;
        const active = selectedStep === step.id;
-       const points = routeConnection(actors, action.from, action.to);
+       const points = routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
        const path = routePath(points);
        const middle = pointOnRoute(points, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
@@ -240,6 +240,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
      <button onClick={() => { setActors(v => v.filter(actor => actor.id !== activeActor.id)); setSteps(v => v.filter(step => step.actions.every(action => action.from !== activeActor.id && action.to !== activeActor.id))); setSelectedActor(null); }}>ノードと関連通信を削除</button>
     </>}
     {activeStep && <><h3>通信設定</h3>
+     <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
      <label>処理名<input value={activeStep.title} onChange={e => changeStep(activeStep.id, { title: e.target.value })}/></label>
      <label>説明<textarea value={activeStep.description} onChange={e => changeStep(activeStep.id, { description: e.target.value })}/></label>
      {activeStep.actions.map((action, index) => <div key={index}>
