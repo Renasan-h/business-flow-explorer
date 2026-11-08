@@ -151,7 +151,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        const midpoint = pointOnRoute(lane, .5);
        return <g key={edge.from + edge.to}>
         <path d={routePath(lane)} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
-        <path d={routePath(offsetRoute([...route].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
+        {edge.bidirectional && <path d={routePath(offsetRoute(route, 12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>}
         {edge.branchLabel && <g pointerEvents="none">
          <rect x={midpoint.x - Math.max(32, edge.branchLabel.length * 7 / 2 + 8)} y={midpoint.y - 32} width={Math.max(64, edge.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
          <text x={midpoint.x} y={midpoint.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{edge.branchLabel}</text>
