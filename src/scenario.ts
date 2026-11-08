@@ -33,6 +33,7 @@ const metadata = z.object({
 const fragmentSchema = z.object({
  actors: z.array(actor).optional(),
  steps: z.array(step).optional(),
+ actorFiles: z.array(z.string().min(1)).optional(),
 });
 const scenarioSchema = fragmentSchema.extend({
  schemaVersion: z.literal('1.0'),
@@ -107,7 +108,16 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
    actors.push(item);
   } else actors[index] = mergeActor(actors[index], item);
  };
- // 参照の記述順で展開したあと、親ファイル自身の定義を追加する。
+ // 共通Actorファイルにはステップを含めない。
+ for (const actorFile of data.actorFiles ?? []) {
+  const resolved = new URL(actorFile, url);
+  const fragment = await readFragments(resolved.href, nextAncestors);
+  if (fragment.root || fragment.steps.length > 0) {
+   throw new Error('actorFilesにはactorsのみを定義してください: ' + actorFile);
+  }
+  fragment.actors.forEach(addActor);
+ }
+ // サブシナリオは参照の記述順で展開する。
  for (const reference of references) {
   const resolved = new URL(reference, url).pathname;
   const fragment = await readFragments(resolved, nextAncestors);
@@ -115,7 +125,11 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
   steps.push(...fragment.steps);
  }
  (data.actors ?? []).forEach(addActor);
- steps.push(...(data.steps ?? []));
+ // orderは同一ファイル内だけに適用し、ファイル間の順序は維持する。
+ const ownSteps = (data.steps ?? []).map((item, index) => ({ item, index }))
+  .sort((a, b) => (a.item.order ?? Infinity) - (b.item.order ?? Infinity) || a.index - b.index)
+  .map(entry => entry.item);
+ steps.push(...ownSteps);
  return { actors, steps, root: isRoot ? data as ScenarioData : undefined };
 }
 
@@ -135,11 +149,8 @@ export async function loadScenario(path: string): Promise<Scenario> {
    }
   }
  }
- // order未指定は末尾へ配置し、同順位は展開順を維持する。
- const steps = result.steps.map((item, index) => ({ item, index }))
-  .sort((a, b) => (a.item.order ?? Infinity) - (b.item.order ?? Infinity) || a.index - b.index)
-  .map(entry => entry.item);
- const merged = { ...result.root, actors: result.actors, steps };
+ // ファイル間の順序は展開時に確定済みなので全体では再ソートしない。
+ const merged = { ...result.root, actors: result.actors, steps: result.steps };
  return { ...merged, actors: layoutActors(merged) };
 }
 
