@@ -16,8 +16,8 @@ function intersects(a: Point, b: Point, c: Point, d: Point): boolean {
 
 // 線分が第三者ノードの矩形（ラベル余白込み）を横切る場合に大きく減点する。
 function crossesNode(a: Point, b: Point, node: Point): boolean {
- const halfWidth = 67;
- const halfHeight = 51;
+ const halfWidth = 90;
+ const halfHeight = 66;
  let enter = 0;
  let leave = 1;
  for (const [origin, delta, min, max] of [
@@ -40,18 +40,15 @@ function crossesNode(a: Point, b: Point, node: Point): boolean {
 export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] }): (T & { position: Point })[] {
  const actors = scenario.actors;
  const count = actors.length;
- // ノードが増えた場合は行数を増やす。ノード間の最低限の間隔を確保する。
- const columns = Math.min(3, count);
+ // ノード数に応じてワールド領域を拡張する。16個以上でも上下の重なりを防ぐ。
+ const columns = count <= 4 ? 2 : count <= 9 ? 3 : 4;
  const rows = Math.ceil(count / columns);
- const slots: Point[] = Array.from({ length: count }, (_, index) => {
-  const row = Math.floor(index / columns);
-  const inRow = Math.min(columns, count - row * columns);
-  const col = index % columns;
-  return {
-   x: 120 + (inRow === 1 ? 0.5 : col / (inRow - 1)) * 480,
-   y: rows === 1 ? 195 : 100 + row * (190 / (rows - 1)),
-  };
- });
+ const spacingX = 270;
+ const spacingY = 185;
+ const slots: Point[] = Array.from({length: count}, (_, index) => ({
+  x: 160 + (index % columns) * spacingX,
+  y: 135 + Math.floor(index / columns) * spacingY,
+ }));
  const indexById = new Map(actors.map((actor, index) => [actor.id, index]));
  const edges = new Map<string, { a: number; b: number; weight: number }>();
  for (const step of scenario.steps) for (const action of step.actions) {
@@ -96,7 +93,7 @@ export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] 
    if (intersects(positions[a.a], positions[a.b], positions[b.a], positions[b.b])) cost += 24;
   }
   for (let i = 0; i < count; i++) {
-   cost += degree[i] * Math.hypot(positions[i].x - 360, positions[i].y - 195) / 800;
+   cost += degree[i] * Math.hypot(positions[i].x - (160 + (columns - 1) * spacingX / 2), positions[i].y - (135 + (rows - 1) * spacingY / 2)) / 1400;
   }
   return cost;
  };
