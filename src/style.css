@@ -203,3 +203,20 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 @media (max-width:1250px) {
  .editor-order-panel{position:static;max-height:420px;overflow-y:auto}
 }
+
+/* 編集キャンバスを設定パネルと同じ行に押し込まず、上段いっぱいに広げる。 */
+.editor-layout{grid-template-columns:minmax(0,1fr) minmax(280px,360px);align-items:start}
+.editor-layout>.editor-canvas{grid-column:1 / -1;width:100%}
+.editor-layout>.editor-inspector{grid-column:1;position:static;max-height:none}
+.editor-layout>.editor-order-panel{grid-column:2;position:static;max-height:none}
+.editor-canvas svg{min-height:600px}
+@media(max-width:900px){
+ .editor-layout{grid-template-columns:minmax(0,1fr)}
+ .editor-layout>.editor-canvas,.editor-layout>.editor-inspector,.editor-layout>.editor-order-panel{grid-column:1}
+ .editor-canvas svg{min-height:420px}
+}
+/* 再生ボタン群はキャンバスの直前に配置する。 */
+.controls{margin:12px 0}
+.preview-toolbar .playback-speed{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.preview-toolbar .speed-options{display:flex;gap:4px;flex-wrap:wrap}
+.preview-toolbar .speed-options button{width:auto;margin:0}
