@@ -119,3 +119,9 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .preview-step-row>button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .preview-step-row>.preview-step-delete{color:#f87171;border-color:#b45353;padding:7px 4px;font-size:12px}
 .preview-step-row>.preview-step-delete:hover{background:#5b242e;color:#fff}
+
+/* エディター・プレビューの戻る操作を画面幅に依存せず表示する。 */
+.editor-header-actions,.preview-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.editor-header,.preview-header{align-items:flex-start}
+.editor-header-actions>button:first-child,.preview-header-actions>button:last-child{white-space:nowrap;border-color:#22d3ee}
+@media(max-width:800px){.editor-header,.preview-header{flex-wrap:wrap}.editor-header-actions,.preview-header-actions{width:100%}}
