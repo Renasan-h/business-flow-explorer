@@ -1,4 +1,4 @@
-import { branchGroups, playbackSteps } from './branchPlayback';
+import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import FlowEditor from './FlowEditor';
@@ -323,7 +323,12 @@ export default function App() {
  // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
  const [finished, setFinished] = useState(false);
  const routes = scenario ? playbackSteps(scenario.actors, scenario.steps, branchChoices) : [];
- const visibleScenario = scenario ? { ...scenario, steps: routes } : null;
+ // PixiJSへ渡すノードも選択経路に限定し、非選択側の描画を行わない。
+ const visibleScenario = scenario ? {
+  ...scenario,
+  actors: playbackActors(scenario.actors, scenario.steps, branchChoices),
+  steps: routes,
+ } : null;
  const advance = () => {
   if (!scenario) return;
   setStep(currentStep => {
