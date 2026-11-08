@@ -4,8 +4,6 @@ steps:
     order: 10
     title: 会員登録ページへアクセス
     description: 顧客が会員登録ページを開きます。
-    outputs:
-      registrationRequest: GET /member/register
     actions:
       - type: transfer
         from: customer
