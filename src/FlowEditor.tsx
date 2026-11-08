@@ -341,7 +341,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         otherAction.from === action.to && otherAction.to === action.from));
        const forward = bidirectional ? offsetRoute(points, -12) : points;
        const path = routePath(forward);
-       const reversePath = routePath(offsetRoute(points, 12));
+       // 復路は送信先→送信元で経路を再計算する。逆方向の法線で別レーンに配置する。
+       const reversePoints = step.bidirectional
+        ? routeConnection(actors, action.to, action.from, step.routing ?? 'straight') : [];
+       const reversePath = routePath(offsetRoute(reversePoints, -12));
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
