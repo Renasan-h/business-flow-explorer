@@ -162,3 +162,7 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .editor-icon-grid button svg{width:32px;height:32px;color:var(--text)}
 .editor-icon-grid button small{font-size:10px;line-height:1.2;overflow-wrap:anywhere}
 .editor-icon-grid button.selected svg{color:#7dd3fc}
+
+/* 複製は削除と視覚的に区別し、ノード設定からすぐ実行できるようにする。 */
+.editor-inspector .editor-duplicate-node{border-color:#38bdf8;background:#12446a;color:#e0f2fe;font-weight:600}
+.editor-inspector .editor-duplicate-node:hover{background:#175b8e}
