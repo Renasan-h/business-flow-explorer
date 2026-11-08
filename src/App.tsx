@@ -2,7 +2,7 @@ import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import FlowEditor from './FlowEditor';
-import { iconCommands } from './nodeIconShapes';
+import { iconCommands, illustrationIconCommands } from './nodeIconShapes';
 import { listScenarios, loadScenario, playbackValidationError, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
@@ -218,8 +218,24 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    // 表示アイコンはYAMLのiconを優先し、未指定ならtypeの標準アイコンを使う。
    // SVG画面と同じベクター定義をPixiJS Graphicsで描画する。
    const glyph = new Graphics();
-   const scale = 1.3;
-   for (const command of iconCommands(actor.type)) {
+   const illustrated = mode === 'illustration';
+   const scale = illustrated ? 1.42 : 1.3;
+   // イラストモードは専用ピクトグラムとカテゴリ別のアクセント色を使う。
+   const illustrationColors: Record<string, number> = {
+    person: 0xf59e0b, server: 0x2563eb, database: 0x0d9488, service: 0x7c3aed,
+    browser: 0x0284c7, api: 0x9333ea, cloud: 0x0891b2, network: 0x4f46e5,
+    storage: 0x0f766e, queue: 0xea580c, batch: 0x7c3aed, external: 0xdb2777,
+    device: 0x2563eb, document: 0x64748b, decision: 0xd97706, other: 0x475569,
+   };
+   const iconColor = illustrated ? (illustrationColors[actor.type] ?? 0x475569) : colors.text;
+   if (illustrated) {
+    const backing = new Graphics().roundRect(actor.position.x - 22, actor.position.y - 31, 44, 44, 13)
+     .fill({ color: iconColor, alpha: 0.12 })
+     .stroke({ color: iconColor, alpha: 0.35, width: 1.5 });
+    if (focus && !active) backing.alpha = 0.38;
+    layer.addChild(backing);
+   }
+   for (const command of (illustrated ? illustrationIconCommands(actor.type) : iconCommands(actor.type))) {
     if (command[0] === 'line') glyph.moveTo(command[1], command[2]).lineTo(command[3], command[4]);
     else if (command[0] === 'rect') glyph.roundRect(command[1], command[2], command[3], command[4], 1.5);
     else if (command[0] === 'circle') glyph.circle(command[1], command[2], command[3]);
@@ -228,7 +244,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
      glyph.moveTo(coords[0], coords[1]);
      for (let i = 2; i < coords.length; i += 2) glyph.lineTo(coords[i], coords[i + 1]);
     }
-    glyph.stroke({ color: colors.text, width: 1.8, cap: 'round', join: 'round' });
+    glyph.stroke({ color: iconColor, width: illustrated ? 2.1 : 1.8, cap: 'round', join: 'round' });
    }
    glyph.scale.set(scale);
    glyph.position.set(actor.position.x - 12 * scale, actor.position.y - 9 - 12 * scale);
