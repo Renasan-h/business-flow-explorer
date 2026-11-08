@@ -236,14 +236,15 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
  />;
 }
 export default function App() {
- const [editing, setEditing] = useState(false);
+ const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
  const [selected, setSelected] = useState('');
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [error, setError] = useState('');
  const [mode, setMode] = useState<Mode>('technical');
- const [focus, setFocus] = useState(true);
+ // 初期状態は全通信線を表示する。
+ const [focus, setFocus] = useState(false);
  const [zoom, setZoom] = useState(1);
  const [pan, setPan] = useState({x:0,y:0});
  // 保存済みの選択を優先し、初回はOSの配色設定を使用する。
@@ -313,13 +314,23 @@ export default function App() {
   setPan({x: (VIEW_WIDTH - (minX + maxX) * fit) / 2, y: (VIEW_HEIGHT - (minY + maxY) * fit) / 2});
  }, [scenario]);
  const current = scenario?.steps[step];
- if (editing && scenario) return <FlowEditor key={selected} initial={scenario} onClose={() => setEditing(false)} />;
+ // 新規作成は既存シナリオに依存しない空の編集データから開始する。
+ if (editorMode === 'new') {
+  const blank: Scenario = {
+   schemaVersion: '1.0',
+   metadata: { id: 'new-flow', title: '新規業務フロー', description: '', category: 'custom' },
+   actors: [],
+   steps: [],
+  };
+  return <FlowEditor key="new-flow" initial={blank} onClose={() => setEditorMode('none')} />;
+ }
+ if (editorMode === 'edit' && scenario) return <FlowEditor key={selected} initial={scenario} onClose={() => setEditorMode('none')} />;
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
+   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
    <main>
-    <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditing(true); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
+    <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
     {scenario && current && <><div className="scene-toolbar"><span>通信経路の表示</span><div className="switch"><button type="button" className={focus ? 'selected' : ''} aria-pressed={focus} onClick={() => setFocus(true)}>現在の通信</button><button type="button" className={!focus ? 'selected' : ''} aria-pressed={!focus} onClick={() => setFocus(false)}>全体の接続</button></div></div><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={() => { setZoom(1); setPan({x:0,y:0}); }}>等倍</button><span className="viewport-hint">ドラッグで移動</span></div><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
