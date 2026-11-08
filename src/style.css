@@ -49,3 +49,12 @@ main{max-width:1500px}
 .scene{min-height:320px}
 .scene canvas{width:100%;max-width:1100px;height:auto;object-fit:contain}
 @media(max-width:800px){.scene-toolbar{justify-content:space-between;flex-wrap:wrap}.scene{min-height:0}}
+
+/* 大規模シナリオ: キャンバスは親幅に追従し、ドラッグ操作をブラウザの選択動作から分離する。 */
+.scene{touch-action:none;user-select:none;cursor:grab;min-height:0}
+.scene:active{cursor:grabbing}
+.viewport-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px}
+.viewport-controls button{min-width:38px;padding:7px 10px}
+.viewport-controls span{font-size:13px;color:var(--secondary);min-width:48px;text-align:center}
+.viewport-controls .viewport-hint{min-width:0;margin-left:10px}
+@media(max-width:800px){.viewport-controls{justify-content:flex-start;flex-wrap:wrap}.viewport-controls .viewport-hint{margin-left:0}}
