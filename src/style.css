@@ -189,3 +189,17 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .editor-inspector .editor-section>summary{cursor:pointer;list-style:revert;padding:12px 4px;font-weight:700;user-select:none}
 .editor-inspector .editor-section>summary:hover{color:#7dd3fc}
 .editor-inspector .editor-section>summary:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+
+/* 再生順は設定欄と同じ高さに並べ、各パネルを独立スクロールにする。 */
+@media (min-width: 1251px) {
+ .editor-layout{grid-template-columns:minmax(0,1fr) minmax(270px,310px) minmax(280px,330px)}
+ .editor-order-panel{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto}
+}
+.editor-order-panel{min-width:0;overflow-x:hidden;border:1px solid var(--panel-border);border-radius:14px;padding:14px;background:var(--panel)}
+.editor-order-panel .editor-section{margin:0;border:1px solid #486786;border-radius:9px;padding:0 10px 10px;min-width:0}
+.editor-order-panel .editor-section:not([open]){padding-bottom:0}
+.editor-order-panel .editor-section>summary{cursor:pointer;padding:12px 4px;font-weight:700}
+.editor-order-panel .editor-section>summary:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+@media (max-width:1250px) {
+ .editor-order-panel{position:static;max-height:420px;overflow-y:auto}
+}
