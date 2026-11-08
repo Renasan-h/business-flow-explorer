@@ -182,3 +182,10 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .branch-selector strong{font-size:13px}
 .branch-selector label{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px}
 .branch-selector select{max-width:100%;min-width:120px;padding:7px 10px;border-radius:6px}
+
+/* 設定セクションはHTML標準のdetailsを使い、キーボードでも開閉できる。 */
+.editor-inspector .editor-section{margin:10px 0;border:1px solid #486786;border-radius:9px;padding:0 10px 10px;min-width:0}
+.editor-inspector .editor-section:not([open]){padding-bottom:0}
+.editor-inspector .editor-section>summary{cursor:pointer;list-style:revert;padding:12px 4px;font-weight:700;user-select:none}
+.editor-inspector .editor-section>summary:hover{color:#7dd3fc}
+.editor-inspector .editor-section>summary:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
