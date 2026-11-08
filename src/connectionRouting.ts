@@ -5,6 +5,7 @@ const HALF_W = 75;
 const HALF_H = 38;
 const GAP = 18;
 
+/** ノード外周を結ぶ経路を返す。標準は直線、明示設定時のみ障害物を避ける折れ線。 */
 export function routeConnection(nodes: RouteNode[], fromId: string, toId: string, mode: 'straight' | 'orthogonal' = 'straight'): Point[] {
  const from = nodes.find(node => node.id === fromId);
  const to = nodes.find(node => node.id === toId);
@@ -51,6 +52,7 @@ export function routeConnection(nodes: RouteNode[], fromId: string, toId: string
  const startIndex = ys.indexOf(outerStart.y) * width + xs.indexOf(outerStart.x);
  const endIndex = ys.indexOf(outerEnd.y) * width + xs.indexOf(outerEnd.x);
  const count = width * height;
+ // Dijkstra法で障害物を横切らない最短の格子経路を探索する。
  const distances = Array<number>(count).fill(Infinity);
  const previous = Array<number>(count).fill(-1);
  const visited = new Set<number>();
@@ -83,9 +85,11 @@ export function routeConnection(nodes: RouteNode[], fromId: string, toId: string
  return result.filter((point, index) => index === 0 || index === result.length - 1 ||
   (result[index - 1].x !== result[index + 1].x && result[index - 1].y !== result[index + 1].y));
 }
+/** 経路の座標配列をSVG pathのM/Lコマンド列へ変換する。 */
 export function routePath(points: Point[]): string {
  return points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' ');
 }
+/** 経路長を基準に進捗0〜1のアニメーション座標を計算する。 */
 export function pointOnRoute(points: Point[], progress: number): Point {
  if (!points.length) return { x: 0, y: 0 };
  const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
