@@ -30,9 +30,10 @@ const metadata = z.object({
  description: z.string(),
  category: z.string(),
 });
+const stepEntry = z.union([step, z.object({ file: z.string().min(1) }).strict()]);
 const fragmentSchema = z.object({
  actors: z.array(actor).optional(),
- steps: z.array(step).optional(),
+ steps: z.array(stepEntry).optional(),
  actorFiles: z.array(z.string().min(1)).optional(),
 });
 const scenarioSchema = fragmentSchema.extend({
@@ -46,22 +47,6 @@ export type Scenario = Omit<ScenarioData, 'actors' | 'steps'> & {
  actors: (Actor & { position: { x: number; y: number } })[];
  steps: Step[];
 };
-
-// @ファイル名 はYAML構文ではないため、パース前に参照行と本文を分離する。
-function splitReferences(source: string): { references: string[]; body: string } {
- const references: string[] = [];
- const body = source.split(/\r?\n/).map(line => {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#')) return line;
-  if (!trimmed.startsWith('@')) return line;
-  if (!/^@[^\s#]+(?:\s+#.*)?$/.test(trimmed)) {
-   throw new Error('不正なシナリオ参照: ' + trimmed);
-  }
-  references.push(trimmed.slice(1).split(/\s+#/, 1)[0]);
-  return '';
- }).join('\n');
- return { references, body };
-}
 
 // 同一IDのactorは統合し、同じ項目に異なる値があれば黙って上書きしない。
 function mergeActor(existing: Actor, incoming: Actor): Actor {
@@ -94,8 +79,8 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
  const nextAncestors = new Set([...ancestors, canonical]);
  const response = await fetch(canonical, { cache: 'no-store' });
  if (!response.ok) throw new Error('シナリオの読み込みに失敗しました: ' + canonical);
- const { references, body } = splitReferences(await response.text());
- const parsed = parse(body) ?? {};
+ const parsed: unknown = parse(await response.text()) ?? {};
+ if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('YAMLのルートはオブジェクトである必要があります: ' + canonical);
  const isRoot = 'schemaVersion' in parsed || 'metadata' in parsed;
  const data = isRoot ? scenarioSchema.parse(parsed) : fragmentSchema.parse(parsed);
  const actors: Actor[] = [];
@@ -117,19 +102,18 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
   }
   fragment.actors.forEach(addActor);
  }
- // サブシナリオは参照の記述順で展開する。
- for (const reference of references) {
-  const resolved = new URL(reference, url).pathname;
-  const fragment = await readFragments(resolved, nextAncestors);
-  fragment.actors.forEach(addActor);
-  steps.push(...fragment.steps);
- }
  (data.actors ?? []).forEach(addActor);
- // orderは同一ファイル内だけに適用し、ファイル間の順序は維持する。
- const ownSteps = (data.steps ?? []).map((item, index) => ({ item, index }))
-  .sort((a, b) => (a.item.order ?? Infinity) - (b.item.order ?? Infinity) || a.index - b.index)
-  .map(entry => entry.item);
- steps.push(...ownSteps);
+ // stepsの配列順に通常ステップとサブシナリオを展開する。
+ for (const entry of data.steps ?? []) {
+  if ('file' in entry) {
+   const fragment = await readFragments(new URL(entry.file, url).href, nextAncestors);
+   if (fragment.root) throw new Error('サブシナリオにmetadataは指定できません: ' + entry.file);
+   fragment.actors.forEach(addActor);
+   steps.push(...fragment.steps);
+  } else {
+   steps.push(entry);
+  }
+ }
  return { actors, steps, root: isRoot ? data as ScenarioData : undefined };
 }
 
@@ -149,7 +133,7 @@ export async function loadScenario(path: string): Promise<Scenario> {
    }
   }
  }
- // ファイル間の順序は展開時に確定済みなので全体では再ソートしない。
+ // stepsの記述順を維持し、orderなどによる並び替えは行わない。
  const merged = { ...result.root, actors: result.actors, steps: result.steps };
  return { ...merged, actors: layoutActors(merged) };
 }
