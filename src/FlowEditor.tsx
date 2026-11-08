@@ -18,7 +18,7 @@ const NODE_HEIGHT = 76;
 
 /** 編集画面は初期データをコピーして保持する。通常再生データは直接変更しない。 */
 /** 編集結果を単一ファイルのシナリオとして出力し、ファイル参照の解決を不要にする。 */
-export default function FlowEditor({ initial, onClose }: { initial: Scenario; onClose: () => void }) {
+export default function FlowEditor({ initial, onClose, scenarioPath }: { initial: Scenario; onClose: () => void; scenarioPath?: string }) {
  // actors:ノード、steps:通信と再生順。steps配列の並び替えが再生順の変更となる。
  const [actors, setActors] = useState<Actor[]>(() => initial.actors.map(actor => ({ ...actor, position: { ...actor.position } })));
  const [steps, setSteps] = useState<Step[]>(() => initial.steps.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action })) })));
@@ -146,7 +146,9 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const addConnection = (from: string, to: string) => {
   if (from === to) { setMessage('同じノード同士は接続できません。'); return; }
   const id = 'connection-' + crypto.randomUUID().slice(0, 8);
-  setSteps(current => [...current, { id, title: '新しい通信', description: '', actions: [{ type: 'transfer', from, to, payload: '通信内容', durationMs: 1200 }] }]);
+  const fromActor = actors.find(actor => actor.id === from);
+  const branchLabel = fromActor?.type === 'decision' ? '条件を入力' : undefined;
+  setSteps(current => [...current, { id, title: '新しい通信', description: '', ...(branchLabel ? { branchLabel } : {}), actions: [{ type: 'transfer', from, to, payload: '通信内容', durationMs: 1200 }] }]);
   setSelectedStep(id);
   setSelectedActor(null);
   setSource(null);
@@ -173,7 +175,10 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
   const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
   const yaml = stringify({ schemaVersion: '1.0', metadata, actors: normalizedActors, steps }, { lineWidth: 0 });
-  const filename = (metadata.id.replace(/[^a-zA-Z0-9_-]/g, '-') || 'scenario') + '.yaml';
+  // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
+  const filename = scenarioPath
+   ? (decodeURIComponent(scenarioPath.split('/').pop() ?? '') || 'scenario.yaml')
+   : (metadata.id.replace(/[^a-zA-Z0-9_-]/g, '-') || 'scenario') + '.yaml';
   try {
    const picker = (window as Window & FilePicker).showSaveFilePicker;
    if (picker) {
@@ -181,7 +186,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
     const writable = await handle.createWritable();
     await writable.write(yaml);
     await writable.close();
-    setMessage('指定した保存先にYAMLを保存しました。');
+    setMessage('YAMLを保存しました。Web上の元シナリオは自動更新されません。');
    } else {
     // 保存ダイアログ非対応ブラウザでは通常のダウンロードを利用する。
     const url = URL.createObjectURL(new Blob([yaml], { type: 'application/x-yaml' }));
@@ -190,7 +195,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
     anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
-    setMessage('YAMLをダウンロードしました。保存先はブラウザの設定に従います。');
+    setMessage('YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
    }
   } catch (error) {
    if (error instanceof Error && error.name === 'AbortError') return;
@@ -215,6 +220,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
    <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}>表示リセット</button>
    <span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
+   {scenarioPath && <span className="viewport-hint">編集対象: {scenarioPath}</span>}
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
@@ -320,6 +326,10 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         <path d={reversePath} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
+        {step.branchLabel && <g pointerEvents="none">
+         <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
+         <text x={middle.x} y={middle.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{step.branchLabel}</text>
+        </g>}
        </g>;
       }))}
       {wire && (() => {
@@ -397,6 +407,9 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
     </>}
     {activeStep && <><h3>通信設定</h3>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
+     {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
+      <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
+     </label>}
      <label>処理名<input value={activeStep.title} onChange={e => changeStep(activeStep.id, { title: e.target.value })}/></label>
      <label>説明<textarea value={activeStep.description} onChange={e => changeStep(activeStep.id, { description: e.target.value })}/></label>
      {activeStep.actions.map((action, index) => <div key={index}>
