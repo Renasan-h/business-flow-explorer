@@ -41,3 +41,11 @@ button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px
 :root[data-theme="light"] .steps button:not(.selected){background:var(--button-bg);color:var(--button-text)}
 :root[data-theme="light"] .controls button:not(.selected){background:var(--button-bg);color:var(--button-text)}
 :root[data-theme="light"] .explanation{box-shadow:0 1px 3px rgba(22,42,70,.05)}
+
+/* 大規模フローはキャンバス幅を優先し、通信経路の表示方法を切り替えられるようにする。 */
+main{max-width:1500px}
+.scene-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:12px 0;color:var(--secondary);font-size:13px}
+.scene-toolbar .switch button{padding:8px 12px;font-size:12px}
+.scene{min-height:320px}
+.scene canvas{width:100%;max-width:1100px;height:auto;object-fit:contain}
+@media(max-width:800px){.scene-toolbar{justify-content:space-between;flex-wrap:wrap}.scene{min-height:0}}
