@@ -348,8 +348,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         onPointerDown={event => event.stopPropagation()}
         onClick={event => { event.stopPropagation(); deleteActor(actor.id); }}
         onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); deleteActor(actor.id); } }}>
-        <circle cx={actor.position.x + NODE_WIDTH / 2 - 11} cy={actor.position.y - NODE_HEIGHT / 2 + 11} r="11" fill="#9f2538" stroke="#fecdd3" strokeWidth="1.5"/>
-        <path d={`M ${actor.position.x + NODE_WIDTH / 2 - 15} ${actor.position.y - NODE_HEIGHT / 2 + 7} l 8 8 m 0 -8 l -8 8`} stroke="#fff" strokeWidth="2" strokeLinecap="round" pointerEvents="none"/>
+        <circle cx={actor.position.x + NODE_WIDTH / 2 - 9} cy={actor.position.y - NODE_HEIGHT / 2 + 9} r="8" fill="#9f2538" stroke="#fecdd3" strokeWidth="1.5"/>
+        <path d={`M ${actor.position.x + NODE_WIDTH / 2 - 12} ${actor.position.y - NODE_HEIGHT / 2 + 6} l 6 6 m 0 -6 l -6 6`} stroke="#fff" strokeWidth="2" strokeLinecap="round" pointerEvents="none"/>
        </g>
        {/* ノード端からドラッグする接続ハンドル。 */}
        <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
