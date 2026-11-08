@@ -1,0 +1,10 @@
+actors:
+  - id: db1
+    name: DB1 (A-D TBL)
+    type: database
+  - id: db2
+    name: DB2 (X-Z TBL)
+    type: database
+  - id: auditdb
+    name: 監査ログDB
+    type: database
