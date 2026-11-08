@@ -7,7 +7,7 @@ type Step = Scenario['steps'][number];
 const W = 150;
 const H = 76;
 
-/** 編集中のデータを保存せずに確認する独立プレビュー。 */
+/** 親エディターのデータを描画するプレビュー。再生状態のみ内部管理し、削除は親へ通知する。 */
 export default function FlowPreview({ actors, steps, title, onClose, onDeleteStep, onExit }: {
  actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
 }) {
@@ -19,6 +19,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  const [scale, setScale] = useState(1);
  const [pan, setPan] = useState({ x: 0, y: 0 });
  const [drag, setDrag] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
+ // 現状は1ステップ内の先頭actionのみを再生する。
  const step = steps[index];
  const action = step?.actions[0];
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
@@ -34,6 +35,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
   const maxY = Math.max(650, ...ys) + H;
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
  }, [actors]);
+ // 同じ送受信ノード間の接続は重複描画しない。
  const edges = useMemo(() => {
   const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal' }>();
   steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight' })));
@@ -61,6 +63,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
   setIndex(i => i + 1);
   setProgress(0);
  }, [progress, playing, index, steps.length]);
+ // 手動選択時は再生を止め、通信パケットを始点へ戻す。
  const choose = (next: number) => { setIndex(next); setProgress(0); setPlaying(false); };
  const play = () => {
   if (index === steps.length - 1 && progress >= 1) { setIndex(0); setProgress(0); }
