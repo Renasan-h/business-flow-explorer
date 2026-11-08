@@ -1,0 +1,10 @@
+actors:
+  - id: requester
+    name: 申請担当者
+    type: person
+  - id: approver
+    name: 承認責任者
+    type: person
+  - id: operator
+    name: 運用担当者
+    type: person
