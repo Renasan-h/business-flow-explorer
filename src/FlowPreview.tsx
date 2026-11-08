@@ -36,7 +36,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
  const hasReverse = Boolean(step?.bidirectional) || Boolean(action && steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)));
- const activeRoute = action ? offsetRoute(routeConnection(actors, returning ? action.to : action.from, returning ? action.from : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
+ const activeRoute = action ? offsetRoute(routeConnection(actors, returning ? (step?.reverseFrom ?? action.to) : action.from, returning ? (step?.reverseTo ?? action.from) : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
  const bounds = useMemo(() => {
   const xs = visibleActors.map(actor => actor.position.x);
   const ys = visibleActors.map(actor => actor.position.y);
@@ -66,8 +66,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
   return () => element.removeEventListener('wheel', wheel);
  }, [scale, bounds]);
  const edges = useMemo(() => {
-  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string; bidirectional?: boolean }>();
-  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel, bidirectional: item.bidirectional })));
+  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string; bidirectional?: boolean; reverseFrom?: string; reverseTo?: string }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel, bidirectional: item.bidirectional, reverseFrom: item.reverseFrom, reverseTo: item.reverseTo })));
   return [...found.values()];
  }, [steps]);
 
@@ -150,12 +150,14 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
        const route = routeConnection(actors, edge.from, edge.to, edge.routing);
+       const reverseRoute = edge.bidirectional && edge.reverseFrom && edge.reverseTo
+        ? routeConnection(actors, edge.reverseFrom, edge.reverseTo, edge.routing) : [];
        const bidirectional = edge.bidirectional || edges.some(other => other.from === edge.to && other.to === edge.from);
        const lane = bidirectional ? offsetRoute(route, -12) : route;
        const midpoint = pointOnRoute(lane, .5);
        return <g key={edge.from + edge.to}>
         <path d={routePath(lane)} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
-        {edge.bidirectional && <path d={routePath(offsetRoute(route, 12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>}
+        {edge.bidirectional && <path d={routePath(offsetRoute(reverseRoute, -12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>}
         {edge.branchLabel && <g pointerEvents="none">
          <rect x={midpoint.x - Math.max(32, edge.branchLabel.length * 7 / 2 + 8)} y={midpoint.y - 32} width={Math.max(64, edge.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
          <text x={midpoint.x} y={midpoint.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{edge.branchLabel}</text>
