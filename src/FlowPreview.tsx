@@ -106,6 +106,17 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
    <div><h2>プレビュー：{title}</h2><p>編集中のフローを保存せずに再生確認できます。</p></div>
    <div className="preview-header-actions"><button type="button" onClick={onClose}>編集画面に戻る</button><button type="button" onClick={onExit}>元のフロー画面へ戻る</button></div>
   </div>
+  {branchGroups(actors, allSteps).length > 0 && <div className="branch-selector">
+   <strong>再生する分岐を選択</strong>
+   {branchGroups(actors, allSteps).map(group => <label key={group.actor.id}>{group.actor.name}
+    <select value={branchChoices[group.actor.id] ?? group.options[0].id} onChange={event => {
+     setBranchChoices(current => ({ ...current, [group.actor.id]: event.target.value }));
+     setPlaying(false); setProgress(0); setIndex(0);
+    }}>
+     {group.options.map(option => <option key={option.id} value={option.id}>{option.branchLabel || option.title}</option>)}
+    </select>
+   </label>)}
+  </div>}
   {invalid.length > 0 && <p role="alert">接続先が存在しない通信が {invalid.length} 件あります。編集画面で修正してください。</p>}
   <div className="preview-toolbar">
    <button disabled={!steps.length} onClick={() => choose(Math.max(0, index - 1))}>前へ</button>
