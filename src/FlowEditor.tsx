@@ -142,9 +142,30 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setDropTarget(current => current === id ? null : current);
   setMessage('再生ステップを削除しました。');
  };
- /** 1つの接続を1つの通信ステップとして追加する。表示時は送受信2本線に展開する。 */
+ /** 逆方向の接続が既にあれば既存通信を双方向へ切り替え、重複登録しない。 */
  const addConnection = (from: string, to: string) => {
   if (from === to) { setMessage('同じノード同士は接続できません。'); return; }
+  const reverse = steps.find(step => step.actions.length === 1 &&
+   step.actions[0].from === to && step.actions[0].to === from);
+  if (reverse) {
+   changeStep(reverse.id, { bidirectional: true });
+   setSelectedStep(reverse.id);
+   setSelectedActor(null);
+   setSource(null);
+   setTool('move');
+   setMessage('既存の接続を双方向に変更しました。');
+   return;
+  }
+  const existing = steps.find(step => step.actions.length === 1 &&
+   step.actions[0].from === from && step.actions[0].to === to);
+  if (existing) {
+   setSelectedStep(existing.id);
+   setSelectedActor(null);
+   setSource(null);
+   setTool('move');
+   setMessage('この接続は登録済みです。通信設定から双方向に変更できます。');
+   return;
+  }
   const id = 'connection-' + crypto.randomUUID().slice(0, 8);
   const fromActor = actors.find(actor => actor.id === from);
   const branchLabel = fromActor?.type === 'decision' ? '条件を入力' : undefined;
@@ -316,14 +337,16 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const active = selectedStep === step.id;
        const points = routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
        // 逆方向も接続されている場合だけ線をずらす。片方向は中央の1本。
-       const bidirectional = steps.some(other => other.actions.some(otherAction =>
+       const bidirectional = Boolean(step.bidirectional) || steps.some(other => other.actions.some(otherAction =>
         otherAction.from === action.to && otherAction.to === action.from));
        const forward = bidirectional ? offsetRoute(points, -12) : points;
        const path = routePath(forward);
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
+        {step.bidirectional && <path d={routePath(offsetRoute([...points].reverse(), -12))} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
+        {step.bidirectional && <path d={routePath(offsetRoute([...points].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>}
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
         {step.branchLabel && <g pointerEvents="none">
          <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
@@ -406,6 +429,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <button onClick={() => deleteActor(activeActor.id)}>ノードと関連通信を削除</button>
     </details>}
     {activeStep && <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
+     <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeStep(activeStep.id, { bidirectional: e.target.value === 'both' })}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
      {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
       <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
