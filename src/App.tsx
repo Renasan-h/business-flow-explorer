@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import FlowEditor from './FlowEditor';
 import { iconCommands } from './nodeIconShapes';
-import { listScenarios, loadScenario, type Scenario } from './scenario';
+import { listScenarios, loadScenario, playbackValidationError, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
 type Theme = 'dark' | 'light';
@@ -359,6 +359,11 @@ export default function App() {
  // 終了後の再生は先頭から開始し、通常の一時停止からは現在位置で再開する。
  const togglePlayback = () => {
   if (playing) { setPlaying(false); return; }
+  if (scenario) {
+   const playbackError = playbackValidationError({ actors: scenario.actors, steps: routes });
+   if (playbackError) { setError(playbackError); setPlaying(false); return; }
+  }
+  setError('');
   if (finished) {
    setFinished(false);
    setStep(0);
