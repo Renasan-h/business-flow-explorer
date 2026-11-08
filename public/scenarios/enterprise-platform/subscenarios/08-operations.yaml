@@ -1,0 +1,92 @@
+# 運用監視・定期照合（正常系の通信例）
+steps:
+  - id: enterprise-08-01
+    title: 運用ダッシュボードアクセス
+    description: 運用監視・定期照合における operator から web への通信です。
+    actions:
+      - type: transfer
+        from: operator
+        to: web
+        payload: "運用ダッシュボードアクセス"
+        durationMs: 1100
+  - id: enterprise-08-02
+    title: 稼働状況取得
+    description: 運用監視・定期照合における web から api への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: api
+        payload: "稼働状況取得"
+        durationMs: 1100
+  - id: enterprise-08-03
+    title: SELECT D_TBL 有効契約
+    description: 運用監視・定期照合における api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "SELECT D_TBL 有効契約"
+        durationMs: 1100
+  - id: enterprise-08-04
+    title: SELECT Z_TBL バッチ処理状況
+    description: 運用監視・定期照合における api から db2 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db2
+        payload: "SELECT Z_TBL バッチ処理状況"
+        durationMs: 1100
+  - id: enterprise-08-05
+    title: 定期照合実行
+    description: 運用監視・定期照合における operator から web への通信です。
+    actions:
+      - type: transfer
+        from: operator
+        to: web
+        payload: "定期照合実行"
+        durationMs: 1100
+  - id: enterprise-08-06
+    title: 照合ジョブ起動
+    description: 運用監視・定期照合における web から api への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: api
+        payload: "照合ジョブ起動"
+        durationMs: 1100
+  - id: enterprise-08-07
+    title: ERP照合バッチ起動
+    description: 運用監視・定期照合における api から batch への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: batch
+        payload: "ERP照合バッチ起動"
+        durationMs: 1100
+  - id: enterprise-08-08
+    title: 契約・請求データ照合
+    description: 運用監視・定期照合における batch から erp への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: erp
+        payload: "契約・請求データ照合"
+        durationMs: 1100
+  - id: enterprise-08-09
+    title: 照合結果応答
+    description: 運用監視・定期照合における erp から batch への通信です。
+    actions:
+      - type: transfer
+        from: erp
+        to: batch
+        payload: "照合結果応答"
+        durationMs: 1100
+  - id: enterprise-08-10
+    title: 照合結果監査ログ
+    description: 運用監視・定期照合における batch から auditdb への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: auditdb
+        payload: "照合結果監査ログ"
+        durationMs: 1100
