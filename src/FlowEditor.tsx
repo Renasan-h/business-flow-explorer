@@ -119,6 +119,18 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       const target = event.target as Element;
       const node = target.closest('[data-actor-id]');
       const actorId = node?.getAttribute('data-actor-id') ?? null;
+      // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
+      if (actorId) {
+       setSelectedActor(actorId);
+       setSelectedStep(null);
+      } else {
+       const edge = target.closest('[data-step-id]');
+       if (edge) {
+        setSelectedStep(edge.getAttribute('data-step-id'));
+        setSelectedActor(null);
+        return;
+       }
+      }
       const actor = actors.find(item => item.id === actorId);
       drag.current = { id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset };
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -145,7 +157,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        const to = actors.find(actor => actor.id === action.to);
        if (!from || !to) return null;
        const active = selectedStep === step.id;
-       return <g key={step.id + '-' + index} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
+       return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <line x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y} stroke="transparent" strokeWidth="18"/>
         <line x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y} stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         <circle cx={(from.position.x + to.position.x) / 2} cy={(from.position.y + to.position.y) / 2} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
