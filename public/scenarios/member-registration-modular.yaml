@@ -1,0 +1,27 @@
+@fragments/member-confirm.yaml
+@fragments/member-access.yaml
+
+schemaVersion: "1.0"
+metadata:
+  id: member-registration-modular
+  title: 会員登録（分割シナリオ例）
+  description: 分割YAMLの参照・actor統合・orderによる再生順のサンプル
+  category: membership
+actors:
+  - id: api
+    name: 会員登録API
+    type: service
+  - id: db
+    name: DB1
+    type: database
+steps:
+  - id: member-initial-data
+    order: 20
+    title: 初期表示データ取得
+    description: APIがDB1から初期表示データを取得します。
+    actions:
+      - type: transfer
+        from: api
+        to: db
+        payload: SELECT XXXTBL
+        durationMs: 1500
