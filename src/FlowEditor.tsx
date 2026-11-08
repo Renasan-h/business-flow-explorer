@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
-import { NODE_TYPES, NODE_ICONS } from './nodeCatalog';
+import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
@@ -122,7 +122,9 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   const ids = new Set(actors.map(actor => actor.id));
   if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return; }
   if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return; }
-  const yaml = stringify({ schemaVersion: '1.0', metadata, actors, steps }, { lineWidth: 0 });
+  // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
+  const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
+  const yaml = stringify({ schemaVersion: '1.0', metadata, actors: normalizedActors, steps }, { lineWidth: 0 });
   const filename = (metadata.id.replace(/[^a-zA-Z0-9_-]/g, '-') || 'scenario') + '.yaml';
   try {
    const picker = (window as Window & FilePicker).showSaveFilePicker;
@@ -264,7 +266,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        <rect x={actor.position.x - NODE_WIDTH / 2} y={actor.position.y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" fill={source === actor.id ? '#165c73' : selectedActor === actor.id ? '#1e5a88' : '#20314a'} stroke={source === actor.id || selectedActor === actor.id ? '#22d3ee' : '#7398c9'} strokeWidth="2"/>
        <circle cx={actor.position.x - NODE_WIDTH / 2 + 13} cy={actor.position.y - NODE_HEIGHT / 2 + 13} r="15" fill="#22d3ee" />
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
-       <NodeIcon type={actor.type} icon={actor.icon} x={actor.position.x} y={actor.position.y - 10} size={29} color="#f0f6ff"/>
+       <NodeIcon type={actor.type} x={actor.position.x} y={actor.position.y - 10} size={29} color="#f0f6ff"/>
        <text x={actor.position.x} y={actor.position.y + 15} textAnchor="middle" fill="#f0f6ff" fontSize="12">{actor.name.length > 12 ? actor.name.slice(0, 11) + '…' : actor.name}</text>
        {/* ノード端からドラッグする接続ハンドル。 */}
        <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
@@ -283,13 +285,14 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
     {activeActor && <><h3>ノード設定（No. {nodeNumbers[activeActor.id]}）</h3>
      <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
-     <label>種類<select value={activeActor.type} onChange={e => changeActor(activeActor.id, { type: e.target.value as Actor['type'] })}>{NODE_TYPES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+     {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
      <div className="editor-icon-field">
-      <span>アイコン</span>
-      <div className="editor-icon-grid" role="group" aria-label="ノードのアイコンを選択">
-       {NODE_ICONS.map(item => <button type="button" key={item.value} className={item.value === (activeActor.icon ?? activeActor.type) ? 'selected' : ''}
-        title={item.label} aria-label={item.label} aria-pressed={item.value === (activeActor.icon ?? activeActor.type)}
-        onClick={() => changeActor(activeActor.id, { icon: item.value })}>
+      <span>ノードの種類</span>
+      <div className="editor-icon-grid" role="group" aria-label="ノードの種類を選択">
+       {NODE_TYPES.map(item => <button type="button" key={item.value}
+        className={item.value === activeActor.type ? 'selected' : ''}
+        title={item.label} aria-label={item.label} aria-pressed={item.value === activeActor.type}
+        onClick={() => changeActor(activeActor.id, { type: item.value, icon: undefined })}>
         <svg viewBox="0 0 32 32" aria-hidden="true"><NodeIcon type={item.value} x={16} y={16} size={25}/></svg>
         <small>{item.label}</small>
        </button>)}
