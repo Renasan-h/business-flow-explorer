@@ -1,0 +1,74 @@
+# 開通バッチ・外部サービス連携（正常系の通信例）
+steps:
+  - id: enterprise-06-01
+    title: 開通バッチ起動
+    description: 開通バッチ・外部サービス連携における api から batch への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: batch
+        payload: "開通バッチ起動"
+        durationMs: 1100
+  - id: enterprise-06-02
+    title: SELECT Z_TBL 未処理キュー
+    description: 開通バッチ・外部サービス連携における batch から db2 への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: db2
+        payload: "SELECT Z_TBL 未処理キュー"
+        durationMs: 1100
+  - id: enterprise-06-03
+    title: サービス開通要求
+    description: 開通バッチ・外部サービス連携における batch から external への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: external
+        payload: "サービス開通要求"
+        durationMs: 1100
+  - id: enterprise-06-04
+    title: 開通処理受付
+    description: 開通バッチ・外部サービス連携における external から batch への通信です。
+    actions:
+      - type: transfer
+        from: external
+        to: batch
+        payload: "開通処理受付"
+        durationMs: 1100
+  - id: enterprise-06-05
+    title: 契約書PDF生成・保存
+    description: 開通バッチ・外部サービス連携における batch から storage への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: storage
+        payload: "契約書PDF生成・保存"
+        durationMs: 1100
+  - id: enterprise-06-06
+    title: 契約書保管先応答
+    description: 開通バッチ・外部サービス連携における storage から batch への通信です。
+    actions:
+      - type: transfer
+        from: storage
+        to: batch
+        payload: "契約書保管先応答"
+        durationMs: 1100
+  - id: enterprise-06-07
+    title: UPDATE Z_TBL 開通完了
+    description: 開通バッチ・外部サービス連携における batch から db2 への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: db2
+        payload: "UPDATE Z_TBL 開通完了"
+        durationMs: 1100
+  - id: enterprise-06-08
+    title: 開通結果通知
+    description: 開通バッチ・外部サービス連携における batch から api への通信です。
+    actions:
+      - type: transfer
+        from: batch
+        to: api
+        payload: "開通結果通知"
+        durationMs: 1100
