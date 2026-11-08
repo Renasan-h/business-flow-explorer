@@ -104,3 +104,7 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .editor-step-drag-handle{display:flex;align-items:center;justify-content:center;min-width:28px;cursor:grab;user-select:none;touch-action:none;color:var(--secondary);font-size:20px}
 .editor-step-drag-handle:active{cursor:grabbing}
 .editor-step-drop-target{outline:2px dashed #22d3ee;outline-offset:2px;border-radius:5px}
+
+/* 再生順一覧の削除操作を移動ボタンと視覚的に区別する。 */
+.editor-step-list .editor-step-delete{color:#f87171;border-color:#b45353;min-width:30px;font-weight:700}
+.editor-step-list .editor-step-delete:hover{background:#5b242e;color:#fff}
