@@ -39,8 +39,15 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
  const snapshot = () => JSON.stringify({ actors, steps, metadata });
  const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata }));
- const [confirmExit, setConfirmExit] = useState(false);
- const requestExit = () => { if (snapshot() !== savedSnapshot.current) setConfirmExit(true); else onClose(); };
+ // 保存・破棄・キャンセルを順に確認する。保存が失敗・中断された場合は編集画面に留まる。
+ const requestExit = async () => {
+  if (snapshot() === savedSnapshot.current) { onClose(); return; }
+  if (window.confirm('未保存の変更があります。保存してから再生画面へ戻りますか？')) {
+   if (await save()) onClose();
+   return;
+  }
+  if (window.confirm('変更を保存せずに破棄して戻りますか？\nキャンセルすると編集を続けられます。')) onClose();
+ };
  // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null } | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
