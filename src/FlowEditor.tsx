@@ -14,8 +14,10 @@ const HEIGHT = 900;
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 76;
 
+/** 編集画面は初期データをコピーして保持する。通常再生データは直接変更しない。 */
 /** 編集結果を単一ファイルのシナリオとして出力し、ファイル参照の解決を不要にする。 */
 export default function FlowEditor({ initial, onClose }: { initial: Scenario; onClose: () => void }) {
+ // actors:ノード、steps:通信と再生順。steps配列の並び替えが再生順の変更となる。
  const [actors, setActors] = useState<Actor[]>(() => initial.actors.map(actor => ({ ...actor, position: { ...actor.position } })));
  const [steps, setSteps] = useState<Step[]>(() => initial.steps.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action })) })));
  const [metadata, setMetadata] = useState({ ...initial.metadata });
@@ -25,6 +27,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [draggedStep, setDraggedStep] = useState<string | null>(null);
  const [dropTarget, setDropTarget] = useState<string | null>(null);
  const [source, setSource] = useState<string | null>(null);
+ // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  const wirePointer = useRef<number | null>(null);
  const [zoom, setZoom] = useState(1);
@@ -47,8 +50,10 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   return { x: ((x - bounds.left) * WIDTH / bounds.width - offset.x) / zoom,
    y: ((y - bounds.top) * HEIGHT / bounds.height - offset.y) / zoom };
  };
+ // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
+ /** 一意なIDを生成してノードを追加し、追加直後に設定欄へフォーカスする。 */
  const addActor = () => {
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
   const number = nextNodeNumber.current++;
@@ -68,6 +73,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   setDropTarget(current => current === id ? null : current);
   setMessage('再生ステップを削除しました。');
  };
+ /** 1つの接続を1つの通信ステップとして追加する。表示時は送受信2本線に展開する。 */
  const addConnection = (from: string, to: string) => {
   if (from === to) { setMessage('同じノード同士は接続できません。'); return; }
   const id = 'connection-' + crypto.randomUUID().slice(0, 8);
@@ -87,6 +93,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
    setSelectedStep(null);
   }
  };
+ /** 入力検証後にYAMLを書き出す。GitHubやシナリオ一覧の自動更新は行わない。 */
  const save = async () => {
   setMessage('');
   if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return; }
@@ -121,6 +128,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [showLines, setShowLines] = useState(true);
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
+ // プレビューに編集中の状態を渡す。戻っても編集中の変更は保持される。
  if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onExit={onClose} onClose={() => setPreview(false)}/>;
  return <div className="flow-editor">
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
