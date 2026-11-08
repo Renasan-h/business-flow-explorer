@@ -104,7 +104,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
 
   const label = (value: string, x: number, y: number, size = 14) => {
    const text = new Text({ text: value, style: new TextStyle({
-    fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center',
+    fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center', wordWrap: true, wordWrapWidth: size === 12 ? NODE_WIDTH - 12 : 220, breakWords: true,
    }) });
    text.anchor.set(0.5);
    text.position.set(x, y);
