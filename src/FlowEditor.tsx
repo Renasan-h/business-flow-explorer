@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
+import FlowPreview from './FlowPreview';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -26,6 +27,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
+ const [preview, setPreview] = useState(false);
  const svgRef = useRef<SVGSVGElement>(null);
  // 削除後も番号を再利用せず、編集中の識別番号を維持する。
  const nextNodeNumber = useRef(initial.actors.length + 1);
@@ -106,8 +108,9 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [showLines, setShowLines] = useState(true);
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
+ if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onClose={() => setPreview(false)}/>;
  return <div className="flow-editor">
-  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
+  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
