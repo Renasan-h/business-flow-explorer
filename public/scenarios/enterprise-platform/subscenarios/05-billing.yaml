@@ -1,0 +1,56 @@
+# 決済登録・請求準備（正常系の通信例）
+steps:
+  - id: enterprise-05-01
+    title: 決済方法トークン登録
+    description: 決済登録・請求準備における api から payment への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: payment
+        payload: "決済方法トークン登録"
+        durationMs: 1100
+  - id: enterprise-05-02
+    title: 決済登録結果
+    description: 決済登録・請求準備における payment から api への通信です。
+    actions:
+      - type: transfer
+        from: payment
+        to: api
+        payload: "決済登録結果"
+        durationMs: 1100
+  - id: enterprise-05-03
+    title: INSERT Z_TBL 請求処理キュー
+    description: 決済登録・請求準備における api から db2 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db2
+        payload: "INSERT Z_TBL 請求処理キュー"
+        durationMs: 1100
+  - id: enterprise-05-04
+    title: 契約・請求先マスタ連携
+    description: 決済登録・請求準備における api から erp への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: erp
+        payload: "契約・請求先マスタ連携"
+        durationMs: 1100
+  - id: enterprise-05-05
+    title: ERP登録完了
+    description: 決済登録・請求準備における erp から api への通信です。
+    actions:
+      - type: transfer
+        from: erp
+        to: api
+        payload: "ERP登録完了"
+        durationMs: 1100
+  - id: enterprise-05-06
+    title: 請求連携監査ログ
+    description: 決済登録・請求準備における api から auditdb への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: auditdb
+        payload: "請求連携監査ログ"
+        durationMs: 1100
