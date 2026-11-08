@@ -78,3 +78,6 @@ main{max-width:1500px}
 
 /* 新規フロー作成はシナリオ一覧の先頭に独立した操作として配置する。 */
 aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);font-weight:600}
+
+/* 接続ハンドルはノード移動とは異なる操作であることを明示する。 */
+.editor-connection-handle{cursor:crosshair}
