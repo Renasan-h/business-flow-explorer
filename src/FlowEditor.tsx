@@ -36,6 +36,26 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
  const svgRef = useRef<SVGSVGElement>(null);
+ // Ctrl+ホイールはブラウザ全体ではなくキャンバスだけを拡縮する。
+ // passive:falseのネイティブイベントで既定のページズームを抑止する。
+ useEffect(() => {
+  const element = svgRef.current;
+  if (!element) return;
+  const wheel = (event: WheelEvent) => {
+   if (!event.ctrlKey) return;
+   event.preventDefault();
+   const rect = element.getBoundingClientRect();
+   const cx = (event.clientX - rect.left) * WIDTH / rect.width;
+   const cy = (event.clientY - rect.top) * HEIGHT / rect.height;
+   const next = Math.max(.3, Math.min(2.5, +(zoom * Math.exp(-event.deltaY * .002)).toFixed(3)));
+   if (next === zoom) return;
+   // ポインター下のワールド座標が拡縮前後で動かないようにパンを補正する。
+   setOffset(current => ({ x: cx - (cx - current.x) * next / zoom, y: cy - (cy - current.y) * next / zoom }));
+   setZoom(next);
+  };
+  element.addEventListener('wheel', wheel, { passive: false });
+  return () => element.removeEventListener('wheel', wheel);
+ }, [zoom]);
  // 削除後も番号を再利用せず、編集中の識別番号を維持する。
  const nextNodeNumber = useRef(initial.actors.length + 1);
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
@@ -141,6 +161,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
    <span>{Math.round(zoom * 100)}%</span>
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
    <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}>表示リセット</button>
+   <span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
