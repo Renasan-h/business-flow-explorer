@@ -211,7 +211,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    // SVG画面と同じベクター定義をPixiJS Graphicsで描画する。
    const glyph = new Graphics();
    const scale = 1.3;
-   for (const command of iconCommands(actor.type, actor.icon)) {
+   for (const command of iconCommands(actor.type)) {
     if (command[0] === 'line') glyph.moveTo(command[1], command[2]).lineTo(command[3], command[4]);
     else if (command[0] === 'rect') glyph.roundRect(command[1], command[2], command[3], command[4], 1.5);
     else if (command[0] === 'circle') glyph.circle(command[1], command[2], command[3]);
