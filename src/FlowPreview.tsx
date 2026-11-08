@@ -1,6 +1,6 @@
 import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Scenario } from './scenario';
+import { playbackValidationError, type Scenario } from './scenario';
 import { NodeIcon } from './NodeIcon';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
@@ -18,6 +18,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const [progress, setProgress] = useState(0);
  // 双方向通信は同一ステップ内で往路・復路を順番に再生する。
  const [returning, setReturning] = useState(false);
+ const [playbackError, setPlaybackError] = useState('');
  const [speed, setSpeed] = useState(1);
  const [allLines, setAllLines] = useState(true);
  const [scale, setScale] = useState(1);
@@ -97,6 +98,11 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  // 手動選択時は再生を止め、通信パケットを始点へ戻す。
  const choose = (next: number) => { setIndex(next); setReturning(false); setProgress(0); setPlaying(false); };
  const play = () => {
+  if (!playing) {
+   const validationError = playbackValidationError({ actors, steps });
+   if (validationError) { setPlaybackError(validationError); return; }
+   setPlaybackError('');
+  }
   if (index === steps.length - 1 && progress >= 1) { setIndex(0); setReturning(false); setProgress(0); }
   setPlaying(value => !value);
  };
@@ -125,6 +131,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
     </select>
    </label>)}
   </div>}
+  {playbackError && <p role="alert" className="error">{playbackError}</p>}
   {invalid.length > 0 && <p role="alert">接続先が存在しない通信が {invalid.length} 件あります。編集画面で修正してください。</p>}
   <div className="preview-toolbar">
    <button disabled={!steps.length} onClick={() => choose(Math.max(0, index - 1))}>前へ</button>
