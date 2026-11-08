@@ -154,3 +154,11 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
  .editor-toolbar button,.preview-toolbar button,.controls button{padding:7px 9px}
  .editor-header-actions,.preview-header-actions{justify-content:flex-start}
 }
+
+/* アイコン選択は実際の線画を並べ、形状と名称を一緒に確認できるようにする。 */
+.editor-icon-field{margin:12px 0;color:var(--secondary);font-size:12px}
+.editor-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;margin-top:7px}
+.editor-icon-grid button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:65px;padding:6px 3px;margin:0;text-align:center}
+.editor-icon-grid button svg{width:32px;height:32px;color:var(--text)}
+.editor-icon-grid button small{font-size:10px;line-height:1.2;overflow-wrap:anywhere}
+.editor-icon-grid button.selected svg{color:#7dd3fc}
