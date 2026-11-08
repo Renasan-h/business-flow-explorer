@@ -36,6 +36,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
+ // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
+ const snapshot = () => JSON.stringify({ actors, steps, metadata });
+ const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata }));
+ const [confirmExit, setConfirmExit] = useState(false);
+ const requestExit = () => { if (snapshot() !== savedSnapshot.current) setConfirmExit(true); else onClose(); };
  // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null } | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
@@ -194,12 +199,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  /** 入力検証後にYAMLを書き出す。GitHubやシナリオ一覧の自動更新は行わない。 */
- const save = async () => {
+ const save = async (): Promise<boolean> => {
   setMessage('');
-  if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return; }
+  if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return false; }
   const ids = new Set(actors.map(actor => actor.id));
-  if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return; }
-  if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return; }
+  if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return false; }
+  if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return false; }
   // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
   const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
   // 片方向通信では復路フィールドをYAMLに一切出力しない。
@@ -231,20 +236,23 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     URL.revokeObjectURL(url);
     setMessage('YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
    }
+   savedSnapshot.current = snapshot();
+   return true;
   } catch (error) {
-   if (error instanceof Error && error.name === 'AbortError') return;
+   if (error instanceof Error && error.name === 'AbortError') return false;
    setMessage('保存できませんでした: ' + String(error));
+   return false;
   }
  };
  const [showLines, setShowLines] = useState(true);
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
  // プレビューに編集中の状態を渡す。戻っても編集中の変更は保持される。
- if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onExit={onClose} onClose={() => setPreview(false)}/>;
+ if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onExit={requestExit} onClose={() => setPreview(false)}/>;
  return <div className="flow-editor" onPointerDown={event => {
   if (!(event.target as Element).closest('.editor-context-menu')) setContextMenu(null);
  }}>
-  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
+  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={requestExit}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
