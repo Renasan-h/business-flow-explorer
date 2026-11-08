@@ -32,6 +32,8 @@ const step = z.object({
  order: z.number().finite().optional(),
  // 未指定時は直線。折れ線を選んだ通信だけYAMLに保存する。
  routing: z.enum(['straight', 'orthogonal']).optional(),
+ // 条件分岐ノードから出る経路を識別するラベル（例: 成功 / 失敗）。
+ branchLabel: z.string().optional(),
  actions: z.array(action).min(1),
 });
 const metadata = z.object({
