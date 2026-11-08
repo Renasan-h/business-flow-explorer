@@ -315,16 +315,15 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        if (!from || !to) return null;
        const active = selectedStep === step.id;
        const points = routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
-       const forward = offsetRoute(points, -12);
-       const reverse = offsetRoute([...points].reverse(), -12);
+       // 逆方向も接続されている場合だけ線をずらす。片方向は中央の1本。
+       const bidirectional = steps.some(other => other.actions.some(otherAction =>
+        otherAction.from === action.to && otherAction.to === action.from));
+       const forward = bidirectional ? offsetRoute(points, -12) : points;
        const path = routePath(forward);
-       const reversePath = routePath(reverse);
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
-        <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
-        <path d={reversePath} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
         {step.branchLabel && <g pointerEvents="none">
          <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
