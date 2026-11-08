@@ -34,9 +34,16 @@ const step = z.object({
  routing: z.enum(['straight', 'orthogonal']).optional(),
  // 1件の通信定義で往復2本の接続線を描く。省略時は片方向。
  bidirectional: z.boolean().optional(),
+ // 双方向時は復路の送受信先を明示的に保存する。
+ reverseFrom: z.string().min(1).optional(),
+ reverseTo: z.string().min(1).optional(),
  // 条件分岐ノードから出る経路を識別するラベル（例: 成功 / 失敗）。
  branchLabel: z.string().optional(),
  actions: z.array(action).min(1),
+}).superRefine((value, context) => {
+ if (!value.bidirectional) return;
+ if (!value.reverseFrom) context.addIssue({ code: 'custom', path: ['reverseFrom'], message: '双方向通信には復路送信元が必要です' });
+ if (!value.reverseTo) context.addIssue({ code: 'custom', path: ['reverseTo'], message: '双方向通信には復路送信先が必要です' });
 });
 const metadata = z.object({
  id: z.string(),
