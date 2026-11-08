@@ -98,3 +98,9 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .preview-steps{display:grid;gap:6px;max-height:75vh;overflow:auto;padding:12px;border:1px solid var(--panel-border);border-radius:12px}
 .preview-steps h3{margin:0 0 8px}.preview-steps button{text-align:left}
 @media(max-width:1000px){.preview-layout{grid-template-columns:1fr}.preview-steps{max-height:250px}}
+
+/* 再生順のドラッグ＆ドロップ操作と挿入先の視認性。 */
+.editor-reorder-hint{font-size:12px;color:var(--secondary);margin:4px 0 10px}
+.editor-step-drag-handle{display:flex;align-items:center;justify-content:center;min-width:28px;cursor:grab;user-select:none;touch-action:none;color:var(--secondary);font-size:20px}
+.editor-step-drag-handle:active{cursor:grabbing}
+.editor-step-drop-target{outline:2px dashed #22d3ee;outline-offset:2px;border-radius:5px}
