@@ -7,20 +7,10 @@
 
 ## 画面イメージ
 
-![Business Flow Explorer の再生画面構成イメージ](docs/images/overview-illustration.svg)
-
-> **注記：** 上の画像は画面構成を説明するために作成したSVGイメージであり、実際のアプリケーションを撮影したスクリーンショットではありません。実画面のキャプチャを追加する場合は `docs/images/` に保存し、この画像を差し替えてください。
-
-### 実画面スクリーンショットの追加
-
-開発サーバーを起動し、次の画面を撮影して `docs/images/` に配置してください。画像を配置した後、下記のMarkdownコメントを解除するとREADMEに表示されます。
-
-<!--
 ![Technical モードの再生画面](docs/images/technical.png)
 ![Illustration モードの再生画面](docs/images/illustration.png)
 ![フローエディター](docs/images/editor.png)
 ![編集内容のプレビュー](docs/images/preview.png)
--->
 
 ## 主な機能
 
