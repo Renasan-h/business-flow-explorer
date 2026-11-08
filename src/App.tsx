@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import FlowEditor from './FlowEditor';
-import { nodeGlyph } from './nodeCatalog';
+import { iconCommands } from './nodeIconShapes';
 import { listScenarios, loadScenario, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
@@ -208,7 +208,24 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    if (focus && !active) g.alpha = 0.38;
    layer.addChild(g);
    // 表示アイコンはYAMLのiconを優先し、未指定ならtypeの標準アイコンを使う。
-   label(nodeGlyph(actor.type, actor.icon), actor.position.x, actor.position.y - 9, 28);
+   // SVG画面と同じベクター定義をPixiJS Graphicsで描画する。
+   const glyph = new Graphics();
+   const scale = 1.3;
+   for (const command of iconCommands(actor.type, actor.icon)) {
+    if (command[0] === 'line') glyph.moveTo(command[1], command[2]).lineTo(command[3], command[4]);
+    else if (command[0] === 'rect') glyph.roundRect(command[1], command[2], command[3], command[4], 1.5);
+    else if (command[0] === 'circle') glyph.circle(command[1], command[2], command[3]);
+    else {
+     const coords = command.slice(1);
+     glyph.moveTo(coords[0], coords[1]);
+     for (let i = 2; i < coords.length; i += 2) glyph.lineTo(coords[i], coords[i + 1]);
+    }
+    glyph.stroke({ color: colors.text, width: 1.8, cap: 'round', join: 'round' });
+   }
+   glyph.scale.set(scale);
+   glyph.position.set(actor.position.x - 12 * scale, actor.position.y - 9 - 12 * scale);
+   if (focus && !active) glyph.alpha = 0.38;
+   layer.addChild(glyph);
    label(actor.name, actor.position.x, actor.position.y + 21, 12);
    // 指定されたインスタンス名とIPアドレスをノード上部に表示する。
    const details = [actor.instanceName, actor.ip].filter(Boolean);
