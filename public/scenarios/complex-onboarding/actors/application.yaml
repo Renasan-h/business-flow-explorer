@@ -1,0 +1,9 @@
+actors:
+  - id: web
+    name: Webサーバー
+    type: server
+    position: { x: 360, y: 85 }
+  - id: api
+    name: APIサーバー
+    type: service
+    position: { x: 610, y: 100 }
