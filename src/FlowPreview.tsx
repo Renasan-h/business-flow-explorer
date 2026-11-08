@@ -1,3 +1,4 @@
+import { branchGroups, playbackSteps } from './branchPlayback';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Scenario } from './scenario';
 import { NodeIcon } from './NodeIcon';
@@ -9,7 +10,7 @@ const W = 150;
 const H = 76;
 
 /** 親エディターのデータを描画するプレビュー。再生状態のみ内部管理し、削除は親へ通知する。 */
-export default function FlowPreview({ actors, steps, title, onClose, onDeleteStep, onExit }: {
+export default function FlowPreview({ actors, steps: allSteps, title, onClose, onDeleteStep, onExit }: {
  actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
 }) {
  const [index, setIndex] = useState(0);
@@ -21,6 +22,9 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  const canvasRef = useRef<SVGSVGElement>(null);
  const [pan, setPan] = useState({ x: 0, y: 0 });
  const [drag, setDrag] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
+ // プレビューでも通常再生と同じ選択経路だけを再生する。
+ const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
+ const steps = useMemo(() => playbackSteps(actors, allSteps, branchChoices), [actors, allSteps, branchChoices]);
  // 現状は1ステップ内の先頭actionのみを再生する。
  const step = steps[index];
  const action = step?.actions[0];
