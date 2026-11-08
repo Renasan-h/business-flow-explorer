@@ -22,7 +22,6 @@ const step = z.object({
  title: z.string(),
  description: z.string(),
  order: z.number().finite().optional(),
- outputs: z.record(z.string().min(1), z.string()).optional(),
  actions: z.array(action).min(1),
 });
 const metadata = z.object({
@@ -131,8 +130,8 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
     if (steps.length === 0) throw new Error('最初のサブシナリオにはhandoffを指定できません: ' + entry.file);
     steps.push({
      id: '__handoff__' + steps.length + '_' + steps[steps.length - 1].id,
-     title: 'サブシナリオ間のデータ引き継ぎ',
-     description: entry.file + ' への処理結果の受け渡し',
+     title: 'サブシナリオ間の通信',
+     description: entry.file + ' への通信',
      actions: [{ type: 'transfer', ...entry.handoff }],
     });
    }
@@ -160,28 +159,8 @@ export async function loadScenario(path: string): Promise<Scenario> {
    }
   }
  }
- // 各ステップの出力を後続ステップへ引き継ぎ、payload内の変数を展開する。
- // 展開後のScenarioを再生するため、手動ステップ移動でも表示結果は一定になる。
- const variables = new Map<string, string>();
- const resolve = (value: string, stepId: string): string =>
-  value.replace(/\\{\\{\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\}\\}/g, (_, key: string) => {
-   const resolved = variables.get(key);
-   if (resolved === undefined) throw new Error('step "' + stepId + '" の未定義変数: ' + key);
-   return resolved;
-  });
- const resolvedSteps = result.steps.map(item => {
-  const actions = item.actions.map(transfer => ({
-   ...transfer,
-   payload: resolve(transfer.payload, item.id),
-  }));
-  const outputs = item.outputs
-   ? Object.fromEntries(Object.entries(item.outputs).map(([key, value]) => [key, resolve(value, item.id)]))
-   : undefined;
-  for (const [key, value] of Object.entries(outputs ?? {})) variables.set(key, value);
-  return { ...item, actions, ...(outputs ? { outputs } : {}) };
- });
  // stepsの記述順を維持し、orderなどによる並び替えは行わない。
- const merged = { ...result.root, actors: result.actors, steps: resolvedSteps };
+ const merged = { ...result.root, actors: result.actors, steps: result.steps };
  return { ...merged, actors: layoutActors(merged) };
 }
 
