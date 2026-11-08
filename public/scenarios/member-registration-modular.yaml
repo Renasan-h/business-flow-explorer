@@ -12,11 +12,11 @@ steps:
     handoff:
       from: web
       to: api
-      payload: "{{registrationRequest}}"
+      payload: 初期表示データ取得要求
       durationMs: 1200
   - file: fragments/member-confirm.yaml
     handoff:
       from: db
       to: web
-      payload: "{{initialData}}"
+      payload: 初期表示データ取得結果
       durationMs: 1200
