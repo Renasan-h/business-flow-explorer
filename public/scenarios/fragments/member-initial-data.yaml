@@ -1,0 +1,11 @@
+# 初期表示データ取得
+steps:
+  - id: member-initial-data
+    title: 初期表示データ取得
+    description: APIがDB1から初期表示データを取得します。
+    actions:
+      - type: transfer
+        from: api
+        to: db
+        payload: SELECT XXXTBL
+        durationMs: 1500
