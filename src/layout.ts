@@ -37,6 +37,7 @@ function crossesNode(a: Point, b: Point, node: Point): boolean {
  return enter < 1 && leave > 0;
 }
 
+/** ノード座標の自動配置。小規模は候補探索、大規模は局所改善で計算量を抑える。 */
 export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] }): (T & { position: Point })[] {
  const actors = scenario.actors;
  const count = actors.length;
