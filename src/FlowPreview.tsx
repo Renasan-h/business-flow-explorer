@@ -22,6 +22,22 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  const [pan, setPan] = useState({ x: 0, y: 0 });
  const [drag, setDrag] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
  // 現状は1ステップ内の先頭actionのみを再生する。
+ const step = steps[index];
+ const action = step?.actions[0];
+ const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
+ const start = action ? byId.get(action.from) : undefined;
+ const end = action ? byId.get(action.to) : undefined;
+ const activeRoute = action ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12) : [];
+ const bounds = useMemo(() => {
+  const xs = actors.map(actor => actor.position.x);
+  const ys = actors.map(actor => actor.position.y);
+  const minX = Math.min(0, ...xs) - W;
+  const minY = Math.min(0, ...ys) - H;
+  const maxX = Math.max(1100, ...xs) + W;
+  const maxY = Math.max(650, ...ys) + H;
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+ }, [actors]);
+ // 同じ送受信ノード間の接続は重複描画しない。
  // Ctrl+ホイール時はSVG内のマウス位置を固定して拡縮する。
  useEffect(() => {
   const element = canvasRef.current;
@@ -40,22 +56,6 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
   element.addEventListener('wheel', wheel, { passive: false });
   return () => element.removeEventListener('wheel', wheel);
  }, [scale, bounds]);
- const step = steps[index];
- const action = step?.actions[0];
- const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
- const start = action ? byId.get(action.from) : undefined;
- const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12) : [];
- const bounds = useMemo(() => {
-  const xs = actors.map(actor => actor.position.x);
-  const ys = actors.map(actor => actor.position.y);
-  const minX = Math.min(0, ...xs) - W;
-  const minY = Math.min(0, ...ys) - H;
-  const maxX = Math.max(1100, ...xs) + W;
-  const maxY = Math.max(650, ...ys) + H;
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
- }, [actors]);
- // 同じ送受信ノード間の接続は重複描画しない。
  const edges = useMemo(() => {
   const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal' }>();
   steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight' })));
