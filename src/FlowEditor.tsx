@@ -89,9 +89,10 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   }
  };
  const [showLines, setShowLines] = useState(true);
+ const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
  return <div className="flow-editor">
-  <div className="editor-header"><div><h2>フローエディター</h2><p>ノードをドラッグして配置し、接続モードで送信元と送信先を順に選択します。</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
+  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、接続モードで送信元と送信先を順に選択します。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
