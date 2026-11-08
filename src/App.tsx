@@ -76,13 +76,18 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
     if (!route || !packet || !stateRef.current.playing) return;
     // 速度変更時も現在位置を維持し、次のフレームから倍率を反映する。
     elapsedRef.current = Math.min(elapsedRef.current + ticker.deltaMS * stateRef.current.speed, route.duration);
-    const progress = elapsedRef.current / route.duration;
+    // 往路終了後は明示的な復路送受信先に切り替える。
+    const legDuration = route.reverse ? route.duration / 2 : route.duration;
+    const returning = Boolean(route.reverse && elapsedRef.current >= legDuration);
+    const leg = returning ? route.reverse! : route;
+    const elapsed = returning ? elapsedRef.current - legDuration : elapsedRef.current;
+    const progress = Math.min(1, elapsed / legDuration);
     const eased = progress * progress * (3 - 2 * progress);
     packet.position.set(
-     route.start.x + (route.end.x - route.start.x) * eased,
-     route.start.y + (route.end.y - route.start.y) * eased,
+     leg.start.x + (leg.end.x - leg.start.x) * eased,
+     leg.start.y + (leg.end.y - leg.start.y) * eased,
     );
-    if (progress >= 1) {
+    if (elapsedRef.current >= route.duration) {
      // 完了通知が連続して発火しないよう、次の描画更新まで停止する。
      routeRef.current = null;
      stateRef.current.onFinished();
@@ -180,7 +185,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    for (const transfer of scenarioStep.actions) {
     connections.add(JSON.stringify([transfer.from, transfer.to]));
     // 双方向は通信ステップを増やさず、描画用の逆方向だけを登録する。
-    if (scenarioStep.bidirectional) connections.add(JSON.stringify([transfer.to, transfer.from]));
+    if (scenarioStep.bidirectional && scenarioStep.reverseFrom && scenarioStep.reverseTo)
+     connections.add(JSON.stringify([scenarioStep.reverseFrom, scenarioStep.reverseTo]));
    }
   }
   let sendRoute = { start: start.position, end: end.position };
@@ -195,7 +201,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    if (active) {
     sendRoute = drawLane(fromActor.position, toActor.position, laneOffset, sendColor, 0.95);
     // 注目表示中も双方向接続の復路を残す。復路は再生ステップを増やさない。
-    if (bidirectional && focus) drawLane(toActor.position, fromActor.position, -13, inactiveColor, 0.65);
+    // 復路は後段で明示的な送受信先から描画する。
    } else if (!focus) {
     drawLane(fromActor.position, toActor.position, laneOffset, inactiveColor, 0.24);
    }
@@ -240,10 +246,19 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
   packetRef.current = packet;
   const from = sendRoute.start;
   const to = sendRoute.end;
-  routeRef.current = { start: from, end: to, duration: action.durationMs };
-  const progress = Math.min(elapsedRef.current / action.durationMs, 1);
+  const currentStep = scenario.steps[step];
+  const reverseFrom = currentStep.reverseFrom ? byId.get(currentStep.reverseFrom) : undefined;
+  const reverseTo = currentStep.reverseTo ? byId.get(currentStep.reverseTo) : undefined;
+  const reverse = currentStep.bidirectional && reverseFrom && reverseTo
+   ? drawLane(reverseFrom.position, reverseTo.position, -13, inactiveColor, focus ? 0.65 : 0.24) : undefined;
+  const duration = action.durationMs * (reverse ? 2 : 1);
+  routeRef.current = { start: from, end: to, duration, reverse };
+  const returning = Boolean(reverse && elapsedRef.current >= action.durationMs);
+  const leg = returning ? reverse! : { start: from, end: to };
+  const elapsed = returning ? elapsedRef.current - action.durationMs : elapsedRef.current;
+  const progress = Math.min(1, elapsed / action.durationMs);
   const eased = progress * progress * (3 - 2 * progress);
-  packet.position.set(from.x + (to.x - from.x) * eased, from.y + (to.y - from.y) * eased);
+  packet.position.set(leg.start.x + (leg.end.x - leg.start.x) * eased, leg.start.y + (leg.end.y - leg.start.y) * eased);
   label(action.payload, (start.position.x + end.position.x) / 2, (start.position.y + end.position.y) / 2 - 32, 13);
  }, [scenario, step, mode, theme, focus, ready]);
 
