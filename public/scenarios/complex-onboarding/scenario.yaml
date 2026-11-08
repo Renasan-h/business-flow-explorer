@@ -17,9 +17,9 @@ steps:
       durationMs: 1000
   - file: subscenarios/03-external-screening.yaml
     handoff:
-      from: otp
+      from: db1
       to: api
-      payload: OTP検証成功・審査開始
+      payload: OTP認証履歴登録完了・審査開始
       durationMs: 1000
   - file: subscenarios/04-contract.yaml
     handoff:
