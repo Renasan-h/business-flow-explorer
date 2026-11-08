@@ -1,11 +1,4 @@
 # 会員登録ページへのアクセス
-actors:
-  - id: customer
-    name: 顧客
-    type: person
-  - id: web
-    name: Webサーバー
-    type: server
 steps:
   - id: member-access
     order: 10
