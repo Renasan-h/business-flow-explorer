@@ -58,6 +58,16 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   setSelectedStep(null);
   setTool('move');
  };
+ /** 再生順一覧・通信設定の双方で同じ削除処理を使用する。 */
+ const deleteStep = (id: string) => {
+  const target = steps.find(step => step.id === id);
+  if (!target || !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`)) return;
+  setSteps(current => current.filter(step => step.id !== id));
+  setSelectedStep(current => current === id ? null : current);
+  setDraggedStep(current => current === id ? null : current);
+  setDropTarget(current => current === id ? null : current);
+  setMessage('再生ステップを削除しました。');
+ };
  const addConnection = (from: string, to: string) => {
   if (from === to) { setMessage('同じノード同士は接続できません。'); return; }
   const id = 'connection-' + crypto.randomUUID().slice(0, 8);
@@ -251,7 +261,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       <label>通信内容<input value={action.payload} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, payload: e.target.value } : a) })}/></label>
       <label>通信時間 (ms)<input type="number" min="1" value={action.durationMs} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, durationMs: Number(e.target.value) } : a) })}/></label>
      </div>)}
-     <button onClick={() => { setSteps(v => v.filter(step => step.id !== activeStep.id)); setSelectedStep(null); }}>通信を削除</button>
+     <button onClick={() => deleteStep(activeStep.id)}>通信を削除</button>
     </>}
     <h3>通信の再生順</h3>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
@@ -284,6 +294,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       <button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); }}>{index + 1}. {step.title}</button>
       <button disabled={index === 0} aria-label="上へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index-1], copy[index]] = [copy[index], copy[index-1]]; return copy; })}>↑</button>
       <button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button>
+      <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>×</button>
      </div>)}</div>
    </aside>
   </div>
