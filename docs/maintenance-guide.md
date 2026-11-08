@@ -88,7 +88,7 @@ SVGの編集画面では、マウスの画面座標とノードのワールド�
 
 ## 8. ノードの汎用属性とアイコン
 
-`src/nodeCatalog.ts`にノード種別と表示アイコンの候補をまとめています。種類とアイコンは独立しており、種類を変更せず表示だけ変えることができます。
+`src/nodeCatalog.ts`にノード種別をまとめています。表示アイコンは種類から自動決定されるため、個別のアイコン選択は不要です。
 
 ノードのYAML例:
 
@@ -96,7 +96,6 @@ SVGの編集画面では、マウスの画面座標とノードのワールド�
 - id: api-gateway
   name: API Gateway
   type: api
-  icon: cloud
   description: 外部リクエストの認証とルーティング
   environment: production
   endpoint: https://api.example.com
@@ -106,6 +105,6 @@ SVGの編集画面では、マウスの画面座標とノードのワールド�
   position: { x: 300, y: 200 }
 ```
 
-`icon`、`description`、`environment`、`endpoint`、`tags`、`instanceName`、`ip`は任意項目です。既存のYAMLでは`icon`未指定時に`type`の標準アイコンが表示されます。
+`description`、`environment`、`endpoint`、`tags`、`instanceName`、`ip`は任意項目です。既存YAMLに`icon`が残っていても読み込み可能ですが、表示には`type`の標準アイコンを使用し、編集後の保存時には`icon`を出力しません。
 
-新しい種類・アイコンを増やす場合は`nodeCatalog.ts`を編集してください。YAMLの検証は`scenario.ts`、編集UIは`FlowEditor.tsx`、表示は`App.tsx`と`FlowPreview.tsx`で共通の`nodeGlyph`を利用します。
+新しい種類を増やす場合は`nodeCatalog.ts`を、対応する線画を追加する場合は`nodeIconShapes.ts`を編集してください。YAMLの検証は`scenario.ts`、編集UIは`FlowEditor.tsx`、表示は`App.tsx`と`FlowPreview.tsx`で共通の`nodeGlyph`を利用します。
