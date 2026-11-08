@@ -40,10 +40,6 @@ const step = z.object({
  // 条件分岐ノードから出る経路を識別するラベル（例: 成功 / 失敗）。
  branchLabel: z.string().optional(),
  actions: z.array(action).min(1),
-}).superRefine((value, context) => {
- if (!value.bidirectional) return;
- if (!value.reverseFrom) context.addIssue({ code: 'custom', path: ['reverseFrom'], message: '双方向通信には復路送信元が必要です' });
- if (!value.reverseTo) context.addIssue({ code: 'custom', path: ['reverseTo'], message: '双方向通信には復路送信先が必要です' });
 });
 const metadata = z.object({
  id: z.string(),
@@ -176,9 +172,6 @@ export async function loadScenario(path: string): Promise<Scenario> {
  for (const item of result.steps) {
   if (stepIds.has(item.id)) throw new Error('step IDが重複しています: ' + item.id);
   stepIds.add(item.id);
-  if (item.bidirectional && (!item.reverseFrom || !item.reverseTo || !ids.has(item.reverseFrom) || !ids.has(item.reverseTo))) {
-   throw new Error(`step "${item.id}" の復路送信元・復路送信先が未設定、または参照先actorが存在しません`);
-  }
   for (const transfer of item.actions) {
    if (!ids.has(transfer.from) || !ids.has(transfer.to)) {
     throw new Error(`step "${item.id}" の参照先actorが存在しません: ${transfer.from} → ${transfer.to}`);
@@ -194,4 +187,15 @@ export async function listScenarios(): Promise<string[]> {
  const response = await fetch('/scenarios/index.json', { cache: 'no-store' });
  if (!response.ok) throw new Error('Scenario index load failed');
  return z.array(z.string()).parse(await response.json());
+}
+
+/** 再生開始時だけ双方向の復路設定を検証する。読み込み・編集は妨げない。 */
+export function playbackValidationError(scenario: Pick<Scenario, 'actors' | 'steps'>): string | null {
+ const ids = new Set(scenario.actors.map(actor => actor.id));
+ for (const step of scenario.steps) {
+  if (!step.bidirectional) continue;
+  if (!step.reverseFrom || !step.reverseTo) return `通信「${step.title}」(${step.id}) の復路送信元・復路送信先が未設定です。編集画面で設定してください。`;
+  if (!ids.has(step.reverseFrom) || !ids.has(step.reverseTo)) return `通信「${step.title}」(${step.id}) の復路送信元・復路送信先が存在しないノードを参照しています。`;
+ }
+ return null;
 }
