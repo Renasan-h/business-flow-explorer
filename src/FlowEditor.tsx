@@ -29,13 +29,6 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const activeActor = actors.find(actor => actor.id === selectedActor);
  const activeStep = steps.find(step => step.id === selectedStep);
 
- // SVGの表示サイズに依存せず、ポインター位置をワールド座標へ変換する。
- const worldPoint = (clientX: number, clientY: number) => {
-  const bounds = svgRef.current?.getBoundingClientRect();
-  if (!bounds) return { x: 0, y: 0 };
-  return { x: ((clientX - bounds.left) * WIDTH / bounds.width - offset.x) / zoom,
-   y: ((clientY - bounds.top) * HEIGHT / bounds.height - offset.y) / zoom };
- };
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
  const addActor = () => {
@@ -118,22 +111,22 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       const target = event.target as Element;
       const node = target.closest('[data-actor-id]');
       const actorId = node?.getAttribute('data-actor-id') ?? null;
-      const point = worldPoint(event.clientX, event.clientY);
       const actor = actors.find(item => item.id === actorId);
-      drag.current = { id: event.pointerId, actorId, x: point.x, y: point.y, initial: actor?.position ?? { x: 0, y: 0 }, offset };
+      drag.current = { id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset };
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={event => {
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
-      const point = worldPoint(event.clientX, event.clientY);
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const dx = (event.clientX - current.x) * WIDTH / bounds.width;
+      const dy = (event.clientY - current.y) * HEIGHT / bounds.height;
       if (current.actorId) {
-       const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + point.x - current.x));
-       const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + point.y - current.y));
+       const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx / zoom));
+       const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy / zoom));
        changeActor(current.actorId, { position: { x, y } });
       } else {
-       const bounds = event.currentTarget.getBoundingClientRect();
-       setOffset({ x: current.offset.x + event.movementX * WIDTH / bounds.width, y: current.offset.y + event.movementY * HEIGHT / bounds.height });
+       setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
       }
      }}
      onPointerUp={event => { if (drag.current?.id === event.pointerId) drag.current = null; }}
