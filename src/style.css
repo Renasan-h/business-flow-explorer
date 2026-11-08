@@ -75,3 +75,6 @@ main{max-width:1500px}
 .editor-step-list{display:grid;gap:5px}.editor-step-list>div{display:flex;gap:3px}.editor-step-list button:first-child{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-step-list button{padding:7px}
 .editor-message{color:var(--secondary)}
 @media(max-width:1000px){.editor-layout{grid-template-columns:1fr}.editor-inspector{position:static;max-height:none}}
+
+/* 新規フロー作成はシナリオ一覧の先頭に独立した操作として配置する。 */
+aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);font-weight:600}
