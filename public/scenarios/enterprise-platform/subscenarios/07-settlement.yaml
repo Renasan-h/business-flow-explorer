@@ -1,0 +1,74 @@
+# 初回決済・会計連携（正常系の通信例）
+steps:
+  - id: enterprise-07-01
+    title: 初回請求決済実行
+    description: 初回決済・会計連携における api から payment への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: payment
+        payload: "初回請求決済実行"
+        durationMs: 1100
+  - id: enterprise-07-02
+    title: 決済成功応答
+    description: 初回決済・会計連携における payment から api への通信です。
+    actions:
+      - type: transfer
+        from: payment
+        to: api
+        payload: "決済成功応答"
+        durationMs: 1100
+  - id: enterprise-07-03
+    title: 売上計上依頼
+    description: 初回決済・会計連携における api から erp への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: erp
+        payload: "売上計上依頼"
+        durationMs: 1100
+  - id: enterprise-07-04
+    title: 仕訳番号応答
+    description: 初回決済・会計連携における erp から api への通信です。
+    actions:
+      - type: transfer
+        from: erp
+        to: api
+        payload: "仕訳番号応答"
+        durationMs: 1100
+  - id: enterprise-07-05
+    title: UPDATE D_TBL 契約有効化
+    description: 初回決済・会計連携における api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "UPDATE D_TBL 契約有効化"
+        durationMs: 1100
+  - id: enterprise-07-06
+    title: 決済完了監査ログ
+    description: 初回決済・会計連携における api から auditdb への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: auditdb
+        payload: "決済完了監査ログ"
+        durationMs: 1100
+  - id: enterprise-07-07
+    title: 利用開始通知依頼
+    description: 初回決済・会計連携における api から mail への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: mail
+        payload: "利用開始通知依頼"
+        durationMs: 1100
+  - id: enterprise-07-08
+    title: 利用開始・領収書メール
+    description: 初回決済・会計連携における mail から requester への通信です。
+    actions:
+      - type: transfer
+        from: mail
+        to: requester
+        payload: "利用開始・領収書メール"
+        durationMs: 1100
