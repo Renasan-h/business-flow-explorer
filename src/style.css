@@ -220,3 +220,20 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .preview-toolbar .playback-speed{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .preview-toolbar .speed-options{display:flex;gap:4px;flex-wrap:wrap}
 .preview-toolbar .speed-options button{width:auto;margin:0}
+
+/* デスクトップでは再生操作と表示倍率を1段に配置。狭い画面だけ折り返す。 */
+.scene-action-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;min-width:0}
+.scene-action-bar .controls{order:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap;margin:0;min-width:0}
+.scene-action-bar .controls>span{margin-left:0;white-space:nowrap;font-size:12px}
+.scene-action-bar .controls button{white-space:nowrap}
+.scene-action-bar .playback-speed{flex-wrap:nowrap;gap:6px}
+.scene-action-bar .speed-options{flex-wrap:nowrap}
+.scene-action-bar .speed-options button{min-width:40px;padding:7px 8px}
+.scene-action-bar .viewport-controls{order:1;display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:nowrap;margin:0;min-width:0}
+.scene-action-bar .viewport-controls button{min-width:34px;padding:7px 8px;white-space:nowrap}
+.scene-action-bar .viewport-controls span{min-width:36px;white-space:nowrap}
+.scene-action-bar .viewport-controls .viewport-hint{margin-left:4px;white-space:nowrap;font-size:11px}
+@media(max-width:1250px){
+ .scene-action-bar{flex-wrap:wrap;justify-content:flex-start}
+ .scene-action-bar .controls,.scene-action-bar .viewport-controls{flex-wrap:wrap}
+}
