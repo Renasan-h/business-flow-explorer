@@ -1,4 +1,4 @@
-import { branchGroups, playbackSteps } from './branchPlayback';
+import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Scenario } from './scenario';
 import { NodeIcon } from './NodeIcon';
@@ -25,6 +25,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  // プレビューでも通常再生と同じ選択経路だけを再生する。
  const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
  const steps = useMemo(() => playbackSteps(actors, allSteps, branchChoices), [actors, allSteps, branchChoices]);
+ // 選ばれなかった分岐先はプレビュー上のノード描画からも除外する。
+ const visibleActors = useMemo(() => playbackActors(actors, allSteps, branchChoices), [actors, allSteps, branchChoices]);
  // 現状は1ステップ内の先頭actionのみを再生する。
  const step = steps[index];
  const action = step?.actions[0];
@@ -33,14 +35,14 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const end = action ? byId.get(action.to) : undefined;
  const activeRoute = action ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12) : [];
  const bounds = useMemo(() => {
-  const xs = actors.map(actor => actor.position.x);
-  const ys = actors.map(actor => actor.position.y);
+  const xs = visibleActors.map(actor => actor.position.x);
+  const ys = visibleActors.map(actor => actor.position.y);
   const minX = Math.min(0, ...xs) - W;
   const minY = Math.min(0, ...ys) - H;
   const maxX = Math.max(1100, ...xs) + W;
   const maxY = Math.max(650, ...ys) + H;
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
- }, [actors]);
+ }, [visibleActors]);
  // 同じ送受信ノード間の接続は重複描画しない。
  // Ctrl+ホイール時はSVG内のマウス位置を固定して拡縮する。
  useEffect(() => {
@@ -152,7 +154,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
         </g>}
        </g>;
       })}
-      {actors.map(actor => {
+      {visibleActors.map(actor => {
        const active = actor.id === action?.from || actor.id === action?.to;
        return <g key={actor.id} opacity={active || allLines || !action ? 1 : .35}>
         <rect x={actor.position.x - W / 2} y={actor.position.y - H / 2} width={W} height={H} rx="12"
