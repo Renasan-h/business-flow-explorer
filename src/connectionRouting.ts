@@ -5,12 +5,30 @@ const HALF_W = 75;
 const HALF_H = 38;
 const GAP = 18;
 
-export function routeConnection(nodes: RouteNode[], fromId: string, toId: string): Point[] {
+export function routeConnection(nodes: RouteNode[], fromId: string, toId: string, mode: 'straight' | 'orthogonal' = 'straight'): Point[] {
  const from = nodes.find(node => node.id === fromId);
  const to = nodes.find(node => node.id === toId);
  if (!from || !to || fromId === toId) return [];
  const a = from.position;
  const b = to.position;
+ // 初期状態は矩形外周を結ぶ直線。折れ線は明示的に選択された場合だけ使用する。
+ if (mode === 'straight') {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length = Math.hypot(dx, dy);
+  if (length === 0) return [];
+  const ux = dx / length;
+  const uy = dy / length;
+  const trim = (vx: number, vy: number) => Math.min(
+   Math.abs(vx) > 1e-8 ? HALF_W / Math.abs(vx) : Infinity,
+   Math.abs(vy) > 1e-8 ? HALF_H / Math.abs(vy) : Infinity);
+  const startTrim = trim(ux, uy);
+  const endTrim = trim(-ux, -uy);
+  return [
+   { x: a.x + ux * Math.min(startTrim, length / 2), y: a.y + uy * Math.min(startTrim, length / 2) },
+   { x: b.x - ux * Math.min(endTrim, length / 2), y: b.y - uy * Math.min(endTrim, length / 2) },
+  ];
+ }
  const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
  const sign = horizontal ? (b.x >= a.x ? 1 : -1) : (b.y >= a.y ? 1 : -1);
  const start = horizontal ? { x: a.x + sign * HALF_W, y: a.y } : { x: a.x, y: a.y + sign * HALF_H };
