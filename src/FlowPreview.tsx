@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Scenario } from './scenario';
+import { nodeGlyph } from './nodeCatalog';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
@@ -117,7 +118,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
        return <g key={actor.id} opacity={active || allLines || !action ? 1 : .35}>
         <rect x={actor.position.x - W / 2} y={actor.position.y - H / 2} width={W} height={H} rx="12"
          fill={active ? '#205a83' : '#20314a'} stroke={active ? '#22d3ee' : '#7398c9'} strokeWidth={active ? 3 : 1.5}/>
-        <text x={actor.position.x} y={actor.position.y - 7} fill="#f0f6ff" textAnchor="middle" fontSize="20">{actor.type === 'database' ? '◉' : actor.type === 'person' ? '◎' : actor.type === 'server' ? '▤' : '◇'}</text>
+        <text x={actor.position.x} y={actor.position.y - 7} fill="#f0f6ff" textAnchor="middle" fontSize="20">{nodeGlyph(actor.type, actor.icon)}</text>
         <text x={actor.position.x} y={actor.position.y + 19} fill="#f0f6ff" textAnchor="middle" fontSize="12">{actor.name.length > 13 ? actor.name.slice(0, 12) + '…' : actor.name}</text>
        </g>;
       })}
