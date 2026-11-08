@@ -1,0 +1,14 @@
+# サブシナリオ間で共有するActor定義
+actors:
+  - id: customer
+    name: 顧客
+    type: person
+  - id: web
+    name: Webサーバー
+    type: server
+  - id: api
+    name: 会員登録API
+    type: service
+  - id: db
+    name: DB1
+    type: database
