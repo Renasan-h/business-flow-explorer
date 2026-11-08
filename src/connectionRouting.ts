@@ -100,3 +100,24 @@ export function pointOnRoute(points: Point[], progress: number): Point {
  }
  return points[points.length - 1];
 }
+
+/** 通信方向ごとに線を平行移動し、送信・受信の2レーンを表現する。 */
+export function offsetRoute(points: Point[], distance: number): Point[] {
+ if (points.length < 2) return points;
+ const segments = points.slice(1).map((point, index) => {
+  const dx = point.x - points[index].x;
+  const dy = point.y - points[index].y;
+  const length = Math.hypot(dx, dy) || 1;
+  return { x: -dy / length * distance, y: dx / length * distance };
+ });
+ return points.map((point, index) => {
+  if (index === 0) return { x: point.x + segments[0].x, y: point.y + segments[0].y };
+  if (index === points.length - 1) {
+   const normal = segments[segments.length - 1];
+   return { x: point.x + normal.x, y: point.y + normal.y };
+  }
+  const prev = segments[index - 1];
+  const next = segments[index];
+  return { x: point.x + (prev.x + next.x) / 2, y: point.y + (prev.y + next.y) / 2 };
+ });
+}
