@@ -1,5 +1,6 @@
 [
   "/scenarios/order-processing.yaml",
   "/scenarios/expense-reimbursement.yaml",
-  "/scenarios/mvc-attendance-search.yaml"
+  "/scenarios/mvc-attendance-search.yaml",
+  "/scenarios/member-registration-modular.yaml"
 ]
