@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
 import FlowEditor from './FlowEditor';
+import { nodeGlyph } from './nodeCatalog';
 import { listScenarios, loadScenario, type Scenario } from './scenario';
 
 type Mode = 'technical' | 'illustration';
@@ -187,10 +188,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
    if (focus && !active) g.alpha = 0.38;
    layer.addChild(g);
-   const symbol: Record<string, string> = mode === 'technical'
-    ? { person: '◎', server: '▤', database: '◉', service: '◇' }
-    : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
-   label(symbol[actor.type], actor.position.x, actor.position.y - 9, 28);
+   // 表示アイコンはYAMLのiconを優先し、未指定ならtypeの標準アイコンを使う。
+   label(nodeGlyph(actor.type, actor.icon), actor.position.x, actor.position.y - 9, 28);
    label(actor.name, actor.position.x, actor.position.y + 21, 12);
    // 指定されたインスタンス名とIPアドレスをノード上部に表示する。
    const details = [actor.instanceName, actor.ip].filter(Boolean);
