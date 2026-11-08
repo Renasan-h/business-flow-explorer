@@ -2,4 +2,3 @@ actors:
   - id: applicant
     name: 申込担当者
     type: person
-    position: { x: 105, y: 100 }
