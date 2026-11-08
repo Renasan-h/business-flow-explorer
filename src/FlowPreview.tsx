@@ -33,7 +33,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? (steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from))
+ const activeRoute = action ? ((step?.bidirectional || steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)))
   ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12)
   : routeConnection(actors, action.from, action.to, step?.routing ?? 'straight')) : [];
  const bounds = useMemo(() => {
@@ -65,8 +65,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
   return () => element.removeEventListener('wheel', wheel);
  }, [scale, bounds]);
  const edges = useMemo(() => {
-  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string }>();
-  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel })));
+  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string; bidirectional?: boolean }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel, bidirectional: item.bidirectional })));
   return [...found.values()];
  }, [steps]);
 
@@ -146,7 +146,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
        const route = routeConnection(actors, edge.from, edge.to, edge.routing);
-       const bidirectional = edges.some(other => other.from === edge.to && other.to === edge.from);
+       const bidirectional = edge.bidirectional || edges.some(other => other.from === edge.to && other.to === edge.from);
        const lane = bidirectional ? offsetRoute(route, -12) : route;
        const midpoint = pointOnRoute(lane, .5);
        return <g key={edge.from + edge.to}>
