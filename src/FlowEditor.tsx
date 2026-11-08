@@ -347,7 +347,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
         {step.bidirectional && <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
-        {step.bidirectional && <path d={routePath(offsetRoute([...points].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>}
+        {step.bidirectional && <path d={reversePath} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>}
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
         {step.branchLabel && <g pointerEvents="none">
          <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
