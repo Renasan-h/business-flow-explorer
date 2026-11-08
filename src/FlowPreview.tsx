@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Scenario } from './scenario';
-import { routeConnection, routePath, pointOnRoute } from './connectionRouting';
+import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -8,8 +8,8 @@ const W = 150;
 const H = 76;
 
 /** 編集中のデータを保存せずに確認する独立プレビュー。 */
-export default function FlowPreview({ actors, steps, title, onClose, onDeleteStep }: {
- actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void;
+export default function FlowPreview({ actors, steps, title, onClose, onDeleteStep, onExit }: {
+ actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
 }) {
  const [index, setIndex] = useState(0);
  const [playing, setPlaying] = useState(false);
@@ -24,7 +24,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? routeConnection(actors, action.from, action.to, step?.routing ?? 'straight') : [];
+ const activeRoute = action ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12) : [];
  const bounds = useMemo(() => {
   const xs = actors.map(actor => actor.position.x);
   const ys = actors.map(actor => actor.position.y);
@@ -77,7 +77,7 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  return <div className="preview-screen">
   <div className="preview-header">
    <div><h2>プレビュー：{title}</h2><p>編集中のフローを保存せずに再生確認できます。</p></div>
-   <button type="button" onClick={onClose}>編集画面に戻る</button>
+   <div className="preview-header-actions"><button type="button" onClick={onClose}>編集画面に戻る</button><button type="button" onClick={onExit}>元のフロー画面へ戻る</button></div>
   </div>
   {invalid.length > 0 && <p role="alert">接続先が存在しない通信が {invalid.length} 件あります。編集画面で修正してください。</p>}
   <div className="preview-toolbar">
@@ -103,8 +103,11 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
        if (!from || !to) return null;
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
-       return <path key={edge.from + edge.to} d={routePath(routeConnection(actors, edge.from, edge.to, edge.routing))} fill="none"
-        stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>;
+       const route = routeConnection(actors, edge.from, edge.to, edge.routing);
+       return <g key={edge.from + edge.to}>
+        <path d={routePath(offsetRoute(route, -12))} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
+        <path d={routePath(offsetRoute([...route].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
+       </g>;
       })}
       {actors.map(actor => {
        const active = actor.id === action?.from || actor.id === action?.to;
