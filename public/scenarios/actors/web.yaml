@@ -1,0 +1,5 @@
+# 再利用可能なActor定義
+actors:
+  - id: web
+    name: Webサーバー
+    type: server
