@@ -3,6 +3,8 @@ steps:
   - id: member-initial-data
     title: 初期表示データ取得
     description: APIがDB1から初期表示データを取得します。
+    outputs:
+      initialData: XXXTBL取得結果
     actions:
       - type: transfer
         from: api
