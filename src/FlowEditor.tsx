@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
+import { routeConnection, routePath, pointOnRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -197,10 +198,13 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        const to = actors.find(actor => actor.id === action.to);
        if (!from || !to) return null;
        const active = selectedStep === step.id;
+       const points = routeConnection(actors, action.from, action.to);
+       const path = routePath(points);
+       const middle = pointOnRoute(points, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
-        <line x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y} stroke="transparent" strokeWidth="18"/>
-        <line x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y} stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
-        <circle cx={(from.position.x + to.position.x) / 2} cy={(from.position.y + to.position.y) / 2} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
+        <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
+        <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
+        <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
        </g>;
       }))}
       {wire && (() => {
