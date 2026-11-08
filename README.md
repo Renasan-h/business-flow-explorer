@@ -117,15 +117,15 @@ steps:
 
 ノード配置は通信関係から自動計算しますが、すべての通信線の交差や重なりを解消することを保証するものではありません。複雑なシナリオでは `position` による調整も可能です。
 
-## シナリオをステップ単位で分割する
+## サブシナリオと共通Actorファイル
 
-既存の単一YAML形式に加えて、複数のYAMLを参照して1つのシナリオに統合できます。
-
-例えば `public/scenarios/member-registration-modular.yaml` には次のように記述します。
+サブシナリオは `@相対パス.yaml` で読み込みます。**記載した順番で再生**され、別ファイルの `order` は全体の順番を変更しません。
 
 ```yaml
-@fragments/member-confirm.yaml
+# public/scenarios/member-registration-modular.yaml
 @fragments/member-access.yaml
+@fragments/member-initial-data.yaml
+@fragments/member-confirm.yaml
 
 schemaVersion: "1.0"
 metadata:
@@ -133,11 +133,14 @@ metadata:
   title: 会員登録（分割シナリオ例）
   description: 分割ファイルの読み込み例
   category: membership
+actorFiles:
+  - actors/member-actors.yaml
 ```
 
-参照先の `fragments/member-access.yaml` は、単体のシナリオとしてのメタデータがなくても構いません。
+共通Actor定義は `actorFiles` にファイルパスを列挙します。各ファイルは次の形式です。
 
 ```yaml
+# public/scenarios/actors/member-actors.yaml
 actors:
   - id: customer
     name: 顧客
@@ -145,9 +148,14 @@ actors:
   - id: web
     name: Webサーバー
     type: server
+```
+
+サブシナリオは `steps` のみでも記述できます。
+
+```yaml
+# public/scenarios/fragments/member-access.yaml
 steps:
   - id: member-access
-    order: 10
     title: 会員登録ページへアクセス
     description: 顧客が登録画面を開きます。
     actions:
@@ -158,16 +166,13 @@ steps:
         durationMs: 1500
 ```
 
-- `@相対パス.yaml` を独立した行に記述します。パスは**参照元のYAMLファイルからの相対パス**です。
-- 参照は複数指定でき、参照先からさらに別のファイルを参照できます。
-- 同じ `actor.id` は統合します。名前、種類、IP、位置などの同一項目が矛盾すると読み込みエラーになります。省略されている任意項目は別ファイルの定義から補完されます。
-- `steps[].order` は任意の数値です。指定があるステップを昇順で並べ、未指定のステップはその後に参照順・記述順で並べます。同じ数値の順序も安定しています。
-- `step.id` の重複、未定義のactor参照、循環参照はエラーになります。
-- 参照可能なファイルは `/scenarios/` 以下に限定しています。
-- `index.json` には**親シナリオのみ**登録します。分割ファイルの登録は不要です。
-- 親シナリオには `schemaVersion` と `metadata` が必要です。
-
-サンプルとして `member-registration-modular.yaml` と `fragments/` 内の2ファイルを同梱しています。
+- `@...` は行頭に単独で記述し、参照元ファイルを基準に相対解決します。入れ子のサブシナリオも利用できます。
+- `actorFiles` も参照元ファイルからの相対パスです。指定先にはActor定義のみを記述します。
+- `actor.id` が重複する場合は統合し、定義が矛盾する場合はエラーになります。
+- **サブシナリオ間は参照の記述順**です。同じファイル内で `order` を指定した場合のみ昇順に並び替え、未指定のステップはその後に記述順で配置します。
+- 親ファイル自身に `steps` がある場合は、参照したサブシナリオの後に再生されます。
+- 循環参照、重複したstep ID、未定義のActor参照はエラーになります。
+- 親ファイルには `schemaVersion` と `metadata` が必要です。 `index.json` に登録するのは親ファイルのみです。
 
 ## 技術構成
 
