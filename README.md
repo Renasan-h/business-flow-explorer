@@ -155,18 +155,28 @@ steps:
         durationMs: 1500
 ```
 
-共通Actorは `actorFiles` に指定できます。
+共通Actor構成ファイルは `actorFiles` に指定できます。さらに、そのファイルの `actors` 配列から個別のActor定義ファイルを参照できます。
 
 ```yaml
 # public/scenarios/actors/member-actors.yaml
 actors:
+  - file: customer.yaml
+  - file: web.yaml
+  - file: api.yaml
+  - file: db.yaml
+```
+
+```yaml
+# public/scenarios/actors/customer.yaml
+actors:
   - id: customer
     name: 顧客
     type: person
-  - id: web
-    name: Webサーバー
-    type: server
 ```
+
+- `actors` には直接定義と `- file: ...` を混在させられます。参照先からさらにActorファイルを参照することも可能です。
+- Actor参照パスは記述元のファイルを基準に解決します。参照先はActor定義専用で、`steps` は含められません。
+- シナリオごとに `actorFiles` で必要なActor構成を選べます。読み込んだActorはシナリオ全体で共有され、現時点ではステップごとのノード表示切り替えは行いません。
 
 - `steps: - file: ...` の参照先は、指定元のYAMLファイルからの相対パスです。
 - 通常のステップとサブシナリオを任意の順番で混在させられます。
