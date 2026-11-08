@@ -21,7 +21,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
  const packetRef = useRef<Graphics | null>(null);
- const routeRef = useRef<{ start: { x: number; y: number }; end: { x: number; y: number }; duration: number } | null>(null);
+ const routeRef = useRef<{ start: { x: number; y: number }; end: { x: number; y: number }; duration: number; reverse?: { start: { x: number; y: number }; end: { x: number; y: number } } } | null>(null);
  const elapsedRef = useRef(0);
  const lastStepRef = useRef(step);
  const stateRef = useRef({ playing, speed, onFinished });
