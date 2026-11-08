@@ -444,6 +444,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>)}
      <button onClick={() => deleteStep(activeStep.id)}>通信を削除</button>
     </details>}
+
+   </aside>
+   {/* 再生順は設定フォームと独立した列に置き、長い設定欄のスクロールを不要にする。 */}
+   <aside className="editor-order-panel" aria-label="通信の再生順">
     <details className="editor-section" open><summary>通信の再生順（{steps.length}件）</summary>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
     <div className="editor-step-list">{steps.map((step, index) =>
