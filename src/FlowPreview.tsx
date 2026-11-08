@@ -57,8 +57,8 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
   return () => element.removeEventListener('wheel', wheel);
  }, [scale, bounds]);
  const edges = useMemo(() => {
-  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal' }>();
-  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight' })));
+  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel })));
   return [...found.values()];
  }, [steps]);
 
@@ -127,9 +127,14 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
        const route = routeConnection(actors, edge.from, edge.to, edge.routing);
+       const midpoint = pointOnRoute(route, .5);
        return <g key={edge.from + edge.to}>
         <path d={routePath(offsetRoute(route, -12))} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
         <path d={routePath(offsetRoute([...route].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
+        {edge.branchLabel && <g pointerEvents="none">
+         <rect x={midpoint.x - Math.max(32, edge.branchLabel.length * 7 / 2 + 8)} y={midpoint.y - 32} width={Math.max(64, edge.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
+         <text x={midpoint.x} y={midpoint.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{edge.branchLabel}</text>
+        </g>
        </g>;
       })}
       {actors.map(actor => {
