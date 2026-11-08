@@ -8,5 +8,5 @@ steps:
       - type: transfer
         from: web
         to: customer
-        payload: 登録確認画面 HTML
+        payload: 登録確認画面 HTML（{{initialData}}）
         durationMs: 1500
