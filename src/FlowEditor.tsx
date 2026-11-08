@@ -21,6 +21,8 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
  const [source, setSource] = useState<string | null>(null);
+ const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
+ const wirePointer = useRef<number | null>(null);
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -34,6 +36,12 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const activeActor = actors.find(actor => actor.id === selectedActor);
  const activeStep = steps.find(step => step.id === selectedStep);
 
+ // ポインター座標を拡大率と移動量を考慮したワールド座標へ変換する。
+ const toWorld = (x: number, y: number) => {
+  const bounds = svgRef.current!.getBoundingClientRect();
+  return { x: ((x - bounds.left) * WIDTH / bounds.width - offset.x) / zoom,
+   y: ((y - bounds.top) * HEIGHT / bounds.height - offset.y) / zoom };
+ };
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
  const addActor = () => {
@@ -99,7 +107,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
  return <div className="flow-editor">
-  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、接続モードで送信元と送信先を順に選択します。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
+  <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
@@ -115,8 +123,20 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
    <div className="editor-canvas">
     <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
      onPointerDown={event => {
-      if (event.button !== 0 || tool !== 'move') return;
+      if (event.button !== 0) return;
       const target = event.target as Element;
+      const handle = target.closest('[data-connection-handle]');
+      if (handle) {
+       const from = handle.getAttribute('data-connection-handle');
+       if (!from) return;
+       wirePointer.current = event.pointerId;
+       setWire({ from, ...toWorld(event.clientX, event.clientY) });
+       setSource(null);
+       event.currentTarget.setPointerCapture(event.pointerId);
+       event.preventDefault();
+       return;
+      }
+      if (tool !== 'move') return;
       const node = target.closest('[data-actor-id]');
       const actorId = node?.getAttribute('data-actor-id') ?? null;
       // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
@@ -136,6 +156,10 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={event => {
+      if (wirePointer.current === event.pointerId) {
+       setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
+       return;
+      }
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
       const bounds = event.currentTarget.getBoundingClientRect();
@@ -149,8 +173,21 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
       }
      }}
-     onPointerUp={event => { if (drag.current?.id === event.pointerId) drag.current = null; }}
-     onPointerCancel={() => { drag.current = null; }}>
+     onPointerUp={event => {
+      if (wirePointer.current === event.pointerId) {
+       const point = toWorld(event.clientX, event.clientY);
+       // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
+       const target = [...actors].reverse().find(actor =>
+        Math.abs(point.x - actor.position.x) <= NODE_WIDTH / 2 &&
+        Math.abs(point.y - actor.position.y) <= NODE_HEIGHT / 2);
+       if (wire && target) addConnection(wire.from, target.id);
+       else if (wire) setMessage('接続先ノードの上でドロップしてください。');
+       setWire(null);
+       wirePointer.current = null;
+      }
+      if (drag.current?.id === event.pointerId) drag.current = null;
+     }}
+     onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       {showLines && steps.flatMap(step => step.actions.map((action, index) => {
        const from = actors.find(actor => actor.id === action.from);
@@ -163,12 +200,22 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
         <circle cx={(from.position.x + to.position.x) / 2} cy={(from.position.y + to.position.y) / 2} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
        </g>;
       }))}
+      {wire && (() => {
+       const from = actors.find(actor => actor.id === wire.from);
+       return from ? <line x1={from.position.x} y1={from.position.y} x2={wire.x} y2={wire.y}
+        stroke="#22d3ee" strokeWidth="3" strokeDasharray="9 6" pointerEvents="none"/> : null;
+      })()}
       {actors.map(actor => <g key={actor.id} data-actor-id={actor.id} className="editor-node" onClick={() => clickActor(actor.id)}>
        <rect x={actor.position.x - NODE_WIDTH / 2} y={actor.position.y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" fill={source === actor.id ? '#165c73' : selectedActor === actor.id ? '#1e5a88' : '#20314a'} stroke={source === actor.id || selectedActor === actor.id ? '#22d3ee' : '#7398c9'} strokeWidth="2"/>
        <circle cx={actor.position.x - NODE_WIDTH / 2 + 13} cy={actor.position.y - NODE_HEIGHT / 2 + 13} r="15" fill="#22d3ee" />
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
        <text x={actor.position.x} y={actor.position.y - 8} textAnchor="middle" fill="#f0f6ff" fontSize="15">{actor.type === 'database' ? '◉' : actor.type === 'person' ? '◎' : actor.type === 'server' ? '▤' : '◇'}</text>
        <text x={actor.position.x} y={actor.position.y + 15} textAnchor="middle" fill="#f0f6ff" fontSize="12">{actor.name.length > 12 ? actor.name.slice(0, 11) + '…' : actor.name}</text>
+       {/* ノード端からドラッグする接続ハンドル。 */}
+       <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
+        r="13" fill="#22d3ee" stroke="#082238" strokeWidth="2" className="editor-connection-handle"/>
+       <text data-connection-handle={actor.id} x={actor.position.x + NODE_WIDTH / 2} y={actor.position.y + 5}
+        textAnchor="middle" fill="#082238" fontSize="16" fontWeight="bold" className="editor-connection-handle">＋</text>
       </g>)}
      </g>
     </svg>
