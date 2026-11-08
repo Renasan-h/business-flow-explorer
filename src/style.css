@@ -125,3 +125,32 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .editor-header,.preview-header{align-items:flex-start}
 .editor-header-actions>button:first-child,.preview-header-actions>button:last-child{white-space:nowrap;border-color:#22d3ee}
 @media(max-width:800px){.editor-header,.preview-header{flex-wrap:wrap}.editor-header-actions,.preview-header-actions{width:100%}}
+
+/* 狭いウィンドウ・ブラウザ拡大時に操作群がはみ出さないための共通ルール。 */
+.app,.flow-editor,.preview-screen{min-width:0;max-width:100%}
+.layout>*,.editor-layout>*,.preview-layout>*,.top>*,.editor-header>*,.preview-header>*{min-width:0}
+.app header,.top,.editor-header,.preview-header{flex-wrap:wrap}
+.top .switch,.editor-header-actions,.preview-header-actions,.editor-toolbar,.preview-toolbar,.scene-toolbar,.viewport-controls{flex-wrap:wrap;max-width:100%}
+.editor-canvas,.preview-canvas,.scene{min-width:0;max-width:100%;overflow:hidden}
+.editor-canvas svg,.preview-canvas{display:block;width:100%;height:auto}
+.editor-inspector{min-width:0;overflow-x:hidden}
+.editor-inspector input,.editor-inspector select,.editor-inspector textarea{max-width:100%;min-width:0}
+.editor-step-list>div{width:100%;max-width:100%;overflow:hidden}
+.preview-steps{min-width:0}
+.preview-step-row{min-width:0}
+.preview-step-row>button:first-child{min-width:0}
+.controls>span{margin-left:0}
+.viewport-hint{font-size:12px;white-space:normal}
+@media(max-width:1200px){
+ .editor-layout{grid-template-columns:minmax(0,1fr) minmax(270px,310px)}
+ .preview-layout{grid-template-columns:minmax(0,1fr) minmax(240px,280px)}
+}
+@media(max-width:1000px){
+ .editor-layout,.preview-layout{grid-template-columns:minmax(0,1fr)}
+ .editor-inspector{position:static;max-height:none}
+}
+@media(max-width:600px){
+ .app header,main,.flow-editor,.preview-screen{padding:12px}
+ .editor-toolbar button,.preview-toolbar button,.controls button{padding:7px 9px}
+ .editor-header-actions,.preview-header-actions{justify-content:flex-start}
+}
