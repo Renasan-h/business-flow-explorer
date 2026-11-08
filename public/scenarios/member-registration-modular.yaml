@@ -1,4 +1,5 @@
 @fragments/member-access.yaml
+@fragments/member-initial-data.yaml
 @fragments/member-confirm.yaml
 
 schemaVersion: "1.0"
@@ -9,14 +10,3 @@ metadata:
   category: membership
 actorFiles:
   - actors/member-actors.yaml
-steps:
-  - id: member-initial-data
-    order: 20
-    title: 初期表示データ取得
-    description: APIがDB1から初期表示データを取得します。
-    actions:
-      - type: transfer
-        from: api
-        to: db
-        payload: SELECT XXXTBL
-        durationMs: 1500
