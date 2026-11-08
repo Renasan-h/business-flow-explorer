@@ -22,6 +22,8 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
+ const [draggedStep, setDraggedStep] = useState<string | null>(null);
+ const [dropTarget, setDropTarget] = useState<string | null>(null);
  const [source, setSource] = useState<string | null>(null);
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  const wirePointer = useRef<number | null>(null);
@@ -251,7 +253,38 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
      </div>)}
      <button onClick={() => { setSteps(v => v.filter(step => step.id !== activeStep.id)); setSelectedStep(null); }}>通信を削除</button>
     </>}
-    <h3>通信の再生順</h3><div className="editor-step-list">{steps.map((step, index) => <div key={step.id}><button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); }}>{index + 1}. {step.title}</button><button disabled={index === 0} aria-label="上へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index-1], copy[index]] = [copy[index], copy[index-1]]; return copy; })}>↑</button><button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button></div>)}</div>
+    <h3>通信の再生順</h3>
+    <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
+    <div className="editor-step-list">{steps.map((step, index) =>
+     <div key={step.id} className={dropTarget === step.id && draggedStep !== step.id ? 'editor-step-drop-target' : '' }
+      onDragOver={event => { if (!draggedStep || draggedStep === step.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTarget(step.id); }}
+      onDrop={event => {
+       event.preventDefault();
+       const fromId = draggedStep;
+       if (fromId && fromId !== step.id) {
+        // IDで移動元と移動先を検索し、移動元を抜いてから挿入する。
+        setSteps(current => {
+         const from = current.findIndex(item => item.id === fromId);
+         const to = current.findIndex(item => item.id === step.id);
+         if (from < 0 || to < 0) return current;
+         const reordered = [...current];
+         const [moved] = reordered.splice(from, 1);
+         reordered.splice(to, 0, moved);
+         return reordered;
+        });
+       }
+       setDraggedStep(null);
+       setDropTarget(null);
+      }}>
+      <span className="editor-step-drag-handle" draggable
+       role="button" tabIndex={0} aria-label={step.title + 'をドラッグして並び替え'}
+       title="ドラッグして並び替え"
+       onDragStart={event => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', step.id); setDraggedStep(step.id); }}
+       onDragEnd={() => { setDraggedStep(null); setDropTarget(null); }}>⠿</span>
+      <button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); }}>{index + 1}. {step.title}</button>
+      <button disabled={index === 0} aria-label="上へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index-1], copy[index]] = [copy[index], copy[index-1]]; return copy; })}>↑</button>
+      <button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button>
+     </div>)}</div>
    </aside>
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
