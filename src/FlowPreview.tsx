@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Scenario } from './scenario';
+import { routeConnection, routePath, pointOnRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -23,6 +24,7 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
+ const activeRoute = action ? routeConnection(actors, action.from, action.to) : [];
  const bounds = useMemo(() => {
   const xs = actors.map(actor => actor.position.x);
   const ys = actors.map(actor => actor.position.y);
@@ -94,7 +96,7 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
        if (!from || !to) return null;
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
-       return <line key={edge.from + edge.to} x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y}
+       return <path key={edge.from + edge.to} d={routePath(routeConnection(actors, edge.from, edge.to))} fill="none"
         stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>;
       })}
       {actors.map(actor => {
@@ -106,8 +108,8 @@ export default function FlowPreview({ actors, steps, title, onClose }: {
         <text x={actor.position.x} y={actor.position.y + 19} fill="#f0f6ff" textAnchor="middle" fontSize="12">{actor.name.length > 13 ? actor.name.slice(0, 12) + '…' : actor.name}</text>
        </g>;
       })}
-      {start && end && <circle cx={start.position.x + (end.position.x - start.position.x) * progress}
-       cy={start.position.y + (end.position.y - start.position.y) * progress} r="10" fill="#22d3ee" stroke="#fff" strokeWidth="2"/>}
+      {start && end && <circle cx={pointOnRoute(activeRoute, progress).x}
+       cy={pointOnRoute(activeRoute, progress).y} r="10" fill="#22d3ee" stroke="#fff" strokeWidth="2"/>}
      </g>
     </svg>
     <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{action?.payload}</p></div>
