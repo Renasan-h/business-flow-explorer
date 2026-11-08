@@ -247,3 +247,16 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .scene-action-bar .viewport-size-control input{width:90px;min-width:55px;accent-color:var(--selected-border);cursor:pointer}
 .scene-action-bar .viewport-size-control output{min-width:36px;font-variant-numeric:tabular-nums;text-align:right}
 @media(max-width:1250px){.scene-action-bar .viewport-size-control input{width:110px}}
+
+/* 右下のネイティブリサイズハンドルで幅・高さを直接変更する。 */
+.scene-size-wrapper{
+ width:min(100%,1100px);height:620px;min-width:min(320px,100%);min-height:240px;
+ max-width:100%;max-height:85vh;resize:both;overflow:auto;
+ margin:0 auto;position:relative;border-radius:18px;
+}
+.scene-size-wrapper .scene{width:100%;height:100%;min-height:0;overflow:hidden}
+/* キャンバスの縦横比は保持。余白が生じてもノードが変形しない。 */
+.scene-size-wrapper .scene canvas{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+.scene-size-wrapper::after{content:"";position:absolute;right:5px;bottom:5px;width:14px;height:14px;pointer-events:none;
+ background:repeating-linear-gradient(135deg,transparent 0 3px,var(--secondary) 3px 4px,transparent 4px 7px);opacity:.8}
+@media(max-width:800px){.scene-size-wrapper{width:100%;height:min(56vw,420px);min-height:220px}}
