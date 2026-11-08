@@ -1,0 +1,19 @@
+# 会員登録ページへのアクセス
+actors:
+  - id: customer
+    name: 顧客
+    type: person
+  - id: web
+    name: Webサーバー
+    type: server
+steps:
+  - id: member-access
+    order: 10
+    title: 会員登録ページへアクセス
+    description: 顧客が会員登録ページを開きます。
+    actions:
+      - type: transfer
+        from: customer
+        to: web
+        payload: GET /member/register
+        durationMs: 1500
