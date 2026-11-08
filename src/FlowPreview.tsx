@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Scenario } from './scenario';
 import { nodeGlyph } from './nodeCatalog';
 import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
@@ -18,9 +18,28 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
  const [speed, setSpeed] = useState(1);
  const [allLines, setAllLines] = useState(true);
  const [scale, setScale] = useState(1);
+ const canvasRef = useRef<SVGSVGElement>(null);
  const [pan, setPan] = useState({ x: 0, y: 0 });
  const [drag, setDrag] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
  // 現状は1ステップ内の先頭actionのみを再生する。
+ // Ctrl+ホイール時はSVG内のマウス位置を固定して拡縮する。
+ useEffect(() => {
+  const element = canvasRef.current;
+  if (!element) return;
+  const wheel = (event: WheelEvent) => {
+   if (!event.ctrlKey) return;
+   event.preventDefault();
+   const rect = element.getBoundingClientRect();
+   const cx = bounds.x + (event.clientX - rect.left) * bounds.w / rect.width;
+   const cy = bounds.y + (event.clientY - rect.top) * bounds.h / rect.height;
+   const next = Math.max(.3, Math.min(3, +(scale * Math.exp(-event.deltaY * .002)).toFixed(3)));
+   if (next === scale) return;
+   setPan(current => ({ x: cx - (cx - current.x) * next / scale, y: cy - (cy - current.y) * next / scale }));
+   setScale(next);
+  };
+  element.addEventListener('wheel', wheel, { passive: false });
+  return () => element.removeEventListener('wheel', wheel);
+ }, [scale, bounds]);
  const step = steps[index];
  const action = step?.actions[0];
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
@@ -92,11 +111,11 @@ export default function FlowPreview({ actors, steps, title, onClose, onDeleteSte
    <label><input type="checkbox" checked={allLines} onChange={e => setAllLines(e.target.checked)}/> 全体の接続</label>
    <button onClick={() => setScale(v => Math.max(.3, v / 1.2))}>−</button><span>{Math.round(scale * 100)}%</span>
    <button onClick={() => setScale(v => Math.min(3, v * 1.2))}>＋</button>
-   <button onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>表示リセット</button>
+   <button onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>表示リセット</button><span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
   </div>
   <div className="preview-layout">
    <div>
-    <svg className="preview-canvas" viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}
+    <svg ref={canvasRef} className="preview-canvas" viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}
      onPointerDown={e => { if (e.button !== 0) return; setDrag({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }); e.currentTarget.setPointerCapture(e.pointerId); }}
      onPointerMove={e => { if (!drag) return; const rect = e.currentTarget.getBoundingClientRect(); setPan({ x: drag.px + (e.clientX - drag.x) * bounds.w / rect.width, y: drag.py + (e.clientY - drag.y) * bounds.h / rect.height }); }}
      onPointerUp={() => setDrag(null)} onPointerCancel={() => setDrag(null)}>
