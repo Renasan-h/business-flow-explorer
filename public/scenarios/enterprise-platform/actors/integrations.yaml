@@ -1,0 +1,22 @@
+actors:
+  - id: mail
+    name: メール送信サーバー
+    type: server
+  - id: external
+    name: 外部与信審査
+    type: service
+  - id: payment
+    name: 外部決済システム
+    type: service
+  - id: identity
+    name: 外部本人確認
+    type: service
+  - id: batch
+    name: バッチサーバー
+    type: server
+  - id: storage
+    name: 書類保管サービス
+    type: service
+  - id: erp
+    name: 外部ERP
+    type: service
