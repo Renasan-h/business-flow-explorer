@@ -59,9 +59,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const wheel = (event: WheelEvent) => {
    if (!event.ctrlKey) return;
    event.preventDefault();
-   const rect = element.getBoundingClientRect();
-   const cx = (event.clientX - rect.left) * WIDTH / rect.width;
-   const cy = (event.clientY - rect.top) * HEIGHT / rect.height;
+   // SVGの余白を含む表示変換を逆変換し、リサイズ後もポインター位置を維持する。
+   const matrix = element.getScreenCTM();
+   if (!matrix) return;
+   const point = element.createSVGPoint();
+   point.x = event.clientX; point.y = event.clientY;
+   const local = point.matrixTransform(matrix.inverse());
+   const cx = local.x;
+   const cy = local.y;
    const next = Math.max(.3, Math.min(2.5, +(zoom * Math.exp(-event.deltaY * .002)).toFixed(3)));
    if (next === zoom) return;
    // ポインター下のワールド座標が拡縮前後で動かないようにパンを補正する。
@@ -82,9 +87,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
  // ポインター座標を拡大率と移動量を考慮したワールド座標へ変換する。
  const toWorld = (x: number, y: number) => {
-  const bounds = svgRef.current!.getBoundingClientRect();
-  return { x: ((x - bounds.left) * WIDTH / bounds.width - offset.x) / zoom,
-   y: ((y - bounds.top) * HEIGHT / bounds.height - offset.y) / zoom };
+  const svg = svgRef.current!;
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return { x: 0, y: 0 };
+  const point = svg.createSVGPoint();
+  point.x = x; point.y = y;
+  const local = point.matrixTransform(matrix.inverse());
+  return { x: (local.x - offset.x) / zoom, y: (local.y - offset.y) / zoom };
  };
  // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
@@ -331,9 +340,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
-      const bounds = event.currentTarget.getBoundingClientRect();
-      const dx = (event.clientX - current.x) * WIDTH / bounds.width;
-      const dy = (event.clientY - current.y) * HEIGHT / bounds.height;
+      const matrix = event.currentTarget.getScreenCTM();
+      if (!matrix) return;
+      const inverse = matrix.inverse();
+      const origin = event.currentTarget.createSVGPoint();
+      origin.x = current.x; origin.y = current.y;
+      const pointer = event.currentTarget.createSVGPoint();
+      pointer.x = event.clientX; pointer.y = event.clientY;
+      const start = origin.matrixTransform(inverse);
+      const end = pointer.matrixTransform(inverse);
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
       if (current.actorId) {
        const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx / zoom));
        const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy / zoom));
