@@ -137,7 +137,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
    <button disabled={!steps.length} onClick={() => choose(Math.max(0, index - 1))}>前へ</button>
    <button disabled={!steps.length} className="selected" onClick={play}>{playing ? '一時停止' : '▶ 再生'}</button>
    <button disabled={!steps.length} onClick={() => choose(Math.min(steps.length - 1, index + 1))}>次へ</button>
-   <label>速度 <select value={speed} onChange={e => setSpeed(Number(e.target.value))}><option value="0.5">0.5倍</option><option value="1">1倍</option><option value="1.5">1.5倍</option><option value="2">2倍</option></select></label>
+   <div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{[0.5, 1, 1.5, 2].map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div>
    <label><input type="checkbox" checked={allLines} onChange={e => setAllLines(e.target.checked)}/> 全体の接続</label>
    <button onClick={() => setScale(v => Math.max(.3, v / 1.2))}>−</button><span>{Math.round(scale * 100)}%</span>
    <button onClick={() => setScale(v => Math.min(3, v * 1.2))}>＋</button>
