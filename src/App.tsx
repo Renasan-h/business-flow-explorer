@@ -363,7 +363,7 @@ export default function App() {
   };
   return <FlowEditor key="new-flow" initial={blank} onClose={() => setEditorMode('none')} />;
  }
- if (editorMode === 'edit' && scenario) return <FlowEditor key={selected} initial={scenario} onClose={() => setEditorMode('none')} />;
+ if (editorMode === 'edit' && scenario) return <FlowEditor key={selected} initial={scenario} scenarioPath={selected} onClose={() => setEditorMode('none')} />;
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
