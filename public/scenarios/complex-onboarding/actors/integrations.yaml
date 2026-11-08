@@ -2,16 +2,12 @@ actors:
   - id: otp
     name: OTP認証サービス
     type: service
-    position: { x: 360, y: 195 }
   - id: mail
     name: メール送信サーバー
     type: server
-    position: { x: 105, y: 195 }
   - id: external
     name: 外部審査システム
     type: service
-    position: { x: 105, y: 300 }
   - id: batch
     name: バッチサーバー
     type: server
-    position: { x: 360, y: 315 }
