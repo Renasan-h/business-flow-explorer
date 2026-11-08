@@ -85,6 +85,38 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   setSelectedStep(null);
   setTool('move');
  };
+ /**
+  * 選択ノードの設定値を複製する。通信ステップは複製せず、新規ノードIDを発行する。
+  * 元ノードから少しずらして配置し、キャンバスの端では反対側へ配置する。
+  */
+ const duplicateActor = (id: string) => {
+  const original = actors.find(actor => actor.id === id);
+  if (!original) return;
+  const existingIds = new Set(actors.map(actor => actor.id));
+  let newId: string;
+  do { newId = 'actor-' + crypto.randomUUID().slice(0, 8); } while (existingIds.has(newId));
+  const number = nextNodeNumber.current++;
+  const offsetPosition = (value: number, limit: number) =>
+   value + 40 <= limit ? value + 40 : Math.max(0, value - 40);
+  const copied: Actor = {
+   ...original,
+   id: newId,
+   name: original.name + ' (コピー)',
+   position: {
+    x: offsetPosition(original.position.x, WIDTH - NODE_WIDTH / 2),
+    y: offsetPosition(original.position.y, HEIGHT - NODE_HEIGHT / 2),
+   },
+   // tagsは配列なので、元ノードと参照を共有しない。
+   ...(original.tags ? { tags: [...original.tags] } : {}),
+  };
+  setActors(current => [...current, copied]);
+  setNodeNumbers(current => ({ ...current, [newId]: number }));
+  setSelectedActor(newId);
+  setSelectedStep(null);
+  setSource(null);
+  setTool('move');
+  setMessage('ノードを複製しました。通信線は引き継がれません。');
+ };
  /** 再生順一覧・通信設定の双方で同じ削除処理を使用する。 */
  const deleteStep = (id: string) => {
   const target = steps.find(step => step.id === id);
@@ -305,6 +337,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
      <label>IPアドレス<input value={activeActor.ip ?? ''} onChange={e => changeActor(activeActor.id, { ip: e.target.value })}/></label>
      <label>タグ（カンマ区切り）<input value={(activeActor.tags ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })} placeholder="例: 認証, 社内"/></label>
      <div className="editor-coordinates"><label>X<input type="number" value={Math.round(activeActor.position.x)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, x: Number(e.target.value) } })}/></label><label>Y<input type="number" value={Math.round(activeActor.position.y)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, y: Number(e.target.value) } })}/></label></div>
+     <button type="button" className="editor-duplicate-node" onClick={() => duplicateActor(activeActor.id)}>ノードを複製</button>
      <button onClick={() => { setActors(v => v.filter(actor => actor.id !== activeActor.id)); setSteps(v => v.filter(step => step.actions.every(action => action.from !== activeActor.id && action.to !== activeActor.id))); setSelectedActor(null); }}>ノードと関連通信を削除</button>
     </>}
     {activeStep && <><h3>通信設定</h3>
