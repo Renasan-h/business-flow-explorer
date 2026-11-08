@@ -13,6 +13,7 @@ const NODE_HEIGHT = 90;
 const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(value * 100) / 100));
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
+/** PixiJS描画担当。Reactの状態はstateRef経由でTickerに渡し、再生中の再初期化を防ぐ。 */
 function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
@@ -235,7 +236,9 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
   onPointerCancel={() => { pointerRef.current = null; }}
  />;
 }
+/** シナリオ読込・画面遷移・再生状態を一元管理する親コンポーネント。 */
 export default function App() {
+ // none:通常再生、edit:既存編集、new:新規作成。編集内容は保存まで通常画面へ反映されない。
  const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
@@ -260,6 +263,7 @@ export default function App() {
   try { localStorage.setItem('business-flow-theme', theme); }
   catch { /* 保存できない場合も現在の画面では切り替えを維持する。 */ }
  }, [theme]);
+ // 配列の順番が再生順。内部のステップ番号は0始まり。
  const [step, setStep] = useState(0);
  const [playing, setPlaying] = useState(false);
  const [speed, setSpeed] = useState<PlaybackSpeed>(1);
