@@ -58,3 +58,20 @@ main{max-width:1500px}
 .viewport-controls span{font-size:13px;color:var(--secondary);min-width:48px;text-align:center}
 .viewport-controls .viewport-hint{min-width:0;margin-left:10px}
 @media(max-width:800px){.viewport-controls{justify-content:flex-start;flex-wrap:wrap}.viewport-controls .viewport-hint{margin-left:0}}
+
+/* フローエディター: 大規模な図面と設定パネルを分離する。 */
+.flow-editor{padding:18px;min-height:100vh;background:var(--page);color:var(--text)}
+.editor-header,.editor-header-actions,.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.editor-header h2{margin:0}.editor-header p{font-size:13px;color:var(--secondary)}
+.editor-toolbar{justify-content:flex-start;margin:16px 0}.editor-toolbar span{font-size:13px;color:var(--secondary)}
+.editor-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+.editor-canvas{border:1px solid var(--panel-border);border-radius:14px;overflow:hidden;background:#101b2e;min-width:0}
+.editor-canvas svg{display:block;width:100%;height:auto;min-height:460px;touch-action:none;user-select:none;cursor:grab}
+.editor-canvas svg:active{cursor:grabbing}.editor-node,.editor-edge{cursor:pointer}
+.editor-inspector{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto;border:1px solid var(--panel-border);border-radius:14px;padding:14px;background:var(--panel)}
+.editor-inspector h3{margin:16px 0 8px}.editor-inspector label{display:block;font-size:12px;color:var(--secondary);margin:10px 0}
+.editor-inspector input,.editor-inspector textarea,.editor-inspector select{display:block;width:100%;padding:9px;margin-top:5px;border:1px solid var(--button-border);border-radius:7px;background:var(--page);color:var(--text);font:inherit}
+.editor-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.editor-step-list{display:grid;gap:5px}.editor-step-list>div{display:flex;gap:3px}.editor-step-list button:first-child{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-step-list button{padding:7px}
+.editor-message{color:var(--secondary)}
+@media(max-width:1000px){.editor-layout{grid-template-columns:1fr}.editor-inspector{position:static;max-height:none}}
