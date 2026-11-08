@@ -14,6 +14,29 @@ function intersects(a: Point, b: Point, c: Point, d: Point): boolean {
  return ab1 * ab2 < 0 && cd1 * cd2 < 0;
 }
 
+// 線分が第三者ノードの矩形（ラベル余白込み）を横切る場合に大きく減点する。
+function crossesNode(a: Point, b: Point, node: Point): boolean {
+ const halfWidth = 67;
+ const halfHeight = 51;
+ let enter = 0;
+ let leave = 1;
+ for (const [origin, delta, min, max] of [
+  [a.x, b.x - a.x, node.x - halfWidth, node.x + halfWidth],
+  [a.y, b.y - a.y, node.y - halfHeight, node.y + halfHeight],
+ ]) {
+  if (Math.abs(delta) < 0.00001) {
+   if (origin < min || origin > max) return false;
+   continue;
+  }
+  const first = (min - origin) / delta;
+  const second = (max - origin) / delta;
+  enter = Math.max(enter, Math.min(first, second));
+  leave = Math.min(leave, Math.max(first, second));
+  if (enter > leave) return false;
+ }
+ return enter < 1 && leave > 0;
+}
+
 export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] }): (T & { position: Point })[] {
  const actors = scenario.actors;
  const count = actors.length;
@@ -44,6 +67,8 @@ export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] 
  const links = [...edges.values()];
  const degree = actors.map((_, index) =>
   links.reduce((sum, edge) => sum + (edge.a === index || edge.b === index ? edge.weight : 0), 0));
+ const neighborCount = actors.map((_, index) =>
+  new Set(links.flatMap(edge => edge.a === index ? [edge.b] : edge.b === index ? [edge.a] : [])).size);
  const pinned = actors.map(actor => actor.position !== undefined);
  const positions = actors.map((actor, index) => actor.position ?? slots[index]);
  const free = actors.map((_, index) => index).filter(index => !pinned[index]);
@@ -54,16 +79,24 @@ export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] 
   for (const edge of links) {
    const a = positions[edge.a];
    const b = positions[edge.b];
-   cost += edge.weight * Math.hypot(a.x - b.x, a.y - b.y) / 100;
+   const distance = Math.hypot(a.x - b.x, a.y - b.y);
+   // 単一接続ノードは接続先の近くへ。通信回数ではなく接続先の種類数で判定する。
+   const leaf = neighborCount[edge.a] === 1 || neighborCount[edge.b] === 1;
+   cost += distance * (leaf ? 0.095 : 0.012) + edge.weight * distance / 220;
+   for (let i = 0; i < count; i++) {
+    if (i !== edge.a && i !== edge.b && crossesNode(a, b, positions[i])) {
+     cost += 130;
+    }
+   }
   }
   for (let i = 0; i < links.length; i++) for (let j = i + 1; j < links.length; j++) {
    const a = links[i];
    const b = links[j];
    if (a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b) continue;
-   if (intersects(positions[a.a], positions[a.b], positions[b.a], positions[b.b])) cost += 9;
+   if (intersects(positions[a.a], positions[a.b], positions[b.a], positions[b.b])) cost += 24;
   }
   for (let i = 0; i < count; i++) {
-   cost += degree[i] * Math.hypot(positions[i].x - 360, positions[i].y - 195) / 600;
+   cost += degree[i] * Math.hypot(positions[i].x - 360, positions[i].y - 195) / 800;
   }
   return cost;
  };
@@ -90,7 +123,7 @@ export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] 
  if (free.length <= 8) explore(0);
  else {
   // 大規模なシナリオでは計算量を抑えるため、改善する交換だけを繰り返す。
-  for (let pass = 0; pass < 12; pass++) {
+  for (let pass = 0; pass < 30; pass++) {
    let improved = false;
    for (let i = 0; i < free.length; i++) for (let j = i + 1; j < free.length; j++) {
     const a = free[i];
