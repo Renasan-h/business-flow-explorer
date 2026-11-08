@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { parse } from 'yaml';
 import { layoutActors } from './layout';
 
+// YAMLは外部入力なので、TypeScript型に加えてZodで実行時に構造を検証する。
 const actor = z.object({
  id: z.string().min(1),
  name: z.string().min(1),
@@ -71,6 +72,7 @@ function mergeActor(existing: Actor, incoming: Actor): Actor {
  return result;
 }
 
+/** YAMLのファイル参照を再帰的に展開し、ancestorsで循環参照を検知する。 */
 async function readFragments(path: string, ancestors: Set<string>): Promise<{
  actors: Actor[];
  steps: Step[];
@@ -145,6 +147,7 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
  return { actors, steps, root: isRoot ? data as ScenarioData : undefined };
 }
 
+/** YAMLの検証・参照展開・ノード配置を行い、描画用のScenarioを返す。 */
 export async function loadScenario(path: string): Promise<Scenario> {
  const result = await readFragments(path, new Set());
  if (!result.root) throw new Error('親シナリオにはschemaVersionとmetadataが必要です');
