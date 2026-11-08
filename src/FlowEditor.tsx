@@ -341,10 +341,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         otherAction.from === action.to && otherAction.to === action.from));
        const forward = bidirectional ? offsetRoute(points, -12) : points;
        const path = routePath(forward);
+       const reversePath = routePath(offsetRoute(points, 12));
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
-        {step.bidirectional && <path d={routePath(offsetRoute([...points].reverse(), -12))} fill="none" stroke="transparent" strokeWidth="18"/>}
+        {step.bidirectional && <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         {step.bidirectional && <path d={routePath(offsetRoute([...points].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>}
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
