@@ -194,6 +194,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    const laneOffset = bidirectional ? -13 : 0;
    if (active) {
     sendRoute = drawLane(fromActor.position, toActor.position, laneOffset, sendColor, 0.95);
+    // 注目表示中も双方向接続の復路を残す。復路は再生ステップを増やさない。
+    if (bidirectional && focus) drawLane(toActor.position, fromActor.position, -13, inactiveColor, 0.65);
    } else if (!focus) {
     drawLane(fromActor.position, toActor.position, laneOffset, inactiveColor, 0.24);
    }
