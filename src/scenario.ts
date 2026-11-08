@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { parse } from 'yaml';
 import { layoutActors } from './layout';
+import { NODE_TYPES, NODE_ICONS } from './nodeCatalog';
 
 // YAMLは外部入力なので、TypeScript型に加えてZodで実行時に構造を検証する。
 const actor = z.object({
@@ -8,7 +9,13 @@ const actor = z.object({
  name: z.string().min(1),
  ip: z.string().optional(),
  instanceName: z.string().optional(),
- type: z.enum(['person', 'server', 'database', 'service']),
+ type: z.enum(NODE_TYPES.map(item => item.value) as [typeof NODE_TYPES[number]['value'], ...typeof NODE_TYPES[number]['value'][]]),
+ // 任意の表示情報。既存YAMLとの互換性のためすべて省略可能。
+ icon: z.enum(NODE_ICONS.map(item => item.value) as [typeof NODE_ICONS[number]['value'], ...typeof NODE_ICONS[number]['value'][]]).optional(),
+ description: z.string().optional(),
+ environment: z.string().optional(),
+ endpoint: z.string().optional(),
+ tags: z.array(z.string()).optional(),
  position: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 const action = z.object({
@@ -59,7 +66,7 @@ export type Scenario = Omit<ScenarioData, 'actors' | 'steps'> & {
 // 同一IDのactorは統合し、同じ項目に異なる値があれば黙って上書きしない。
 function mergeActor(existing: Actor, incoming: Actor): Actor {
  const result: Actor = { ...existing };
- for (const key of ['name', 'type', 'ip', 'instanceName', 'position'] as const) {
+ for (const key of ['name', 'type', 'ip', 'instanceName', 'icon', 'description', 'environment', 'endpoint', 'tags', 'position'] as const) {
   const previous = existing[key];
   const next = incoming[key];
   if (next === undefined) continue;
