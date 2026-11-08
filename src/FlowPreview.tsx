@@ -33,7 +33,9 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
- const activeRoute = action ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12) : [];
+ const activeRoute = action ? (steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from))
+  ? offsetRoute(routeConnection(actors, action.from, action.to, step?.routing ?? 'straight'), -12)
+  : routeConnection(actors, action.from, action.to, step?.routing ?? 'straight')) : [];
  const bounds = useMemo(() => {
   const xs = visibleActors.map(actor => actor.position.x);
   const ys = visibleActors.map(actor => actor.position.y);
@@ -144,9 +146,11 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
        const route = routeConnection(actors, edge.from, edge.to, edge.routing);
-       const midpoint = pointOnRoute(route, .5);
+       const bidirectional = edges.some(other => other.from === edge.to && other.to === edge.from);
+       const lane = bidirectional ? offsetRoute(route, -12) : route;
+       const midpoint = pointOnRoute(lane, .5);
        return <g key={edge.from + edge.to}>
-        <path d={routePath(offsetRoute(route, -12))} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
+        <path d={routePath(lane)} fill="none" stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
         <path d={routePath(offsetRoute([...route].reverse(), -12))} fill="none" stroke={active ? '#a78bfa' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>
         {edge.branchLabel && <g pointerEvents="none">
          <rect x={midpoint.x - Math.max(32, edge.branchLabel.length * 7 / 2 + 8)} y={midpoint.y - 32} width={Math.max(64, edge.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
