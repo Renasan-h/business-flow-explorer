@@ -3,5 +3,6 @@
   "/scenarios/expense-reimbursement.yaml",
   "/scenarios/mvc-attendance-search.yaml",
   "/scenarios/member-registration-modular.yaml",
-  "/scenarios/complex-onboarding/scenario.yaml"
+  "/scenarios/complex-onboarding/scenario.yaml",
+  "/scenarios/enterprise-platform/scenario.yaml"
 ]
