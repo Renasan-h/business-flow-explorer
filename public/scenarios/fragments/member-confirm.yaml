@@ -1,0 +1,19 @@
+# 確認画面の表示
+actors:
+  - id: customer
+    name: 顧客
+    type: person
+  - id: web
+    name: Webサーバー
+    type: server
+steps:
+  - id: member-confirm
+    order: 30
+    title: 登録確認画面を表示
+    description: 入力内容を確認する画面を顧客へ返却します。
+    actions:
+      - type: transfer
+        from: web
+        to: customer
+        payload: 登録確認画面 HTML
+        durationMs: 1500
