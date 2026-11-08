@@ -25,7 +25,8 @@ export function playbackSteps(actors: Actor[], steps: Step[], choices: Record<st
   for (const option of group.options) if (option.id !== chosen) excluded.add(option.id);
  }
  const allowed = steps.filter(step => !excluded.has(step.id));
- const destinations = new Set(allowed.flatMap(step => step.actions.map(action => action.to)));
+ // ルート判定は除外前の全通信を使用する。除外した分岐先を新しいルートにしないため。
+ const destinations = new Set(steps.flatMap(step => step.actions.map(action => action.to)));
  const roots = actors.filter(actor => !destinations.has(actor.id)).map(actor => actor.id);
  // 全ノードが循環しているシナリオでは、元の先頭通信を起点にする。
  if (!roots.length && allowed[0]?.actions[0]) roots.push(allowed[0].actions[0].from);
