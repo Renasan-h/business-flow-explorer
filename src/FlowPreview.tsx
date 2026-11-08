@@ -149,7 +149,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
         {edge.branchLabel && <g pointerEvents="none">
          <rect x={midpoint.x - Math.max(32, edge.branchLabel.length * 7 / 2 + 8)} y={midpoint.y - 32} width={Math.max(64, edge.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
          <text x={midpoint.x} y={midpoint.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{edge.branchLabel}</text>
-        </g>
+        </g>}
        </g>;
       })}
       {actors.map(actor => {
