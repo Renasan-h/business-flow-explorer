@@ -77,6 +77,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
+ // 双方向に切り替えた時点で復路の既定値を確定し、片方向に戻したら復路設定を消す。
+ const changeDirection = (id: string, both: boolean) => setSteps(current => current.map(step => {
+  if (step.id !== id) return step;
+  if (!both) { const { reverseFrom: _from, reverseTo: _to, bidirectional: _both, ...oneWay } = step; return oneWay; }
+  const action = step.actions[0];
+  return { ...step, bidirectional: true, reverseFrom: step.reverseFrom || action?.to || '', reverseTo: step.reverseTo || action?.from || '' };
+ }));
  /** 一意なIDを生成してノードを追加し、追加直後に設定欄へフォーカスする。 */
  const addActor = () => {
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
@@ -124,7 +131,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const target = actors.find(actor => actor.id === id);
   if (!target || !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`)) return;
   setActors(current => current.filter(actor => actor.id !== id));
-  setSteps(current => current.filter(step => step.actions.every(action => action.from !== id && action.to !== id)));
+  setSteps(current => current.filter(step => step.actions.every(action => action.from !== id && action.to !== id) && step.reverseFrom !== id && step.reverseTo !== id));
   setSelectedActor(current => current === id ? null : current);
   setSelectedStep(null);
   setSource(current => current === id ? null : current);
@@ -148,7 +155,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const reverse = steps.find(step => step.actions.length === 1 &&
    step.actions[0].from === to && step.actions[0].to === from);
   if (reverse) {
-   changeStep(reverse.id, { bidirectional: true });
+   changeStep(reverse.id, { bidirectional: true, reverseFrom: from, reverseTo: to });
    setSelectedStep(reverse.id);
    setSelectedActor(null);
    setSource(null);
@@ -192,10 +199,16 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return; }
   const ids = new Set(actors.map(actor => actor.id));
   if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return; }
-  if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return; }
+  if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return; }
   // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
   const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
-  const yaml = stringify({ schemaVersion: '1.0', metadata, actors: normalizedActors, steps }, { lineWidth: 0 });
+  // 片方向通信では復路フィールドをYAMLに一切出力しない。
+ const normalizedSteps = steps.map(step => {
+  if (step.bidirectional) return step;
+  const { reverseFrom: _from, reverseTo: _to, bidirectional: _both, ...oneWay } = step;
+  return oneWay;
+ });
+ const yaml = stringify({ schemaVersion: '1.0', metadata, actors: normalizedActors, steps: normalizedSteps }, { lineWidth: 0 });
   // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
   const filename = scenarioPath
    ? (decodeURIComponent(scenarioPath.split('/').pop() ?? '') || 'scenario.yaml')
@@ -342,8 +355,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const forward = bidirectional ? offsetRoute(points, -12) : points;
        const path = routePath(forward);
        // 復路は送信先→送信元で経路を再計算する。逆方向の法線で別レーンに配置する。
-       const reversePoints = step.bidirectional
-        ? routeConnection(actors, action.to, action.from, step.routing ?? 'straight') : [];
+       const reversePoints = step.bidirectional && step.reverseFrom && step.reverseTo
+        ? routeConnection(actors, step.reverseFrom, step.reverseTo, step.routing ?? 'straight') : [];
        const reversePath = routePath(offsetRoute(reversePoints, -12));
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
@@ -407,7 +420,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     <label>説明<textarea value={metadata.description} onChange={e => setMetadata(v => ({ ...v, description: e.target.value }))}/></label>
     </details>
     {activeActor && <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumbers[activeActor.id]}）</summary>
-     <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
+     <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, reverseFrom: step.reverseFrom === previous ? next : step.reverseFrom, reverseTo: step.reverseTo === previous ? next : step.reverseTo, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
      {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
      <div className="editor-icon-field">
@@ -433,7 +446,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <button onClick={() => deleteActor(activeActor.id)}>ノードと関連通信を削除</button>
     </details>}
     {activeStep && <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
-     <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeStep(activeStep.id, { bidirectional: e.target.value === 'both' })}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
+     <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeDirection(activeStep.id, e.target.value === 'both')}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
      {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
       <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
@@ -441,8 +454,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <label>処理名<input value={activeStep.title} onChange={e => changeStep(activeStep.id, { title: e.target.value })}/></label>
      <label>説明<textarea value={activeStep.description} onChange={e => changeStep(activeStep.id, { description: e.target.value })}/></label>
      {activeStep.actions.map((action, index) => <div key={index}>
-      <label>送信元<select value={action.from} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, from: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
-      <label>送信先<select value={action.to} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, to: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+      <label>往路送信元<select value={action.from} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, from: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+      <label>往路送信先<select value={action.to} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, to: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+      {activeStep.bidirectional && <>
+       <label>復路送信元<select value={activeStep.reverseFrom ?? ''} onChange={e => changeStep(activeStep.id, { reverseFrom: e.target.value })}><option value="">選択してください</option>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+       <label>復路送信先<select value={activeStep.reverseTo ?? ''} onChange={e => changeStep(activeStep.id, { reverseTo: e.target.value })}><option value="">選択してください</option>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
+      </>}
       <label>通信内容<input value={action.payload} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, payload: e.target.value } : a) })}/></label>
       <label>通信時間 (ms)<input type="number" min="1" value={action.durationMs} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, durationMs: Number(e.target.value) } : a) })}/></label>
      </div>)}
