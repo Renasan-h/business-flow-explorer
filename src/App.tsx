@@ -178,7 +178,6 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, onFinished 
    const symbol: Record<string, string> = mode === 'technical'
     ? { person: '◎', server: '▤', database: '◉', service: '◇' }
     : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
-   if (focus && !active) { /* 非アクティブActorはラベルを残し、視線を現在の通信へ誘導する。 */ }
    label(symbol[actor.type], actor.position.x, actor.position.y - 9, 28);
    label(actor.name, actor.position.x, actor.position.y + 21, 12);
    // 指定されたインスタンス名とIPアドレスをノード上部に表示する。
