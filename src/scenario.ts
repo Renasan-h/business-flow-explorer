@@ -176,6 +176,9 @@ export async function loadScenario(path: string): Promise<Scenario> {
  for (const item of result.steps) {
   if (stepIds.has(item.id)) throw new Error('step IDが重複しています: ' + item.id);
   stepIds.add(item.id);
+  if (item.bidirectional && (!item.reverseFrom || !item.reverseTo || !ids.has(item.reverseFrom) || !ids.has(item.reverseTo))) {
+   throw new Error(`step "${item.id}" の復路送信元・復路送信先が未設定、または参照先actorが存在しません`);
+  }
   for (const transfer of item.actions) {
    if (!ids.has(transfer.from) || !ids.has(transfer.to)) {
     throw new Error(`step "${item.id}" の参照先actorが存在しません: ${transfer.from} → ${transfer.to}`);
