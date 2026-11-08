@@ -117,6 +117,58 @@ steps:
 
 ノード配置は通信関係から自動計算しますが、すべての通信線の交差や重なりを解消することを保証するものではありません。複雑なシナリオでは `position` による調整も可能です。
 
+## シナリオをステップ単位で分割する
+
+既存の単一YAML形式に加えて、複数のYAMLを参照して1つのシナリオに統合できます。
+
+例えば `public/scenarios/member-registration-modular.yaml` には次のように記述します。
+
+```yaml
+@fragments/member-confirm.yaml
+@fragments/member-access.yaml
+
+schemaVersion: "1.0"
+metadata:
+  id: member-registration-modular
+  title: 会員登録（分割シナリオ例）
+  description: 分割ファイルの読み込み例
+  category: membership
+```
+
+参照先の `fragments/member-access.yaml` は、単体のシナリオとしてのメタデータがなくても構いません。
+
+```yaml
+actors:
+  - id: customer
+    name: 顧客
+    type: person
+  - id: web
+    name: Webサーバー
+    type: server
+steps:
+  - id: member-access
+    order: 10
+    title: 会員登録ページへアクセス
+    description: 顧客が登録画面を開きます。
+    actions:
+      - type: transfer
+        from: customer
+        to: web
+        payload: GET /member/register
+        durationMs: 1500
+```
+
+- `@相対パス.yaml` を独立した行に記述します。パスは**参照元のYAMLファイルからの相対パス**です。
+- 参照は複数指定でき、参照先からさらに別のファイルを参照できます。
+- 同じ `actor.id` は統合します。名前、種類、IP、位置などの同一項目が矛盾すると読み込みエラーになります。省略されている任意項目は別ファイルの定義から補完されます。
+- `steps[].order` は任意の数値です。指定があるステップを昇順で並べ、未指定のステップはその後に参照順・記述順で並べます。同じ数値の順序も安定しています。
+- `step.id` の重複、未定義のactor参照、循環参照はエラーになります。
+- 参照可能なファイルは `/scenarios/` 以下に限定しています。
+- `index.json` には**親シナリオのみ**登録します。分割ファイルの登録は不要です。
+- 親シナリオには `schemaVersion` と `metadata` が必要です。
+
+サンプルとして `member-registration-modular.yaml` と `fragments/` 内の2ファイルを同梱しています。
+
 ## 技術構成
 
 - React 19 / TypeScript
@@ -127,7 +179,7 @@ steps:
 
 ## 現時点の注意事項
 
-- シナリオは静的なYAMLファイルから読み込みます。**画面からのAI自動生成やYAML編集機能は未実装**です。
+- シナリオは静的なYAMLファイル（単一ファイルまたは分割参照）から読み込みます。**画面からのAI自動生成やYAML編集機能は未実装**です。
 - 1ステップに複数のアクションを定義できますが、現在の描画・再生は先頭のアクションを対象とします。
 - 開発中のプロジェクトです。環境やシナリオによって表示・動作の確認が必要です。
 
