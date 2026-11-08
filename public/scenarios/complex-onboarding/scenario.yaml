@@ -1,0 +1,35 @@
+# 法人向けサービス契約・OTP認証・外部審査・バッチ開通
+schemaVersion: "1.0"
+metadata:
+  id: complex-onboarding
+  title: 法人契約・OTP認証・外部審査・バッチ開通
+  description: Web/API、DB1(A-D)、DB2(X-Z)、OTP、メール、外部審査、バッチ処理を横断する複雑な業務フロー
+  category: enterprise
+actorFiles:
+  - actors/actors.yaml
+steps:
+  - file: subscenarios/01-application.yaml
+  - file: subscenarios/02-otp.yaml
+    handoff:
+      from: db1
+      to: api
+      payload: 仮登録完了・OTP発行処理へ
+      durationMs: 1000
+  - file: subscenarios/03-external-screening.yaml
+    handoff:
+      from: otp
+      to: api
+      payload: OTP検証成功・審査開始
+      durationMs: 1000
+  - file: subscenarios/04-contract.yaml
+    handoff:
+      from: db2
+      to: api
+      payload: 審査承認・契約確定へ
+      durationMs: 1000
+  - file: subscenarios/05-activation.yaml
+    handoff:
+      from: batch
+      to: db2
+      payload: バッチ開始・未処理キュー照会
+      durationMs: 1000
