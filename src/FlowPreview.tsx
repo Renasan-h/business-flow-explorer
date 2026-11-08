@@ -1,0 +1,119 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { Scenario } from './scenario';
+
+type Actor = Scenario['actors'][number];
+type Step = Scenario['steps'][number];
+const W = 150;
+const H = 76;
+
+/** 編集中のデータを保存せずに確認する独立プレビュー。 */
+export default function FlowPreview({ actors, steps, title, onClose }: {
+ actors: Actor[]; steps: Step[]; title: string; onClose: () => void;
+}) {
+ const [index, setIndex] = useState(0);
+ const [playing, setPlaying] = useState(false);
+ const [progress, setProgress] = useState(0);
+ const [speed, setSpeed] = useState(1);
+ const [allLines, setAllLines] = useState(true);
+ const [scale, setScale] = useState(1);
+ const [pan, setPan] = useState({ x: 0, y: 0 });
+ const [drag, setDrag] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
+ const step = steps[index];
+ const action = step?.actions[0];
+ const byId = useMemo(() => new Map(actors.map(actor => [actor.id, actor])), [actors]);
+ const start = action ? byId.get(action.from) : undefined;
+ const end = action ? byId.get(action.to) : undefined;
+ const bounds = useMemo(() => {
+  const xs = actors.map(actor => actor.position.x);
+  const ys = actors.map(actor => actor.position.y);
+  const minX = Math.min(0, ...xs) - W;
+  const minY = Math.min(0, ...ys) - H;
+  const maxX = Math.max(1100, ...xs) + W;
+  const maxY = Math.max(650, ...ys) + H;
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+ }, [actors]);
+ const edges = useMemo(() => {
+  const found = new Map<string, { from: string; to: string }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to })));
+  return [...found.values()];
+ }, [steps]);
+
+ // 再生中は編集側のデータを変更せず、通信パケットの進捗だけを更新する。
+ useEffect(() => {
+  if (!playing || !action) return;
+  let frame = 0;
+  let last = 0;
+  const tick = (now: number) => {
+   if (!last) last = now;
+   const delta = Math.min(now - last, 100);
+   last = now;
+   setProgress(current => Math.min(1, current + delta * speed / Math.max(1, action.durationMs)));
+   frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(frame);
+ }, [playing, action, speed, index]);
+ useEffect(() => {
+  if (!playing || progress < 1) return;
+  if (index >= steps.length - 1) { setPlaying(false); return; }
+  setIndex(i => i + 1);
+  setProgress(0);
+ }, [progress, playing, index, steps.length]);
+ const choose = (next: number) => { setIndex(next); setProgress(0); setPlaying(false); };
+ const play = () => {
+  if (index === steps.length - 1 && progress >= 1) { setIndex(0); setProgress(0); }
+  setPlaying(value => !value);
+ };
+ const invalid = steps.filter(item => item.actions.some(a => !byId.has(a.from) || !byId.has(a.to)));
+ return <div className="preview-screen">
+  <div className="preview-header">
+   <div><h2>プレビュー：{title}</h2><p>編集中のフローを保存せずに再生確認できます。</p></div>
+   <button type="button" onClick={onClose}>編集画面に戻る</button>
+  </div>
+  {invalid.length > 0 && <p role="alert">接続先が存在しない通信が {invalid.length} 件あります。編集画面で修正してください。</p>}
+  <div className="preview-toolbar">
+   <button disabled={!steps.length} onClick={() => choose(Math.max(0, index - 1))}>前へ</button>
+   <button disabled={!steps.length} className="selected" onClick={play}>{playing ? '一時停止' : '▶ 再生'}</button>
+   <button disabled={!steps.length} onClick={() => choose(Math.min(steps.length - 1, index + 1))}>次へ</button>
+   <label>速度 <select value={speed} onChange={e => setSpeed(Number(e.target.value))}><option value="0.5">0.5倍</option><option value="1">1倍</option><option value="1.5">1.5倍</option><option value="2">2倍</option></select></label>
+   <label><input type="checkbox" checked={allLines} onChange={e => setAllLines(e.target.checked)}/> 全体の接続</label>
+   <button onClick={() => setScale(v => Math.max(.3, v / 1.2))}>−</button><span>{Math.round(scale * 100)}%</span>
+   <button onClick={() => setScale(v => Math.min(3, v * 1.2))}>＋</button>
+   <button onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>表示リセット</button>
+  </div>
+  <div className="preview-layout">
+   <div>
+    <svg className="preview-canvas" viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}
+     onPointerDown={e => { if (e.button !== 0) return; setDrag({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }); e.currentTarget.setPointerCapture(e.pointerId); }}
+     onPointerMove={e => { if (!drag) return; const rect = e.currentTarget.getBoundingClientRect(); setPan({ x: drag.px + (e.clientX - drag.x) * bounds.w / rect.width, y: drag.py + (e.clientY - drag.y) * bounds.h / rect.height }); }}
+     onPointerUp={() => setDrag(null)} onPointerCancel={() => setDrag(null)}>
+     <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
+      {edges.map(edge => {
+       const from = byId.get(edge.from);
+       const to = byId.get(edge.to);
+       if (!from || !to) return null;
+       const active = edge.from === action?.from && edge.to === action?.to;
+       if (!active && !allLines) return null;
+       return <line key={edge.from + edge.to} x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y}
+        stroke={active ? '#22d3ee' : '#71839d'} strokeWidth={active ? 4 : 1.5} opacity={active ? 1 : .3}/>;
+      })}
+      {actors.map(actor => {
+       const active = actor.id === action?.from || actor.id === action?.to;
+       return <g key={actor.id} opacity={active || allLines || !action ? 1 : .35}>
+        <rect x={actor.position.x - W / 2} y={actor.position.y - H / 2} width={W} height={H} rx="12"
+         fill={active ? '#205a83' : '#20314a'} stroke={active ? '#22d3ee' : '#7398c9'} strokeWidth={active ? 3 : 1.5}/>
+        <text x={actor.position.x} y={actor.position.y - 7} fill="#f0f6ff" textAnchor="middle" fontSize="20">{actor.type === 'database' ? '◉' : actor.type === 'person' ? '◎' : actor.type === 'server' ? '▤' : '◇'}</text>
+        <text x={actor.position.x} y={actor.position.y + 19} fill="#f0f6ff" textAnchor="middle" fontSize="12">{actor.name.length > 13 ? actor.name.slice(0, 12) + '…' : actor.name}</text>
+       </g>;
+      })}
+      {start && end && <circle cx={start.position.x + (end.position.x - start.position.x) * progress}
+       cy={start.position.y + (end.position.y - start.position.y) * progress} r="10" fill="#22d3ee" stroke="#fff" strokeWidth="2"/>}
+     </g>
+    </svg>
+    <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{action?.payload}</p></div>
+   </div>
+   <aside className="preview-steps"><h3>再生ステップ</h3>{steps.map((item, i) =>
+    <button key={item.id} className={i === index ? 'selected' : ''} onClick={() => choose(i)}>{i + 1}. {item.title}</button>)}</aside>
+  </div>
+ </div>;
+}
