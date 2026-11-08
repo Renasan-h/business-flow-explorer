@@ -1,11 +1,4 @@
 # 確認画面の表示
-actors:
-  - id: customer
-    name: 顧客
-    type: person
-  - id: web
-    name: Webサーバー
-    type: server
 steps:
   - id: member-confirm
     order: 30
