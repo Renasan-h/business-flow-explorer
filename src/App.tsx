@@ -7,7 +7,7 @@ type Theme = 'dark' | 'light';
 type PlaybackSpeed = 0.5 | 1 | 1.5 | 2;
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
-function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; onFinished: () => void }) {
+function Scene({ scenario, step, mode, theme, playing, speed, focus, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; onFinished: () => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
@@ -27,7 +27,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { sc
   let cancelled = false;
   const app = new Application();
   void app.init({
-   width: 720, height: 390, background: palette.technical.bg,
+   width: 1100, height: 620, background: palette.technical.bg,
    antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
   }).then(() => {
    if (cancelled) { app.destroy(true); return; }
@@ -81,7 +81,12 @@ function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { sc
   const colors = theme === 'dark' ? palette.technical : palette.illustration;
   app.renderer.background.color = colors.bg;
   layer.removeChildren().forEach(child => child.destroy({ children: true }));
-  const byId = new Map(scenario.actors.map(actor => [actor.id, actor]));
+  // 既存シナリオの座標を維持しながら描画領域を広げ、Actor間隔を確保する。
+  const actors = scenario.actors.map(actor => ({
+   ...actor,
+   position: { x: 90 + (actor.position.x - 90) * 1.65, y: 90 + (actor.position.y - 90) * 1.7 },
+  }));
+  const byId = new Map(actors.map(actor => [actor.id, actor]));
   const action = scenario.steps[step].actions[0];
   const start = byId.get(action.from);
   const end = byId.get(action.to);
@@ -155,22 +160,25 @@ function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { sc
    if (active) {
     sendRoute = drawLane(start.position, end.position, -13, sendColor, 0.95);
     drawLane(end.position, start.position, -13, receiveColor, 0.85);
-   } else {
-    drawLane(first.position, second.position, -13, inactiveColor, 0.45);
-    drawLane(second.position, first.position, -13, inactiveColor, 0.45);
+   } else if (!focus) {
+    // 全体表示時のみ、現在の通信に無関係な経路を控えめに描画する。
+    drawLane(first.position, second.position, -13, inactiveColor, 0.24);
+    drawLane(second.position, first.position, -13, inactiveColor, 0.24);
    }
   }
 
-  for (const actor of scenario.actors) {
+  for (const actor of actors) {
    const active = actor.id === action.from || actor.id === action.to;
    const g = new Graphics()
     .roundRect(actor.position.x - 55, actor.position.y - 39, 110, 78, mode === 'illustration' ? 20 : 12)
     .fill(active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node)
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
+   if (focus && !active) g.alpha = 0.38;
    layer.addChild(g);
    const symbol: Record<string, string> = mode === 'technical'
     ? { person: '◎', server: '▤', database: '◉', service: '◇' }
     : { person: '👤', server: '🖥', database: '🗄', service: '💳' };
+   if (focus && !active) { /* 非アクティブActorはラベルを残し、視線を現在の通信へ誘導する。 */ }
    label(symbol[actor.type], actor.position.x, actor.position.y - 9, 28);
    label(actor.name, actor.position.x, actor.position.y + 21, 12);
    // 指定されたインスタンス名とIPアドレスをノード上部に表示する。
@@ -188,10 +196,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, onFinished }: { sc
   const progress = Math.min(elapsedRef.current / action.durationMs, 1);
   const eased = progress * progress * (3 - 2 * progress);
   packet.position.set(from.x + (to.x - from.x) * eased, from.y + (to.y - from.y) * eased);
-  label(action.payload, 360, 360);
-  label('送信', 65, 345, 12);
-  label('受信', 125, 345, 12);
- }, [scenario, step, mode, theme, ready]);
+  label(action.payload, 550, 585);
+ }, [scenario, step, mode, theme, focus, ready]);
 
  return <div className="scene" ref={host} aria-label="グラフィックシミュレーション" />;
 }
@@ -202,6 +208,7 @@ export default function App() {
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [error, setError] = useState('');
  const [mode, setMode] = useState<Mode>('technical');
+ const [focus, setFocus] = useState(true);
  // 保存済みの選択を優先し、初回はOSの配色設定を使用する。
  const [theme, setTheme] = useState<Theme>(() => {
   try {
@@ -263,7 +270,7 @@ export default function App() {
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch"><button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
-    {scenario && current && <><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+    {scenario && current && <><div className="scene-toolbar"><span>通信経路の表示</span><div className="switch"><button type="button" className={focus ? 'selected' : ''} aria-pressed={focus} onClick={() => setFocus(true)}>現在の通信</button><button type="button" className={!focus ? 'selected' : ''} aria-pressed={!focus} onClick={() => setFocus(false)}>全体の接続</button></div></div><Scene scenario={scenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} onFinished={advance}/><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === scenario.steps.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {scenario.steps.length}</span></div><div className="steps">{scenario.steps.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
