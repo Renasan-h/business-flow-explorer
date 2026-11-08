@@ -139,6 +139,51 @@ steps:
   - file: fragments/member-confirm.yaml
 ```
 
+### サブシナリオ間の通信とデータ引き継ぎ
+
+`steps[].file` に任意の `handoff` を指定すると、**前のステップと読み込み先の間に通信ステップが追加**され、指定したActor間の通信線とアニメーションが表示されます。
+
+```yaml
+steps:
+  - file: fragments/member-access.yaml
+  - file: fragments/member-initial-data.yaml
+    handoff:
+      from: web
+      to: api
+      payload: "{{registrationRequest}}"
+      durationMs: 1200
+  - file: fragments/member-confirm.yaml
+    handoff:
+      from: db
+      to: web
+      payload: "{{initialData}}"
+      durationMs: 1200
+```
+
+前のサブシナリオでは `outputs` に後続へ渡す値を定義します。
+
+```yaml
+steps:
+  - id: member-access
+    title: 会員登録ページへアクセス
+    description: 顧客が登録画面を開きます。
+    outputs:
+      registrationRequest: GET /member/register
+    actions:
+      - type: transfer
+        from: customer
+        to: web
+        payload: GET /member/register
+        durationMs: 1500
+```
+
+- `outputs` は文字列のキーと値の組です。後続の `payload` や `outputs` から `{{変数名}}` で参照できます。
+- 変数は親シナリオ全体で、先に実行されるステップから後続へ引き継ぎます。同じキーを出力すると後の値で更新します。
+- 未定義の変数を参照すると読み込みエラーになります。
+- `handoff` の `from` / `to` は明示的に指定します。ファイル間で通信するActorを推測して自動接続することはありません。
+- `handoff` を省略した場合は、これまでどおり追加通信なしでステップが連続再生されます。
+- これはYAMLの処理結果をシミュレーションする機能です。実際のAPI通信・DB更新や任意コードの実行は行いません。
+
 サブシナリオの内容は通常の `steps` と同じ形式です。1ファイルに複数ステップを定義した場合も、そのファイル内の記述順に展開します。
 
 ```yaml
