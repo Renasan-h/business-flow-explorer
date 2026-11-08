@@ -1,0 +1,9 @@
+actors:
+  - id: db1
+    name: DB1 (A-D TBL)
+    type: database
+    position: { x: 610, y: 235 }
+  - id: db2
+    name: DB2 (X-Z TBL)
+    type: database
+    position: { x: 610, y: 340 }
