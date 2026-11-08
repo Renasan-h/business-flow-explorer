@@ -1,0 +1,10 @@
+actors:
+  - id: web
+    name: Webサーバー
+    type: server
+  - id: api
+    name: APIサーバー
+    type: service
+  - id: auth
+    name: 認証・OTPサービス
+    type: service
