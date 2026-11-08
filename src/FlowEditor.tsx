@@ -36,6 +36,8 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
+ // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
+ const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null } | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
  // Ctrl+ホイールはブラウザ全体ではなくキャンバスだけを拡縮する。
  // passive:falseのネイティブイベントで既定のページズームを抑止する。
@@ -117,6 +119,19 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   setTool('move');
   setMessage('ノードを複製しました。通信線は引き継がれません。');
  };
+ /** ノード削除は画面上の×・右クリック・設定欄で共通化する。関連通信も同時に削除する。 */
+ const deleteActor = (id: string) => {
+  const target = actors.find(actor => actor.id === id);
+  if (!target || !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`)) return;
+  setActors(current => current.filter(actor => actor.id !== id));
+  setSteps(current => current.filter(step => step.actions.every(action => action.from !== id && action.to !== id)));
+  setSelectedActor(current => current === id ? null : current);
+  setSelectedStep(null);
+  setSource(current => current === id ? null : current);
+  setWire(null);
+  setContextMenu(null);
+  setMessage('ノードと関連する通信を削除しました。');
+ };
  /** 再生順一覧・通信設定の双方で同じ削除処理を使用する。 */
  const deleteStep = (id: string) => {
   const target = steps.find(step => step.id === id);
@@ -139,6 +154,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   setMessage('通信線を追加しました。');
  };
  const clickActor = (id: string) => {
+  setContextMenu(null);
   if (tool === 'connect') {
    if (!source) setSource(id);
    else addConnection(source, id);
@@ -186,7 +202,9 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
  useEffect(() => { setMessage(''); }, [tool]);
  // プレビューに編集中の状態を渡す。戻っても編集中の変更は保持される。
  if (preview) return <FlowPreview actors={actors} steps={steps} title={metadata.title} onDeleteStep={deleteStep} onExit={onClose} onClose={() => setPreview(false)}/>;
- return <div className="flow-editor">
+ return <div className="flow-editor" onPointerDown={event => {
+  if (!(event.target as Element).closest('.editor-context-menu')) setContextMenu(null);
+ }}>
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={onClose}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
@@ -202,7 +220,22 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
   </div>
   <div className="editor-layout">
    <div className="editor-canvas">
-    <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
+    <svg ref={svgRef} onContextMenu={event => {
+     event.preventDefault();
+     const target = event.target as Element;
+     const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
+     const stepId = actorId ? null : target.closest('[data-step-id]')?.getAttribute('data-step-id') ?? null;
+     const canvas = event.currentTarget.parentElement!.getBoundingClientRect();
+     const menuWidth = 190;
+     const menuHeight = actorId ? 150 : stepId ? 100 : 100;
+     setContextMenu({
+      x: Math.max(0, Math.min(event.clientX - canvas.left, canvas.width - menuWidth)),
+      y: Math.max(0, Math.min(event.clientY - canvas.top, canvas.height - menuHeight)),
+      actorId, stepId,
+     });
+     if (actorId) { setSelectedActor(actorId); setSelectedStep(null); }
+     else if (stepId) { setSelectedStep(stepId); setSelectedActor(null); }
+    }} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
      onPointerDown={event => {
       if (event.button !== 0) return;
       const target = event.target as Element;
@@ -300,6 +333,14 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
        <NodeIcon type={actor.type} x={actor.position.x} y={actor.position.y - 10} size={29} color="#f0f6ff"/>
        <text x={actor.position.x} y={actor.position.y + 15} textAnchor="middle" fill="#f0f6ff" fontSize="12">{actor.name.length > 12 ? actor.name.slice(0, 11) + '…' : actor.name}</text>
+       {/* ノード右上の削除ボタン。pointerdownを止め、ノード移動が始まらないようにする。 */}
+       <g className="editor-node-delete" role="button" aria-label={actor.name + 'を削除'} tabIndex={0}
+        onPointerDown={event => event.stopPropagation()}
+        onClick={event => { event.stopPropagation(); deleteActor(actor.id); }}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); deleteActor(actor.id); } }}>
+        <circle cx={actor.position.x + NODE_WIDTH / 2 - 11} cy={actor.position.y - NODE_HEIGHT / 2 + 11} r="11" fill="#9f2538" stroke="#fecdd3" strokeWidth="1.5"/>
+        <path d={`M ${actor.position.x + NODE_WIDTH / 2 - 15} ${actor.position.y - NODE_HEIGHT / 2 + 7} l 8 8 m 0 -8 l -8 8`} stroke="#fff" strokeWidth="2" strokeLinecap="round" pointerEvents="none"/>
+       </g>
        {/* ノード端からドラッグする接続ハンドル。 */}
        <circle data-connection-handle={actor.id} cx={actor.position.x + NODE_WIDTH / 2} cy={actor.position.y}
         r="13" fill="#22d3ee" stroke="#082238" strokeWidth="2" className="editor-connection-handle"/>
@@ -308,6 +349,20 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
       </g>)}
      </g>
     </svg>
+    {contextMenu && <div className="editor-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}
+      onPointerDown={event => event.stopPropagation()}>
+      {contextMenu.actorId ? <>
+       <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setContextMenu(null); }}>ノードを編集</button>
+       <button type="button" role="menuitem" onClick={() => { duplicateActor(contextMenu.actorId!); setContextMenu(null); }}>ノードを複製</button>
+       <button type="button" role="menuitem" className="danger" onClick={() => deleteActor(contextMenu.actorId!)}>ノードを削除</button>
+      </> : contextMenu.stepId ? <>
+       <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setContextMenu(null); }}>通信を編集</button>
+       <button type="button" role="menuitem" className="danger" onClick={() => { deleteStep(contextMenu.stepId!); setContextMenu(null); }}>通信を削除</button>
+      </> : <>
+       <button type="button" role="menuitem" onClick={() => { addActor(); setContextMenu(null); }}>ノードを追加</button>
+       <button type="button" role="menuitem" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}>表示をリセット</button>
+      </>}
+     </div>}
    </div>
    <aside className="editor-inspector">
     <h3>シナリオ設定</h3>
@@ -338,7 +393,7 @@ export default function FlowEditor({ initial, onClose }: { initial: Scenario; on
      <label>タグ（カンマ区切り）<input value={(activeActor.tags ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })} placeholder="例: 認証, 社内"/></label>
      <div className="editor-coordinates"><label>X<input type="number" value={Math.round(activeActor.position.x)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, x: Number(e.target.value) } })}/></label><label>Y<input type="number" value={Math.round(activeActor.position.y)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, y: Number(e.target.value) } })}/></label></div>
      <button type="button" className="editor-duplicate-node" onClick={() => duplicateActor(activeActor.id)}>ノードを複製</button>
-     <button onClick={() => { setActors(v => v.filter(actor => actor.id !== activeActor.id)); setSteps(v => v.filter(step => step.actions.every(action => action.from !== activeActor.id && action.to !== activeActor.id))); setSelectedActor(null); }}>ノードと関連通信を削除</button>
+     <button onClick={() => deleteActor(activeActor.id)}>ノードと関連通信を削除</button>
     </>}
     {activeStep && <><h3>通信設定</h3>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
