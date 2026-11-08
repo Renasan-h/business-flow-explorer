@@ -1,0 +1,17 @@
+# 契約確定と後続バッチ登録
+steps:
+  - id: onboarding-16
+    title: DB1 D TBL 契約確定
+    description: 承認済みの申込を正式契約として登録します。
+    actions:
+      - { type: transfer, from: api, to: db1, payload: "INSERT D_TBL (契約情報)", durationMs: 1300 }
+  - id: onboarding-17
+    title: DB2 Z TBL 連携キュー登録
+    description: 利用開始処理をバッチ対象として登録します。
+    actions:
+      - { type: transfer, from: api, to: db2, payload: "INSERT Z_TBL (バッチ連携キュー)", durationMs: 1100 }
+  - id: onboarding-18
+    title: バッチサーバーへ起動要求
+    description: APIサーバーからバッチサーバーへ利用開始処理を依頼します。
+    actions:
+      - { type: transfer, from: api, to: batch, payload: "POST /batch/activate", durationMs: 1200 }
