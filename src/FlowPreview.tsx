@@ -2,6 +2,7 @@ import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { playbackValidationError, type Scenario } from './scenario';
 import { NodeIcon } from './NodeIcon';
+import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
 import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
@@ -193,12 +194,6 @@ export default function FlowPreview({ actors, steps: allSteps, title, interfaces
      <button type="button" className="preview-step-delete" aria-label={item.title + 'を削除'} onClick={() => removeStep(item.id)}>削除</button>
     </div>)}</aside>
   </div>
-  {selectedPreviewIf && <div className="node-details-backdrop if-definition-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedPreviewIf(null); }}>
-   <aside className="node-details-panel if-definition-drawer" role="dialog" aria-modal="true" aria-label="プレビューIF定義">
-    <div className="node-details-heading"><h2>IF定義</h2><button type="button" onClick={() => setSelectedPreviewIf(null)} aria-label="閉じる">✕</button></div>
-    {interfaces?.filter(item => item.id === selectedPreviewIf).map(item => <section key={item.id}><h3>{item.name}</h3><p>{item.description}</p><p>ID: {item.id}</p>{item.fields?.map((field, index) => <p key={index}><strong>{field.name}</strong>（{field.type}）{field.required ? '・必須' : ''} {field.description}</p>)}</section>)}
-    {!interfaces?.some(item => item.id === selectedPreviewIf) && <p>IF定義がありません: {selectedPreviewIf}</p>}
-   </aside>
-  </div>}
+  <InterfaceDefinitionDrawer interfaceId={selectedPreviewIf} interfaces={interfaces} onClose={() => setSelectedPreviewIf(null)}/>
  </div>;
 }
