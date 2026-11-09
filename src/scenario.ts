@@ -60,7 +60,11 @@ const stepEntry = z.union([step, z.object({
  file: z.string().min(1),
  handoff: action.omit({ type: true }).optional(),
 }).strict()]);
+const group = z.object({ id: z.string().min(1), name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), x: z.number().finite(), y: z.number().finite(), width: z.number().positive(), height: z.number().positive() });
+const interfaceDefinition = z.object({ id: z.string().min(1), name: z.string().min(1), description: z.string().optional(), fields: z.array(z.object({ name: z.string(), type: z.string(), required: z.boolean().optional(), description: z.string().optional() })).optional() });
 const fragmentSchema = z.object({
+ groups: z.array(group).optional(),
+ interfaces: z.array(interfaceDefinition).optional(),
  actors: z.array(actorEntry).optional(),
  steps: z.array(stepEntry).optional(),
  actorFiles: z.array(z.string().min(1)).optional(),
@@ -75,6 +79,8 @@ type ScenarioData = z.infer<typeof scenarioSchema>;
 export type Scenario = Omit<ScenarioData, 'actors' | 'steps'> & {
  actors: (Actor & { position: { x: number; y: number } })[];
  steps: Step[];
+ groups?: z.infer<typeof group>[];
+ interfaces?: z.infer<typeof interfaceDefinition>[];
 };
 
 // 同一IDのactorは統合し、同じ項目に異なる値があれば黙って上書きしない。
