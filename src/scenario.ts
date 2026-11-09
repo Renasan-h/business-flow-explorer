@@ -16,6 +16,9 @@ const actor = z.object({
  environment: z.string().optional(),
  endpoint: z.string().optional(),
  tags: z.array(z.string()).optional(),
+ // 表示色は#RRGGBBのみ許可し、資料はカンマ区切り入力を配列として保持する。
+ color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+ documents: z.array(z.string().max(300)).max(30).optional(),
  position: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 const action = z.object({
@@ -37,6 +40,10 @@ const step = z.object({
  // 双方向時は復路の送受信先を明示的に保存する。
  reverseFrom: z.string().min(1).optional(),
  reverseTo: z.string().min(1).optional(),
+ // 往路・復路のIF資料を個別に紐づける。復路は双方向時のみ使用する。
+ forwardIf: z.string().max(300).optional(),
+ reverseIf: z.string().max(300).optional(),
+ reversePayload: z.string().max(3000).optional(),
  // 条件分岐ノードから出る経路を識別するラベル（例: 成功 / 失敗）。
  branchLabel: z.string().optional(),
  actions: z.array(action).min(1),
@@ -73,7 +80,7 @@ export type Scenario = Omit<ScenarioData, 'actors' | 'steps'> & {
 // 同一IDのactorは統合し、同じ項目に異なる値があれば黙って上書きしない。
 function mergeActor(existing: Actor, incoming: Actor): Actor {
  const result: Actor = { ...existing };
- for (const key of ['name', 'type', 'ip', 'instanceName', 'icon', 'description', 'environment', 'endpoint', 'tags', 'position'] as const) {
+ for (const key of ['name', 'type', 'ip', 'instanceName', 'icon', 'description', 'environment', 'endpoint', 'tags', 'color', 'documents', 'position'] as const) {
   const previous = existing[key];
   const next = incoming[key];
   if (next === undefined) continue;
