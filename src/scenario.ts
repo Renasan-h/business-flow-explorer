@@ -73,6 +73,12 @@ const scenarioSchema = fragmentSchema.extend({
  schemaVersion: z.literal('1.0'),
  metadata,
 });
+/** 編集画面で外部テンプレートの構造を検証する。参照の再帰展開はloadScenario側が担当する。 */
+export function parseTemplateYaml(text: string) {
+ const parsed: unknown = parse(text);
+ const data = fragmentSchema.parse(parsed);
+ return { actors: (data.actors ?? []).filter((entry): entry is z.infer<typeof actor> => !('file' in entry)), steps: (data.steps ?? []).filter((entry): entry is z.infer<typeof step> => !('file' in entry)), hasReferences: (data.actors ?? []).some(entry => 'file' in entry) || (data.steps ?? []).some(entry => 'file' in entry) || Boolean(data.actorFiles?.length) };
+}
 type Actor = z.infer<typeof actor>;
 type Step = z.infer<typeof step>;
 type ScenarioData = z.infer<typeof scenarioSchema>;
