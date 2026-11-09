@@ -289,3 +289,11 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .node-details-heading button{min-width:38px}
 .node-details-panel p{padding:10px 0;border-bottom:1px solid rgba(128,150,180,.2);white-space:pre-wrap}
 .node-details-swatch{display:inline-block;width:16px;height:16px;border:1px solid currentColor;border-radius:4px;vertical-align:middle}
+
+/* 大規模なフローは縮小して押し込まず、スクロール可能なワールドとして編集する。 */
+.editor-layout>.editor-canvas{overflow:auto;overscroll-behavior:contain}
+.editor-layout>.editor-canvas>svg{width:3600px;height:1800px;max-width:none;max-height:none;min-width:3600px;min-height:1800px;object-fit:fill}
+/* カテゴリを折りたたみ、階層名（金融/送金処理等）をそのまま表示する。 */
+.scenario-category{margin:8px 0;border:1px solid rgba(128,150,180,.22);border-radius:8px;padding:7px}
+.scenario-category>summary{cursor:pointer;font-weight:600;padding:5px;overflow-wrap:anywhere}
+.scenario-category>button{display:block;width:100%;text-align:left;margin:5px 0}
