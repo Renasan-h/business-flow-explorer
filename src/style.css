@@ -519,3 +519,18 @@ html,body,#root{height:100%;overflow:hidden}
 .editor-title-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;min-width:0}
 .editor-title-line h2{margin:0}
 .editor-target-path{font-size:12px;color:var(--secondary,#8ca3c0);overflow-wrap:anywhere}
+
+/* STEP通信内容とIF操作を独立したブロックにして、長い通信内容でも重ならない。 */
+.app .explanation{display:flow-root}
+.app .explanation>code{display:block;position:static;float:none;width:100%;height:auto;min-height:0;max-height:none;margin:12px 0 0;padding:12px 14px;box-sizing:border-box;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.app .explanation>.if-playback-links{position:static;clear:both;display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;width:100%;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--panel-border,#344765)}
+.app .explanation>.if-playback-links>.if-definition-link{flex:0 1 auto;margin:0;max-width:100%;min-height:36px}
+.preview-step-info>.if-definition-link{display:inline-flex;position:static;margin-top:10px;max-width:100%}
+
+/* aside button{width:100%} の影響を受けない共通の×ボタン。 */
+button.icon-close-button,
+aside button.icon-close-button,
+.node-details-heading button.icon-close-button,
+.scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center;flex:0 0 34px;width:34px;min-width:34px;max-width:34px;height:34px;min-height:34px;padding:0;margin:0;border-radius:8px;line-height:1;font-size:20px;white-space:nowrap}
+.node-details-heading{min-width:0}
+.node-details-heading h2{min-width:0;overflow-wrap:anywhere}
