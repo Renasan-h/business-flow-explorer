@@ -797,7 +797,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>}
    </div>
    <aside className={`editor-inspector${inspectorCollapsed ? " is-collapsed" : ""}`} aria-label="選択中のオブジェクト設定">
-    <div className="editor-panel-heading"><strong>設定</strong><button type="button" aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed(value => !value)}>{inspectorCollapsed ? "展開 ›" : "最小化 ‹"}</button></div>
+    <div className="editor-panel-heading"><strong>設定</strong><button type="button" className="editor-panel-toggle" aria-label={inspectorCollapsed ? "設定パネルを展開" : "設定パネルを最小化"} title={inspectorCollapsed ? "設定パネルを展開" : "設定パネルを最小化"} aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed(value => !value)}>{inspectorCollapsed ? "◀" : "▶"}</button></div>
     {!inspectorCollapsed && <>
     {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
     {!activeActor && !activeStep && selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label><fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
@@ -813,7 +813,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     {activeActor && <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumbers[activeActor.id]}）</summary>
      <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, reverseFrom: step.reverseFrom === previous ? next : step.reverseFrom, reverseTo: step.reverseTo === previous ? next : step.reverseTo, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
-     <label>ノード色 <input type="color" value={activeActor.color ?? '#20314a'} onChange={e => changeActor(activeActor.id, { color: e.target.value })}/></label>
+     <label className="editor-color-field"><span>ノード色</span><input type="color" aria-label="ノード色を選択" value={activeActor.color ?? '#20314a'} onChange={e => changeActor(activeActor.id, { color: e.target.value })}/><span className="editor-color-value">{activeActor.color ?? '#20314a'}</span></label>
      <label>関連資料（カンマ区切り）<input value={(activeActor.documents ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { documents: e.target.value.split(',').map(value => value.trim()).filter(Boolean) })} placeholder="設計書A, IF資料A"/></label>
      {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
      <div className="editor-icon-field">
@@ -886,7 +886,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    </aside>
    {/* 再生順は設定フォームと独立した列に置き、長い設定欄のスクロールを不要にする。 */}
    <aside className={`editor-order-panel${orderCollapsed ? " is-collapsed" : ""}`} aria-label="通信の再生順">
-    <div className="editor-panel-heading"><strong>再生順</strong><button type="button" aria-expanded={!orderCollapsed} onClick={() => setOrderCollapsed(value => !value)}>{orderCollapsed ? "展開 ›" : "最小化 ‹"}</button></div>
+    <div className="editor-panel-heading"><strong>再生順</strong><button type="button" className="editor-panel-toggle" aria-label={orderCollapsed ? "再生順パネルを展開" : "再生順パネルを最小化"} title={orderCollapsed ? "再生順パネルを展開" : "再生順パネルを最小化"} aria-expanded={!orderCollapsed} onClick={() => setOrderCollapsed(value => !value)}>{orderCollapsed ? "◀" : "▶"}</button></div>
     {!orderCollapsed && <>
     <details className="editor-section" open><summary>通信の再生順（{steps.length}件）</summary>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
