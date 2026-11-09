@@ -529,6 +529,26 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        event.preventDefault();
        return;
       }
+      if (tool === 'multi') {
+       const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id');
+       if (actorId) {
+        if (event.shiftKey) {
+         setSelectedActors(current => current.includes(actorId) ? current.filter(id => id !== actorId) : [...current, actorId]);
+         return;
+        }
+        const ids = selectedActors.includes(actorId) ? selectedActors : [actorId];
+        setSelectedActors(ids);
+        multiDrag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+         initial: actors.filter(actor => ids.includes(actor.id)).map(actor => ({ id: actor.id, ...actor.position })) };
+       } else {
+        marquee.current = { pointerId: event.pointerId, start: toWorld(event.clientX, event.clientY), additive: event.shiftKey };
+        setMarqueeEnd(toWorld(event.clientX, event.clientY));
+        if (!event.shiftKey) setSelectedActors([]);
+       }
+       event.currentTarget.setPointerCapture(event.pointerId);
+       event.preventDefault();
+       return;
+      }
       if (tool !== 'move') return;
       const resizeHandle = target.closest('[data-group-resize]');
       const groupId = (resizeHandle ?? target.closest('[data-group-id]'))?.getAttribute(resizeHandle ? 'data-group-resize' : 'data-group-id') ?? null;
@@ -562,6 +582,30 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={event => {
+      if (marquee.current?.pointerId === event.pointerId) {
+       setMarqueeEnd(toWorld(event.clientX, event.clientY));
+       return;
+      }
+      if (multiDrag.current?.pointerId === event.pointerId) {
+       const active = multiDrag.current;
+       const start = toWorld(active.x, active.y);
+       const end = toWorld(event.clientX, event.clientY);
+       const dx = end.x - start.x;
+       const dy = end.y - start.y;
+       // 全選択ノードの相対位置を維持したままキャンバス境界内に収める。
+       const minDx = Math.max(...active.initial.map(item => NODE_WIDTH / 2 - item.x));
+       const maxDx = Math.min(...active.initial.map(item => WIDTH - NODE_WIDTH / 2 - item.x));
+       const minDy = Math.max(...active.initial.map(item => NODE_HEIGHT / 2 - item.y));
+       const maxDy = Math.min(...active.initial.map(item => HEIGHT - NODE_HEIGHT / 2 - item.y));
+       const moveX = Math.max(minDx, Math.min(maxDx, dx));
+       const moveY = Math.max(minDy, Math.min(maxDy, dy));
+       const originals = new Map(active.initial.map(item => [item.id, item]));
+       setActors(current => current.map(actor => {
+        const original = originals.get(actor.id);
+        return original ? { ...actor, position: { x: original.x + moveX, y: original.y + moveY } } : actor;
+       }));
+       return;
+      }
       if (waypointDrag.current?.pointerId === event.pointerId) {
        const { stepId, index } = waypointDrag.current;
        const point = toWorld(event.clientX, event.clientY);
@@ -615,6 +659,22 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
      }}
      onPointerUp={event => {
+      if (marquee.current?.pointerId === event.pointerId) {
+       const selection = marquee.current;
+       const end = toWorld(event.clientX, event.clientY);
+       const left = Math.min(selection.start.x, end.x);
+       const right = Math.max(selection.start.x, end.x);
+       const top = Math.min(selection.start.y, end.y);
+       const bottom = Math.max(selection.start.y, end.y);
+       const matches = actors.filter(actor => actor.position.x + NODE_WIDTH / 2 >= left &&
+        actor.position.x - NODE_WIDTH / 2 <= right &&
+        actor.position.y + NODE_HEIGHT / 2 >= top &&
+        actor.position.y - NODE_HEIGHT / 2 <= bottom).map(actor => actor.id);
+       setSelectedActors(current => selection.additive ? [...new Set([...current, ...matches])] : matches);
+       marquee.current = null;
+       setMarqueeEnd(null);
+      }
+      if (multiDrag.current?.pointerId === event.pointerId) multiDrag.current = null;
       if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
       if (orderDrag.current?.pointerId === event.pointerId) {
        const dragOrder = orderDrag.current;
@@ -638,7 +698,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       if (drag.current?.id === event.pointerId) drag.current = null;
      }}
-     onPointerCancel={() => { waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
+     onPointerCancel={() => { marquee.current = null; setMarqueeEnd(null); multiDrag.current = null; waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="8" fill={group.color ?? '#2563eb'} fillOpacity=".045" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 2 : 1}/><rect x={group.x + 10} y={group.y - 30} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="31" rx="8" fill={group.color ?? '#2563eb'} stroke={group.color ?? '#2563eb'} strokeWidth="1"/><rect x={group.x + 10} y={group.y - 9} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="10" fill={group.color ?? '#2563eb'}/><text x={group.x + 24} y={group.y - 9} fill="#ffffff" fontWeight="600" fontSize="15">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
@@ -695,7 +755,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return from ? <line x1={from.position.x} y1={from.position.y} x2={wire.x} y2={wire.y}
         stroke="#22d3ee" strokeWidth="3" strokeDasharray="9 6" pointerEvents="none"/> : null;
       })()}
-      {actors.map(actor => <g key={actor.id} data-actor-id={actor.id} className="editor-node" onClick={() => clickActor(actor.id)}>
+      {tool === 'multi' && marquee.current && marqueeEnd && <rect className="editor-selection-marquee" x={Math.min(marquee.current.start.x, marqueeEnd.x)} y={Math.min(marquee.current.start.y, marqueeEnd.y)} width={Math.abs(marqueeEnd.x - marquee.current.start.x)} height={Math.abs(marqueeEnd.y - marquee.current.start.y)} pointerEvents="none"/>}
+      {actors.map(actor => <g key={actor.id} data-actor-id={actor.id} className={`editor-node${selectedActors.includes(actor.id) && tool === "multi" ? " editor-node-multiselected" : ""}`} onClick={() => { if (tool !== "multi") clickActor(actor.id); }}>
        <rect x={actor.position.x - NODE_WIDTH / 2} y={actor.position.y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="12" fill={actor.color ?? (source === actor.id ? '#165c73' : selectedActor === actor.id ? '#1e5a88' : '#20314a')} stroke={source === actor.id || selectedActor === actor.id ? '#22d3ee' : '#7398c9'} strokeWidth="2"/>
        <circle cx={actor.position.x - NODE_WIDTH / 2 + 13} cy={actor.position.y - NODE_HEIGHT / 2 + 13} r="15" fill="#22d3ee" />
        <text x={actor.position.x - NODE_WIDTH / 2 + 13} y={actor.position.y - NODE_HEIGHT / 2 + 18} textAnchor="middle" fill="#082238" fontSize="13" fontWeight="bold">{nodeNumbers[actor.id]}</text>
