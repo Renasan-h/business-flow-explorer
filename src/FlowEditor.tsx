@@ -16,6 +16,7 @@ import EditorNodes from './editor/EditorNodes';
 import EditorGroups from './editor/EditorGroups';
 import EditorEdges from './editor/EditorEdges';
 import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
+import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
 
 type Actor = Scenario['actors'][number];
@@ -81,7 +82,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (window.confirm('変更を保存せずに破棄して戻りますか？\nキャンセルすると編集を続けられます。')) onClose();
  };
  // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
- const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null; groupId: string | null } | null>(null);
+ const [contextMenu, setContextMenu] = useState<EditorContextMenuState | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
  // Ctrl+ホイールはブラウザ全体ではなくキャンバスだけを拡縮する。
  // passive:falseのネイティブイベントで既定のページズームを抑止する。
@@ -697,23 +698,16 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
      </g>
     </svg>
-    {contextMenu && <div className="editor-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}
-      onPointerDown={event => event.stopPropagation()}>
-      {contextMenu.actorId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}>ノードを編集</button>
-       <button type="button" role="menuitem" onClick={() => { duplicateActor(contextMenu.actorId!); setContextMenu(null); }}>ノードを複製</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => deleteActor(contextMenu.actorId!)}>ノードを削除</button>
-      </> : contextMenu.groupId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedGroup(contextMenu.groupId); setContextMenu(null); }}>領域を編集</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => { setGroups(items => items.filter(item => item.id !== contextMenu.groupId)); setSelectedGroup(null); setContextMenu(null); }}>領域を削除</button>
-      </> : contextMenu.stepId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}>通信を編集</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => { deleteStep(contextMenu.stepId!); setContextMenu(null); }}>通信を削除</button>
-      </> : <>
-       <button type="button" role="menuitem" onClick={() => { addActor(); setContextMenu(null); }}>ノードを追加</button>
-       <button type="button" role="menuitem" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}>表示をリセット</button>
-      </>}
-     </div>}
+    <EditorContextMenu menu={contextMenu}
+     onEditActor={id => { setSelectedActor(id); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}
+     onDuplicateActor={id => { duplicateActor(id); setContextMenu(null); }}
+     onDeleteActor={id => { deleteActor(id); setContextMenu(null); }}
+     onEditGroup={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); setContextMenu(null); }}
+     onDeleteGroup={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); setContextMenu(null); }}
+     onEditStep={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}
+     onDeleteStep={id => { deleteStep(id); setContextMenu(null); }}
+     onAddActor={() => { addActor(); setContextMenu(null); }}
+     onResetView={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}/>
    </EditorCanvas>
    <EditorPanel title="設定" className="editor-inspector" collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed(value => !value)}>
     <>
