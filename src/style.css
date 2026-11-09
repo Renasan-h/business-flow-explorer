@@ -300,3 +300,11 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 
 .editor-order-marker{cursor:pointer;outline:none}
 .editor-order-marker:focus-visible circle{stroke:#fff;stroke-width:4}
+
+.scenario-subcategory{margin:6px 0 6px 12px;padding:6px;border-left:2px solid var(--panel-border)}
+.scenario-subcategory>summary{cursor:pointer;font-size:13px}
+.scenario-subcategory>button{width:100%;text-align:left;margin:5px 0}
+.if-definition-editor label{display:block;margin:12px 0;font-size:13px}
+.if-definition-editor input:not([type=checkbox]),.if-definition-editor textarea{display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--button-border);border-radius:7px;background:var(--page);color:var(--text)}
+.if-field{padding:12px;border:1px solid var(--panel-border);border-radius:9px;margin:10px 0}
+.editor-group{cursor:pointer}
