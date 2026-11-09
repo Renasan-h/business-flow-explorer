@@ -13,6 +13,8 @@
 | `src/App.tsx` | シナリオ選択、カテゴリツリー、PixiJS再生画面、編集画面の切替 | 表示ツリーと再生処理は今後さらに分割する。カテゴリは `/` 区切りの再帰階層 |
 | `src/FlowEditor.tsx` | エディターのデータ所有、保存、操作の統合、SVGキャンバスと設定フォーム | 現状は責務が多い移行対象。新機能はできるだけ `src/editor/` へ抽出 |
 | `src/editor/EditorToolbar.tsx` | 操作モード切替、ノード/領域/IF追加、表示倍率、再生順変更モード | 親が状態を所有。選択解除や表示リセットは親コールバック経由 |
+| `src/editor/ActorSettings.tsx` | ノード属性・種類・色・関連資料・座標の編集 | ID変更時は親のrenameActorで通信のfrom/toとreverseFrom/reverseTo、番号・選択を同期更新 |
+| `src/editor/StepSettings.tsx` | 通信方向・IF・ペイロード・折れ線の経由点設定 | 手動経由点はワールド座標。経路計算はconnectionRoutingへ委譲 |
 | `src/editor/GroupSettings.tsx` | 領域名・色・所属ノード・削除の編集フォーム | 所属ノードIDを維持し、削除は親コールバックに委譲 |
 | `src/editor/PlaybackOrderPanel.tsx` | 再生順のDnD・上下移動・選択と削除の操作UI | ステップ配列は親から受け取り、並び替え後はonChangeで親へ通知。表示順と保存順の一致を確認 |
 | `src/editor/TemplateImportDialog.tsx` | テンプレートのパス入力・ファイル選択・直接/参照読み込みの操作UI | YAML解析と参照解決は親で実施。モーダル閉鎖時の選択ファイル・エラー状態に注意 |
@@ -81,3 +83,9 @@ GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テ�
 - `GroupSettings` を独立させ、領域編集の更新を親のsetGroupsへ集約。
 - 残作業: `ActorSettings`、`StepSettings`、`EditorCanvas`、Appの再生描画、スタイルのファイル分割。これらはSVGイベント・参照データの相互依存があるため段階的に移行する。
 - GitHubコミットのみ。型チェック・ブラウザ操作検証は未実施。
+
+## 2026-11-10 第4段階
+- `ActorSettings` と `StepSettings` を分離。Actor ID変更に伴う関連通信・番号・選択の更新は親に保持。
+- JSXの条件付きコンポーネントを閉じる `}` が不足していた問題を修正。JSX分割後は必ず構文・型チェックを実施すること。
+- 未分離の主要部分: `EditorCanvas`（SVG描画とポインターイベント）、`App.tsx`（PixiJS再生画面）、CSSのコンポーネント別整理。
+- 検証: コミットは反映済み。ビルド・ブラウザ動作テストは未実施。
