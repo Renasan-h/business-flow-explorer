@@ -13,6 +13,7 @@
 | `src/playback/PlaybackScene.tsx` | PixiJSの描画、再生アニメーション、パン・ズーム、ノードクリック | 再生状態は親からpropsで受け取り、Pixiアプリの破棄とイベント解除を確認 |
 | `src/playback/CategoryTree.tsx` | カテゴリの再帰表示とツリー生成 | /区切りの階層、カテゴリごとの件数、未分類を維持 |
 | `src/playback/types.ts` | 再生モード、テーマ、速度の共有型 | UIとPixiJSの型の整合を維持 |
+| `src/editor/PlaybackOrderMarkers.tsx` | 再生順序の線・番号マーカーのSVG表示とキーボード操作 | DnDの状態と並び替えは親が管理。SVGポインターキャプチャを維持 |
 | `src/editor/EditorNodes.tsx` | ノードのSVG表示、番号、削除・接続ハンドル | data-actor-idとdata-connection-handleを維持し、操作イベントは親へ委譲 |
 | `src/editor/EditorGroups.tsx` | 領域枠、ラベルタブ、リサイズハンドル | data-group-idとdata-group-resizeを維持 |
 | `src/editor/EditorEdges.tsx` | 通信線、双方向レーン、経由点、分岐ラベルのSVG表示 | 経路計算はconnectionRoutingを利用。data-step-idとdata-waypoint-indexを維持 |
@@ -110,3 +111,9 @@ GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テ�
 - `FlowEditor` はデータ更新・選択・ドラッグ・パン・再生順マーカー・コンテキストメニュー・保存を引き続き担当する。
 - **未完了**: ポインター操作を専用フックに分割、再生順マーカーのコンポーネント化、保存サービスの分離、CSS分割、単体テスト・E2Eテスト追加。
 - **ビルド・動作確認未実施**。GitHubへの反映は動作保証を意味しない。特にノード選択、接続線、経由点ドラッグ、グループ移動、右クリック、YAML保存を確認すること。
+
+## 2026-11-10 第7段階
+- `PlaybackOrderMarkers` にSVG上の再生順線・番号マーカーを分離。順序変更の状態とポインターの移動/解放は引き続き `FlowEditor` が所有。
+- 複数選択モードの空白クリックで `selectedActor`・`selectedStep`・`selectedGroup` も解除するよう修正。
+- **残作業**: キャンバスポインター操作のフック化、コンテキストメニュー分離、YAML保存と参照解決のサービス化、CSS整理、単体/E2Eテスト。
+- **検証未実施**: npm run build・ブラウザ操作の成功は確認できていない。コミット反映と動作保証は別である。
