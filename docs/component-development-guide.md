@@ -12,6 +12,8 @@
 | --- | --- | --- |
 | `src/App.tsx` | シナリオ選択、カテゴリツリー、PixiJS再生画面、編集画面の切替 | 表示ツリーと再生処理は今後さらに分割する。カテゴリは `/` 区切りの再帰階層 |
 | `src/FlowEditor.tsx` | エディターのデータ所有、保存、操作の統合、SVGキャンバスと設定フォーム | 現状は責務が多い移行対象。新機能はできるだけ `src/editor/` へ抽出 |
+| `src/editor/EditorToolbar.tsx` | 操作モード切替、ノード/領域/IF追加、表示倍率、再生順変更モード | 親が状態を所有。選択解除や表示リセットは親コールバック経由 |
+| `src/editor/GroupSettings.tsx` | 領域名・色・所属ノード・削除の編集フォーム | 所属ノードIDを維持し、削除は親コールバックに委譲 |
 | `src/editor/PlaybackOrderPanel.tsx` | 再生順のDnD・上下移動・選択と削除の操作UI | ステップ配列は親から受け取り、並び替え後はonChangeで親へ通知。表示順と保存順の一致を確認 |
 | `src/editor/TemplateImportDialog.tsx` | テンプレートのパス入力・ファイル選択・直接/参照読み込みの操作UI | YAML解析と参照解決は親で実施。モーダル閉鎖時の選択ファイル・エラー状態に注意 |
 | `src/editor/InterfaceDefinitionDialog.tsx` | IF定義の名称・説明・項目の編集とファイル選択 | インポート時の構造検証は親のonImportFields。IDの不整合・重複を検査 |
@@ -73,3 +75,9 @@ GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テ�
 - 親コンポーネントは保存データ・選択状態・ダイアログ開閉状態を保持する。子コンポーネントは表示とユーザー入力を受け持つ。
 - **未抽出**: SVG描画/ポインター操作のEditorCanvas、ノード/通信/領域設定のEditorInspector、ツールバー、AppのPixiJS再生画面。巨大なJSXの機械的移動は操作の回帰リスクがあるため、型チェック・ブラウザ確認を伴う段階に分ける。
 - **検証状況**: GitHub上の変更反映のみ。npm run buildおよびブラウザ回帰テストは未実施。
+
+## 2026-11-10 第3段階
+- `EditorToolbar` を独立させ、表示リセット・選択解除・テンプレートモーダル開閉を親コールバックに集約。
+- `GroupSettings` を独立させ、領域編集の更新を親のsetGroupsへ集約。
+- 残作業: `ActorSettings`、`StepSettings`、`EditorCanvas`、Appの再生描画、スタイルのファイル分割。これらはSVGイベント・参照データの相互依存があるため段階的に移行する。
+- GitHubコミットのみ。型チェック・ブラウザ操作検証は未実施。
