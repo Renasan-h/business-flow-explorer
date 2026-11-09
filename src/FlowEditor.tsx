@@ -315,13 +315,42 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    if (mode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const actorIds = new Set(actors.map(item => item.id));
    const stepIds = new Set(steps.map(item => item.id));
-   if (fragment.actors.some(item => actorIds.has(item.id)) || fragment.steps.some(item => stepIds.has(item.id))) throw new Error('IDが重複しています。テンプレートのIDを変更してください');
-   const newActors = fragment.actors.map((item, index) => ({ ...item, position: item.position ?? { x: 250 + (index % 10) * 240, y: 200 + Math.floor(index / 10) * 160 } }));
+   // 参照モードは元ファイルのIDを変えられないため衝突時に停止する。
+   // 直接読込は衝突IDを採番し、通信の参照先も同時に書き換える。
+   const uniqueId = (id: string, used: Set<string>) => {
+    let result = id;
+    let suffix = 2;
+    while (used.has(result)) result = id + '-' + suffix++;
+    used.add(result);
+    return result;
+   };
+   const actorIdMap = new Map<string, string>();
+   const stepIdMap = new Map<string, string>();
+   for (const actor of fragment.actors) {
+    if (actorIdMap.has(actor.id)) throw new Error('テンプレート内でノードIDが重複しています: ' + actor.id);
+    actorIdMap.set(actor.id, mode === 'reference' ? actor.id : uniqueId(actor.id, actorIds));
+   }
+   for (const step of fragment.steps) {
+    if (stepIdMap.has(step.id)) throw new Error('テンプレート内で通信IDが重複しています: ' + step.id);
+    stepIdMap.set(step.id, mode === 'reference' ? step.id : uniqueId(step.id, stepIds));
+   }
+   if (mode === 'reference' && (fragment.actors.some(item => actorIds.has(item.id)) || fragment.steps.some(item => stepIds.has(item.id)))) throw new Error('参照テンプレートのIDが既存フローと重複しています');
+   const newActors = fragment.actors.map((item, index) => ({ ...item, id: actorIdMap.get(item.id)!, position: item.position ?? { x: 250 + (index % 10) * 240, y: 200 + Math.floor(index / 10) * 160 } }));
+   const newSteps = fragment.steps.map(item => ({
+    ...item,
+    id: stepIdMap.get(item.id)!,
+    actions: item.actions.map(action => ({ ...action, from: actorIdMap.get(action.from) ?? action.from, to: actorIdMap.get(action.to) ?? action.to })),
+    ...(item.reverseFrom ? { reverseFrom: actorIdMap.get(item.reverseFrom) ?? item.reverseFrom } : {}),
+    ...(item.reverseTo ? { reverseTo: actorIdMap.get(item.reverseTo) ?? item.reverseTo } : {}),
+   }));
+   const available = new Set([...actors.map(item => item.id), ...newActors.map(item => item.id)]);
+   if (newSteps.some(item => item.actions.some(action => !available.has(action.from) || !available.has(action.to)))) throw new Error('テンプレートの通信に存在しないノード参照があります');
    setActors(current => [...current, ...newActors]);
-   setSteps(current => [...current, ...fragment.steps]);
+   setSteps(current => [...current, ...newSteps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (mode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: fragment.steps }) }]);
-   setMessage(mode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
+   if (mode === 'reference') setTemplateReferences(current => [...current, { file: path, actorIds: newActors.map(item => item.id), stepIds: newSteps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: newSteps }) }]);
+   const renamed = [...actorIdMap, ...stepIdMap].filter(([before, after]) => before !== after).length;
+   setMessage(mode === 'reference' ? 'サブシナリオ参照を追加しました。' : '直接読み込みが完了しました。' + (renamed ? ' 重複IDを' + renamed + '件変更しました。' : ''));
   } catch (error) { setMessage('テンプレート読込失敗: ' + String(error)); }
  };
  const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); };
