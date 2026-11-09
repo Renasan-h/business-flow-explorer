@@ -11,8 +11,9 @@ type Step = Scenario['steps'][number];
 type Tool = 'move' | 'connect';
 type FilePicker = { showSaveFilePicker?: (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<{ createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }> }> };
 
-const WIDTH = 1400;
-const HEIGHT = 900;
+// ワールドを広げ、キャンバスのスクロールで横10ノード以上を配置可能にする。
+const WIDTH = 3600;
+const HEIGHT = 1800;
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 76;
 
@@ -110,7 +111,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
   const number = nextNodeNumber.current++;
   setNodeNumbers(current => ({ ...current, [id]: number }));
-  setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position: { x: 300 + current.length * 25, y: 220 + current.length * 20 } }]);
+  setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position: { x: 220 + (current.length % 12) * 255, y: 180 + Math.floor(current.length / 12) * 200 } }]);
   setSelectedActor(id);
   setSelectedStep(null);
   setTool('move');
