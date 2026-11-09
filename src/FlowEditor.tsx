@@ -9,9 +9,8 @@ import InterfaceDefinitionDialog from './editor/InterfaceDefinitionDialog';
 import ScenarioSettings from './editor/ScenarioSettings';
 import EditorToolbar from './editor/EditorToolbar';
 import GroupSettings from './editor/GroupSettings';
+import ActorSettings from './editor/ActorSettings';
 import { resolveEditorSelection } from './editor/selection';
-import { NODE_TYPES } from './nodeCatalog';
-import { NodeIcon } from './NodeIcon';
 import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
@@ -773,34 +772,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
     <ScenarioSettings metadata={metadata} onChange={setMetadata}/>
     </>}
-    {activeActor && <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumbers[activeActor.id]}）</summary>
-     <label>Actor ID<input value={activeActor.id} onChange={e => { const next = e.target.value; const previous = activeActor.id; if (!next || (next !== previous && actors.some(actor => actor.id === next))) return; changeActor(previous, { id: next }); setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; }); setSelectedActor(next); setSteps(current => current.map(step => ({ ...step, reverseFrom: step.reverseFrom === previous ? next : step.reverseFrom, reverseTo: step.reverseTo === previous ? next : step.reverseTo, actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to })) }))); }}/></label>
-     <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
-     <label className="editor-color-field"><span>ノード色</span><input type="color" aria-label="ノード色を選択" value={activeActor.color ?? '#20314a'} onChange={e => changeActor(activeActor.id, { color: e.target.value })}/><span className="editor-color-value">{activeActor.color ?? '#20314a'}</span></label>
-     <label>関連資料（カンマ区切り）<input value={(activeActor.documents ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { documents: e.target.value.split(',').map(value => value.trim()).filter(Boolean) })} placeholder="設計書A, IF資料A"/></label>
-     {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
-     <div className="editor-icon-field">
-      <span>ノードの種類</span>
-      <div className="editor-icon-grid" role="group" aria-label="ノードの種類を選択">
-       {NODE_TYPES.map(item => <button type="button" key={item.value}
-        className={item.value === activeActor.type ? 'selected' : ''}
-        title={item.label} aria-label={item.label} aria-pressed={item.value === activeActor.type}
-        onClick={() => changeActor(activeActor.id, { type: item.value, icon: undefined })}>
-        <svg viewBox="0 0 32 32" aria-hidden="true"><NodeIcon type={item.value} x={16} y={16} size={25}/></svg>
-        <small>{item.label}</small>
-       </button>)}
-      </div>
-     </div>
-     <label>説明<textarea value={activeActor.description ?? ''} onChange={e => changeActor(activeActor.id, { description: e.target.value })} placeholder="ノードの役割や処理内容"/></label>
-     <label>環境<input value={activeActor.environment ?? ''} onChange={e => changeActor(activeActor.id, { environment: e.target.value })} placeholder="例: 開発 / 検証 / 本番"/></label>
-     <label>接続先・URL<input value={activeActor.endpoint ?? ''} onChange={e => changeActor(activeActor.id, { endpoint: e.target.value })} placeholder="例: https://api.example.com"/></label>
-     <label>インスタンス名<input value={activeActor.instanceName ?? ''} onChange={e => changeActor(activeActor.id, { instanceName: e.target.value })}/></label>
-     <label>IPアドレス<input value={activeActor.ip ?? ''} onChange={e => changeActor(activeActor.id, { ip: e.target.value })}/></label>
-     <label>タグ（カンマ区切り）<input value={(activeActor.tags ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })} placeholder="例: 認証, 社内"/></label>
-     <div className="editor-coordinates"><label>X<input type="number" value={Math.round(activeActor.position.x)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, x: Number(e.target.value) } })}/></label><label>Y<input type="number" value={Math.round(activeActor.position.y)} onChange={e => changeActor(activeActor.id, { position: { ...activeActor.position, y: Number(e.target.value) } })}/></label></div>
-     <button type="button" className="editor-duplicate-node" onClick={() => duplicateActor(activeActor.id)}>ノードを複製</button>
-     <button onClick={() => deleteActor(activeActor.id)}>ノードと関連通信を削除</button>
-    </details>}
+    {activeActor && <ActorSettings activeActor={activeActor} actors={actors} nodeNumber={nodeNumbers[activeActor.id]} changeActor={changeActor} renameActor={(previous: string, next: string) => {
+     if (!next || (next !== previous && actors.some(actor => actor.id === next))) return;
+     changeActor(previous, { id: next });
+     setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; });
+     setSelectedActor(next);
+     setSteps(current => current.map(step => ({
+      ...step, reverseFrom: step.reverseFrom === previous ? next : step.reverseFrom,
+      reverseTo: step.reverseTo === previous ? next : step.reverseTo,
+      actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to }))
+     })));
+    }} duplicateActor={duplicateActor} deleteActor={deleteActor}/>} 
     {activeStep && <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
      <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeDirection(activeStep.id, e.target.value === 'both')}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
