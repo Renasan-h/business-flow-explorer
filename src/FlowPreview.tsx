@@ -2,7 +2,7 @@ import { branchGroups, playbackActors, playbackSteps } from './branchPlayback';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { playbackValidationError, type Scenario } from './scenario';
 import { NodeIcon } from './NodeIcon';
-import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
+import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -37,7 +37,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  const start = action ? byId.get(action.from) : undefined;
  const end = action ? byId.get(action.to) : undefined;
  const hasReverse = Boolean(step?.bidirectional) || Boolean(action && steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)));
- const activeRoute = action ? offsetRoute(routeConnection(actors, returning ? (step?.reverseFrom ?? action.to) : action.from, returning ? (step?.reverseTo ?? action.from) : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
+ const activeRoute = action ? offsetRoute(step?.routing === 'orthogonal' && step.waypoints?.length && !returning ? routeViaWaypoints(actors, action.from, action.to, step.waypoints) : routeConnection(actors, returning ? (step?.reverseFrom ?? action.to) : action.from, returning ? (step?.reverseTo ?? action.from) : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
  const bounds = useMemo(() => {
   const xs = visibleActors.map(actor => actor.position.x);
   const ys = visibleActors.map(actor => actor.position.y);
@@ -67,8 +67,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
   return () => element.removeEventListener('wheel', wheel);
  }, [scale, bounds]);
  const edges = useMemo(() => {
-  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; branchLabel?: string; bidirectional?: boolean; reverseFrom?: string; reverseTo?: string }>();
-  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', branchLabel: item.branchLabel, bidirectional: item.bidirectional, reverseFrom: item.reverseFrom, reverseTo: item.reverseTo })));
+  const found = new Map<string, { from: string; to: string; routing: 'straight' | 'orthogonal'; waypoints?: { x: number; y: number }[]; branchLabel?: string; bidirectional?: boolean; reverseFrom?: string; reverseTo?: string }>();
+  steps.forEach(item => item.actions.forEach(a => found.set(a.from + '→' + a.to, { from: a.from, to: a.to, routing: item.routing ?? 'straight', waypoints: item.waypoints, branchLabel: item.branchLabel, bidirectional: item.bidirectional, reverseFrom: item.reverseFrom, reverseTo: item.reverseTo })));
   return [...found.values()];
  }, [steps]);
 
@@ -156,7 +156,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        if (!from || !to) return null;
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
-       const route = routeConnection(actors, edge.from, edge.to, edge.routing);
+       const route = edge.routing === 'orthogonal' && edge.waypoints?.length ? routeViaWaypoints(actors, edge.from, edge.to, edge.waypoints) : routeConnection(actors, edge.from, edge.to, edge.routing);
        const reverseRoute = edge.bidirectional && edge.reverseFrom && edge.reverseTo
         ? routeConnection(actors, edge.reverseFrom, edge.reverseTo, edge.routing) : [];
        const bidirectional = edge.bidirectional || edges.some(other => other.from === edge.to && other.to === edge.from);
