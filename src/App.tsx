@@ -6,6 +6,7 @@ import { listScenarios, loadScenario, playbackValidationError, type Scenario } f
 import Scene from './playback/PlaybackScene';
 import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
 import ScenarioSidebar from './playback/ScenarioSidebar';
+import PlaybackControls from './playback/PlaybackControls';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
 
 // 再生画面の論理サイズとノード寸法。PixiJS描画側と一致させる。
@@ -14,7 +15,6 @@ const VIEW_HEIGHT = 620;
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 90;
 const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(value * 100) / 100));
-const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 
 export default function App() {
  // none:通常再生、edit:既存編集、new:新規作成。編集内容は保存まで通常画面へ反映されない。
@@ -161,7 +161,16 @@ export default function App() {
         {group.options.map(option => <option key={option.id} value={option.id}>{option.branchLabel || option.title}</option>)}
        </select>
       </label>)}
-     </div>}<div className="scene-action-bar"><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={resetViewport}>等倍</button><span className="viewport-hint">ドラッグで移動 / Ctrl + ホイールで拡大・縮小</span></div><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === routes.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {routes.length}</span></div></div><div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance} onSelectActor={setSelectedActorId}/></div>{selectedActorId && scenario.actors.some(actor => actor.id === selectedActorId) && (() => {
+     </div>}<PlaybackControls zoom={zoom} step={step} stepCount={routes.length} playing={playing} finished={finished} speed={speed}
+     onZoomOut={() => setZoom(v => clampZoom(v / 1.2))}
+     onZoomIn={() => setZoom(v => clampZoom(v * 1.2))}
+     onResetViewport={resetViewport}
+     onRestart={() => { setPlaying(false); setFinished(false); setStep(0); }}
+     onPrevious={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}
+     onTogglePlayback={togglePlayback}
+     onNext={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}
+     onSpeedChange={setSpeed}/>
+    <div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance} onSelectActor={setSelectedActorId}/></div>{selectedActorId && scenario.actors.some(actor => actor.id === selectedActorId) && (() => {
        const actor = scenario.actors.find(item => item.id === selectedActorId)!;
        const fields: [string, string | undefined][] = [['種類', actor.type], ['説明', actor.description], ['環境', actor.environment], ['接続先・URL', actor.endpoint], ['インスタンス名', actor.instanceName], ['IPアドレス', actor.ip], ['タグ', actor.tags?.join(', ')], ['関連資料', actor.documents?.join(', ')]];
        return <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedActorId(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label={`${actor.name}の詳細`}>
