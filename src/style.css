@@ -388,3 +388,11 @@ html,body,#root{height:100%;overflow:hidden}
 .scenario-subcategory{margin:5px 0 5px 8px;padding:4px 0 4px 8px;border-left:1px solid var(--panel-border);border-radius:0}
 .scenario-category>summary,.scenario-subcategory>summary{overflow-wrap:anywhere;cursor:pointer}
 .scenario-category button,.scenario-subcategory button{max-width:100%;overflow-wrap:anywhere}
+
+/* 選択中の折れ線だけ経由点ハンドルを表示し、ドラッグで編集する。 */
+.editor-waypoint{cursor:grab;touch-action:none}
+.editor-waypoint:active{cursor:grabbing}
+.editor-waypoint-settings{display:flex;flex-direction:column;gap:8px;margin:12px 0;padding:12px;border:1px solid var(--panel-border);border-radius:10px}
+.editor-waypoint-settings>p{margin:0;font-size:12px;color:var(--muted)}
+.editor-waypoint-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.editor-waypoint-row button{width:auto;margin:0;padding:6px 10px}
