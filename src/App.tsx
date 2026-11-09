@@ -320,6 +320,7 @@ export default function App() {
  const [selected, setSelected] = useState('');
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
+ const [selectedInterfaceId, setSelectedInterfaceId] = useState<string | null>(null);
  // 再生開始前に決定する分岐の選択。変更時は再生位置を先頭へ戻す。
  const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
  const [error, setError] = useState('');
@@ -361,7 +362,7 @@ export default function App() {
    .catch(error => { if (!cancelled) setError(String(error)); });
   return () => { cancelled = true; };
  }, []);
- useEffect(() => { if (!selected) return; setSelectedActorId(null); setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
+ useEffect(() => { if (!selected) return; setSelectedActorId(null); setSelectedInterfaceId(null); setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
  const [finished, setFinished] = useState(false);
  const routes = scenario ? playbackSteps(scenario.actors, scenario.steps, branchChoices) : [];
@@ -468,7 +469,8 @@ export default function App() {
         {fields.filter(([,value]) => Boolean(value)).map(([label,value]) => <p key={label}><strong>{label}</strong>：{value}</p>)}
        </aside></div>;
       })()}
-      <div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+      {selectedInterfaceId && <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedInterfaceId(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label="IF仕様"><div className="node-details-heading"><h2>IF仕様</h2><button onClick={() => setSelectedInterfaceId(null)}>✕</button></div>{scenario.interfaces?.filter(item => item.id === selectedInterfaceId).map(item => <section key={item.id}><h3>{item.name}</h3><p>{item.description}</p><p>ID: {item.id}</p>{item.fields?.map((field, index) => <p key={index}><strong>{field.name}</strong>（{field.type}）{field.required ? '・必須' : ''} {field.description}</p>)}</section>)}{!scenario.interfaces?.some(item => item.id === selectedInterfaceId) && <p>IF定義がありません: {selectedInterfaceId}</p>}</aside></div>}
+       <div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code><div className="if-playback-links">{current.forwardIf && <button onClick={() => setSelectedInterfaceId(current.forwardIf!)}>往路IF: {scenario.interfaces?.find(item => item.id === current.forwardIf)?.name ?? current.forwardIf}</button>}{current.reverseIf && <button onClick={() => setSelectedInterfaceId(current.reverseIf!)}>復路IF: {scenario.interfaces?.find(item => item.id === current.reverseIf)?.name ?? current.reverseIf}</button>}{current.reversePayload && <p>復路通信内容: {current.reversePayload}</p>}</div></section></>}
    </main>
   </div>
  </div>;
