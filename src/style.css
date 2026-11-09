@@ -308,3 +308,10 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .if-definition-editor input:not([type=checkbox]),.if-definition-editor textarea{display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--button-border);border-radius:7px;background:var(--page);color:var(--text)}
 .if-field{padding:12px;border:1px solid var(--panel-border);border-radius:9px;margin:10px 0}
 .editor-group{cursor:pointer}
+
+/* 領域に属するノードを複数選択して一括移動するための設定 */
+.group-members{margin:12px 0;padding:10px;border:1px solid rgba(128,150,180,.3);border-radius:8px;max-height:210px;overflow-y:auto}
+.group-members legend{font-weight:600;padding:0 5px}
+.group-members label{display:flex;align-items:center;gap:8px;margin:5px 0}
+.group-members input[type=checkbox]{width:auto;flex:none}
+.editor-group-resize{cursor:nwse-resize}
