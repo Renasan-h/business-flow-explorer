@@ -1,4 +1,3 @@
-import type { Scenario } from '../scenario';
 export type CategoryNode = { scenarios: string[]; children: Map<string, CategoryNode> };
 /** カテゴリを区切り文字ごとにツリーへ追加する。階層数に制限は設けない。 */
 export function buildCategoryTree(paths: string[], categories: Record<string, string>): CategoryNode {
