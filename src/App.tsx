@@ -435,11 +435,16 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{Object.entries(paths.reduce<Record<string, string[]>>((groups, path) => {
-     const category = scenarioCategories[path] || '未分類';
-     (groups[category] ??= []).push(path);
+   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{Object.entries(paths.reduce<Record<string, Record<string, string[]>>>((groups, path) => {
+     const parts = (scenarioCategories[path] || '未分類').split('/').map(part => part.trim()).filter(Boolean);
+     const parent = parts.shift() || '未分類';
+     const child = parts.join('/');
+     ((groups[parent] ??= {})[child] ??= []).push(path);
      return groups;
-    }, {})).map(([category, items]) => <details className="scenario-category" key={category} open><summary>{category}（{items.length}）</summary>{items.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}</details>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
+    }, {})).map(([category, subcategories]) => <details className="scenario-category" key={category} open><summary>{category}（{Object.values(subcategories).reduce((count, items) => count + items.length, 0)}）</summary>
+     {(subcategories[''] ?? []).map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}
+     {Object.entries(subcategories).filter(([name]) => name).map(([name, items]) => <details key={name} className="scenario-subcategory"><summary>{name}（{items.length}）</summary>{items.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}</details>)}
+    </details>)}<p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p></aside>
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
