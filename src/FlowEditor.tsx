@@ -365,7 +365,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // IF項目定義をYAML/JSONから読み込み、画面上の定義に追加する。
  const importInterfaceFields = async (interfaceId: string, file: File) => {
   try {
-   if (!/\\.(yaml|yml|json)$/i.test(file.name) || file.size > 2_000_000) throw new Error('2MB以下のYAMLまたはJSONを選択してください');
+   if (!/\.(yaml|yml|json)$/i.test(file.name) || file.size > 2_000_000) throw new Error('2MB以下のYAMLまたはJSONを選択してください');
    const data: unknown = parse(await file.text());
    const candidate = Array.isArray(data) ? data : data && typeof data === 'object' && 'fields' in data ? data.fields : null;
    if (!Array.isArray(candidate)) throw new Error('項目配列、またはfields配列を持つオブジェクトが必要です');
