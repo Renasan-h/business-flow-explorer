@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
-import type { Scenario } from './scenario';
+import { parseTemplateYaml, type Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
@@ -28,6 +28,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [interfaces, setInterfaces] = useState<NonNullable<Scenario['interfaces']>>(() => initial.interfaces ?? []);
  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
  const [interfacePanel, setInterfacePanel] = useState<string | null>(null);
+ const [templateMode, setTemplateMode] = useState<'inline' | 'reference'>('inline');
+ const [templatePath, setTemplatePath] = useState('');
+ const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[] }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
@@ -42,8 +45,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
  // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
- const snapshot = () => JSON.stringify({ actors, steps, metadata, groups, interfaces });
- const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata, groups: initial.groups ?? [], interfaces: initial.interfaces ?? [] }));
+ const snapshot = () => JSON.stringify({ actors, steps, metadata, groups, interfaces, templateReferences });
+ const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata, groups: initial.groups ?? [], interfaces: initial.interfaces ?? [], templateReferences: [] }));
  // 保存・破棄・キャンセルを順に確認する。保存が失敗・中断された場合は編集画面に留まる。
  const requestExit = async () => {
   if (snapshot() === savedSnapshot.current) { onClose(); return; }
@@ -234,7 +237,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const { reverseFrom: _from, reverseTo: _to, reverseIf: _if, reversePayload: _payload, bidirectional: _both, ...oneWay } = step;
   return oneWay;
  });
- const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: normalizedActors, steps: normalizedSteps }, { lineWidth: 0 });
+ // 参照モードで取り込んだ要素は重複定義せずfile参照で保存する。
+ const referencedActorIds = new Set(templateReferences.flatMap(item => item.actorIds));
+ const referencedStepIds = new Set(templateReferences.flatMap(item => item.stepIds));
+ const yamlActors = normalizedActors.filter(item => !referencedActorIds.has(item.id));
+ const yamlSteps: Array<Step | { file: string }> = normalizedSteps.filter(item => !referencedStepIds.has(item.id));
+ for (const reference of templateReferences) yamlSteps.push({ file: reference.file });
+ const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: yamlActors, steps: yamlSteps }, { lineWidth: 0 });
   // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
   const filename = scenarioPath
    ? (decodeURIComponent(scenarioPath.split('/').pop() ?? '') || 'scenario.yaml')
@@ -266,6 +275,27 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
+ const importTemplate = async () => {
+  try {
+   if (!templatePath.trim() || !/^[a-zA-Z0-9_./-]+\.ya?ml$/.test(templatePath) || templatePath.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
+   const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
+   const url = new URL(templatePath, base);
+   if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
+   const response = await fetch(url.pathname);
+   if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
+   const fragment = parseTemplateYaml(await response.text());
+   if (fragment.hasReferences) throw new Error('参照を含むテンプレートは現在直接取り込めません。参照のない断片YAMLを指定してください');
+   const actorIds = new Set(actors.map(item => item.id));
+   const stepIds = new Set(steps.map(item => item.id));
+   if (fragment.actors.some(item => actorIds.has(item.id)) || fragment.steps.some(item => stepIds.has(item.id))) throw new Error('IDが重複しています。テンプレートのIDを変更してください');
+   const newActors = fragment.actors.map((item, index) => ({ ...item, position: item.position ?? { x: 250 + (index % 10) * 240, y: 200 + Math.floor(index / 10) * 160 } }));
+   setActors(current => [...current, ...newActors]);
+   setSteps(current => [...current, ...fragment.steps]);
+   setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
+   if (templateMode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id) }]);
+   setMessage(templateMode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
+  } catch (error) { setMessage('テンプレート読込失敗: ' + String(error)); }
+ };
  const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); };
  const addInterface = () => { const id = 'if-' + crypto.randomUUID().slice(0, 8); setInterfaces(items => [...items, { id, name: '新しいIF定義', description: '', fields: [] }]); setInterfacePanel(id); };
  // 順序編集モード中だけ再生順序線と番号を表示する。
@@ -304,6 +334,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <button onClick={addActor}>＋ ノード追加</button>
    <button onClick={addGroup}>＋ 領域追加</button>
    <button onClick={addInterface}>＋ IF定義</button>
+   <label>テンプレート<input value={templatePath} onChange={e => setTemplatePath(e.target.value)} placeholder="例: fragments/common.yaml"/></label>
+   <select aria-label="テンプレート読込方法" value={templateMode} onChange={e => setTemplateMode(e.target.value as 'inline' | 'reference')}><option value="inline">直接定義として読込</option><option value="reference">サブシナリオとして参照</option></select>
+   <button type="button" onClick={() => void importTemplate()}>テンプレート読込</button>
    <button onClick={() => setZoom(z => Math.max(.3, +(z / 1.2).toFixed(2)))}>−</button>
    <span>{Math.round(zoom * 100)}%</span>
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
