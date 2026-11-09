@@ -299,10 +299,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    if (mode === 'reference' && !path) throw new Error('サブシナリオ参照には /scenarios/ 内の相対パスが必要です。ファイルダイアログからはパスを取得できません');
    let content: string;
    if (mode === 'inline' && templateFile) {
-    if (!/\\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
+    if (!/\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
     content = await templateFile.text();
    } else {
-    if (!/^[a-zA-Z0-9_./-]+\\.ya?ml$/.test(path) || path.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
+    if (!/^[a-zA-Z0-9_./-]+\.ya?ml$/.test(path) || path.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
     const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
     const url = new URL(path, base);
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
@@ -321,7 +321,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setSteps(current => [...current, ...fragment.steps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
    if (mode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: fragment.steps }) }]);
-   setMessage(templateMode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
+   setMessage(mode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
   } catch (error) { setMessage('テンプレート読込失敗: ' + String(error)); }
  };
  const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); };
