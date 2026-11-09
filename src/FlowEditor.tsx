@@ -18,6 +18,7 @@ import EditorEdges from './editor/EditorEdges';
 import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
+import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -84,31 +85,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
  const [contextMenu, setContextMenu] = useState<EditorContextMenuState | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
- // Ctrl+ホイールはブラウザ全体ではなくキャンバスだけを拡縮する。
- // passive:falseのネイティブイベントで既定のページズームを抑止する。
- useEffect(() => {
-  const element = svgRef.current;
-  if (!element) return;
-  const wheel = (event: WheelEvent) => {
-   if (!event.ctrlKey) return;
-   event.preventDefault();
-   // SVGの余白を含む表示変換を逆変換し、リサイズ後もポインター位置を維持する。
-   const matrix = element.getScreenCTM();
-   if (!matrix) return;
-   const point = element.createSVGPoint();
-   point.x = event.clientX; point.y = event.clientY;
-   const local = point.matrixTransform(matrix.inverse());
-   const cx = local.x;
-   const cy = local.y;
-   const next = Math.max(.3, Math.min(2.5, +(zoom * Math.exp(-event.deltaY * .002)).toFixed(3)));
-   if (next === zoom) return;
-   // ポインター下のワールド座標が拡縮前後で動かないようにパンを補正する。
-   setOffset(current => ({ x: cx - (cx - current.x) * next / zoom, y: cy - (cy - current.y) * next / zoom }));
-   setZoom(next);
-  };
-  element.addEventListener('wheel', wheel, { passive: false });
-  return () => element.removeEventListener('wheel', wheel);
- }, [zoom, preview]);
+ // 編集SVGの拡縮イベントは専用フックで管理する。
+ useEditorWheelZoom({ svgRef, zoom, setZoom, setOffset, preview });
  // 削除後も番号を再利用せず、編集中の識別番号を維持する。
  const nextNodeNumber = useRef(initial.actors.length + 1);
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
