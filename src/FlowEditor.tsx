@@ -60,7 +60,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (window.confirm('変更を保存せずに破棄して戻りますか？\nキャンセルすると編集を続けられます。')) onClose();
  };
  // 右クリックした場所に応じてメニューを切り替える。座標はエディター内のCSSピクセル。
- const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null } | null>(null);
+ const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actorId: string | null; stepId: string | null; groupId: string | null } | null>(null);
  const svgRef = useRef<SVGSVGElement>(null);
  // Ctrl+ホイールはブラウザ全体ではなくキャンバスだけを拡縮する。
  // passive:falseのネイティブイベントで既定のページズームを抑止する。
@@ -444,17 +444,19 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      event.preventDefault();
      const target = event.target as Element;
      const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
-     const stepId = actorId ? null : target.closest('[data-step-id]')?.getAttribute('data-step-id') ?? null;
+     const groupId = actorId ? null : target.closest('[data-group-id]')?.getAttribute('data-group-id') ?? null;
+     const stepId = actorId || groupId ? null : target.closest('[data-step-id]')?.getAttribute('data-step-id') ?? null;
      const canvas = event.currentTarget.parentElement!.getBoundingClientRect();
      const menuWidth = 190;
      const menuHeight = actorId ? 150 : stepId ? 100 : 100;
      setContextMenu({
       x: Math.max(0, Math.min(event.clientX - canvas.left, canvas.width - menuWidth)),
       y: Math.max(0, Math.min(event.clientY - canvas.top, canvas.height - menuHeight)),
-      actorId, stepId,
+      actorId, stepId, groupId,
      });
      if (actorId) { setSelectedActor(actorId); setSelectedStep(null); }
      else if (stepId) { setSelectedStep(stepId); setSelectedActor(null); }
+     else if (groupId) { setSelectedGroup(groupId); setSelectedActor(null); setSelectedStep(null); }
     }} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
      onPointerDown={event => {
       if (event.button !== 0) return;
@@ -569,7 +571,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      }}
      onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
-      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="14" fill={group.color ?? '#2563eb'} fillOpacity=".08" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 4 : 2} strokeDasharray="12 6"/><text x={group.x + 15} y={group.y + 26} fill={group.color ?? '#2563eb'} fontWeight="bold" fontSize="20">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
+      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="8" fill={group.color ?? '#2563eb'} fillOpacity=".045" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 2 : 1}/><rect x={group.x + 10} y={group.y - 30} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="31" rx="8" fill={group.color ?? '#2563eb'} stroke={group.color ?? '#2563eb'} strokeWidth="1"/><rect x={group.x + 10} y={group.y - 9} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="10" fill={group.color ?? '#2563eb'}/><text x={group.x + 24} y={group.y - 9} fill="#ffffff" fontWeight="600" fontSize="15">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
        {steps.slice(0, -1).map((step, index) => {
         const from = orderPoint(step);
@@ -646,6 +648,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setContextMenu(null); }}>ノードを編集</button>
        <button type="button" role="menuitem" onClick={() => { duplicateActor(contextMenu.actorId!); setContextMenu(null); }}>ノードを複製</button>
        <button type="button" role="menuitem" className="danger" onClick={() => deleteActor(contextMenu.actorId!)}>ノードを削除</button>
+      </> : contextMenu.groupId ? <>
+       <button type="button" role="menuitem" onClick={() => { setSelectedGroup(contextMenu.groupId); setContextMenu(null); }}>領域を編集</button>
+       <button type="button" role="menuitem" className="danger" onClick={() => { setGroups(items => items.filter(item => item.id !== contextMenu.groupId)); setSelectedGroup(null); setContextMenu(null); }}>領域を削除</button>
       </> : contextMenu.stepId ? <>
        <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setContextMenu(null); }}>通信を編集</button>
        <button type="button" role="menuitem" className="danger" onClick={() => { deleteStep(contextMenu.stepId!); setContextMenu(null); }}>通信を削除</button>
@@ -656,7 +661,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>}
    </div>
    <aside className="editor-inspector">
-    {selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label>{(['x','y','width','height'] as const).map(key => <label key={key}>{key}<input type="number" value={group[key]} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, [key]: Number(e.target.value) } : item))}/></label>)}<fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
+    {selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label><fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
     <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
     <details className="editor-section"><summary>シナリオ設定</summary>
     <label>タイトル<input value={metadata.title} onChange={e => setMetadata(v => ({ ...v, title: e.target.value }))}/></label>
