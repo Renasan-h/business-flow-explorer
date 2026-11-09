@@ -17,6 +17,7 @@ const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, l
 export default function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished, onSelectActor }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void; onSelectActor: (id: string) => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
+ const resizeObserverRef = useRef<ResizeObserver | null>(null);
  const layerRef = useRef<Container | null>(null);
  const packetRef = useRef<Graphics | null>(null);
  const routeRef = useRef<{ start: { x: number; y: number }; end: { x: number; y: number }; duration: number; reverse?: { start: { x: number; y: number }; end: { x: number; y: number } } } | null>(null);
@@ -37,9 +38,9 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
    if (!event.ctrlKey) return;
    event.preventDefault();
    const bounds = element.getBoundingClientRect();
-   const scale = Math.min(bounds.width / VIEW_WIDTH, bounds.height / VIEW_HEIGHT);
-   const cx = (event.clientX - bounds.left - (bounds.width - VIEW_WIDTH * scale) / 2) / scale;
-   const cy = (event.clientY - bounds.top - (bounds.height - VIEW_HEIGHT * scale) / 2) / scale;
+   // レンダラーを表示領域と同じCSSピクセルサイズに保つため、座標変換は不要。
+   const cx = event.clientX - bounds.left;
+   const cy = event.clientY - bounds.top;
    const { zoom, pan, onZoom, onPan } = viewportRef.current;
    const next = clampZoom(zoom * Math.exp(-event.deltaY * .002));
    if (next === zoom) return;
@@ -64,6 +65,19 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   }).then(() => {
    if (cancelled) { app.destroy(true); return; }
    hostElement.appendChild(app.canvas);
+   // リサイズハンドルや画面幅変更に追従して、描画バッファ自体を拡張する。
+   // CSSによる固定1100x620キャンバスの引き伸ばしは文字をぼかし、余白を生む。
+   const resizeRenderer = () => {
+    const width = Math.max(1, Math.round(hostElement.clientWidth));
+    const height = Math.max(1, Math.round(hostElement.clientHeight));
+    if (app.renderer.width !== width || app.renderer.height !== height) {
+     app.renderer.resize(width, height);
+    }
+   };
+   resizeRenderer();
+   const resizeObserver = new ResizeObserver(resizeRenderer);
+   resizeObserver.observe(hostElement);
+   resizeObserverRef.current = resizeObserver;
    const layer = new Container();
    app.stage.addChild(layer);
    // ステージの座標変換のみを変更し、シナリオ描画や再生状態は維持する。
@@ -98,6 +112,8 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   }).catch(error => console.error('PixiJS初期化エラー', error));
   return () => {
    cancelled = true;
+   resizeObserverRef.current?.disconnect();
+   resizeObserverRef.current = null;
    setReady(false);
    routeRef.current = null;
    packetRef.current = null;
@@ -314,9 +330,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   onPointerMove={event => {
    const drag = pointerRef.current;
    if (!drag || drag.id !== event.pointerId) return;
-   const bounds = event.currentTarget.getBoundingClientRect();
-   const scale = Math.min(bounds.width / VIEW_WIDTH, bounds.height / VIEW_HEIGHT);
-   viewportRef.current.onPan({x: drag.pan.x + (event.clientX - drag.x) / scale, y: drag.pan.y + (event.clientY - drag.y) / scale});
+   viewportRef.current.onPan({x: drag.pan.x + event.clientX - drag.x, y: drag.pan.y + event.clientY - drag.y});
   }}
   onPointerUp={event => { if (pointerRef.current?.id === event.pointerId) pointerRef.current = null; }}
   onPointerCancel={() => { pointerRef.current = null; }}
