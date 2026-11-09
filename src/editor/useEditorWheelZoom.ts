@@ -1,4 +1,5 @@
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { screenToSvgPoint } from './coordinates';
 
 type Offset = { x: number; y: number };
 
@@ -23,12 +24,9 @@ export function useEditorWheelZoom({
    if (!event.ctrlKey) return;
    event.preventDefault();
 
-   const matrix = element.getScreenCTM();
-   if (!matrix) return;
-   const point = element.createSVGPoint();
-   point.x = event.clientX;
-   point.y = event.clientY;
-   const local = point.matrixTransform(matrix.inverse());
+   // 座標変換はエディター共通ヘルパーに委譲する。
+   const local = screenToSvgPoint(element, event.clientX, event.clientY);
+   if (!local) return;
    const next = Math.max(.3, Math.min(2.5, +(zoom * Math.exp(-event.deltaY * .002)).toFixed(3)));
    if (next === zoom) return;
 
