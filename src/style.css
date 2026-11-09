@@ -544,3 +544,11 @@ aside button.icon-close-button,
    canvasのCSS縮小やobject-fitによる補間は行わない。 */
 .scene-size-wrapper .scene{display:block;width:100%;height:100%;overflow:hidden}
 .scene-size-wrapper .scene canvas{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:fill}
+
+/* サイドバーの閉じる操作はハンバーガー表示時だけ必要。共通アイコン規則より優先する。 */
+@media (min-width:1001px){
+ .app .scenario-sidebar-heading button.scenario-menu-close{display:none}
+}
+@media (max-width:1000px){
+ .app .scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center}
+}
