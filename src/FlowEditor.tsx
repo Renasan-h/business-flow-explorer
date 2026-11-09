@@ -24,6 +24,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [actors, setActors] = useState<Actor[]>(() => initial.actors.map(actor => ({ ...actor, position: { ...actor.position } })));
  const [steps, setSteps] = useState<Step[]>(() => initial.steps.map(step => ({ ...step, actions: step.actions.map(action => ({ ...action })) })));
  const [metadata, setMetadata] = useState({ ...initial.metadata });
+ const [groups, setGroups] = useState<NonNullable<Scenario['groups']>>(() => initial.groups ?? []);
+ const [interfaces, setInterfaces] = useState<NonNullable<Scenario['interfaces']>>(() => initial.interfaces ?? []);
+ const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+ const [interfacePanel, setInterfacePanel] = useState<string | null>(null);
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
@@ -38,8 +42,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
  // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
- const snapshot = () => JSON.stringify({ actors, steps, metadata });
- const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata }));
+ const snapshot = () => JSON.stringify({ actors, steps, metadata, groups, interfaces });
+ const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata, groups: initial.groups ?? [], interfaces: initial.interfaces ?? [] }));
  // 保存・破棄・キャンセルを順に確認する。保存が失敗・中断された場合は編集画面に留まる。
  const requestExit = async () => {
   if (snapshot() === savedSnapshot.current) { onClose(); return; }
@@ -230,7 +234,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const { reverseFrom: _from, reverseTo: _to, reverseIf: _if, reversePayload: _payload, bidirectional: _both, ...oneWay } = step;
   return oneWay;
  });
- const yaml = stringify({ schemaVersion: '1.0', metadata, actors: normalizedActors, steps: normalizedSteps }, { lineWidth: 0 });
+ const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: normalizedActors, steps: normalizedSteps }, { lineWidth: 0 });
   // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
   const filename = scenarioPath
    ? (decodeURIComponent(scenarioPath.split('/').pop() ?? '') || 'scenario.yaml')
@@ -262,6 +266,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
+ const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); };
+ const addInterface = () => { const id = 'if-' + crypto.randomUUID().slice(0, 8); setInterfaces(items => [...items, { id, name: '新しいIF定義', description: '', fields: [] }]); setInterfacePanel(id); };
  // 順序編集モード中だけ再生順序線と番号を表示する。
  const [orderMode, setOrderMode] = useState(false);
  const [orderSource, setOrderSource] = useState<string | null>(null);
@@ -296,6 +302,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
    <button onClick={addActor}>＋ ノード追加</button>
+   <button onClick={addGroup}>＋ 領域追加</button>
+   <button onClick={addInterface}>＋ IF定義</button>
    <button onClick={() => setZoom(z => Math.max(.3, +(z / 1.2).toFixed(2)))}>−</button>
    <span>{Math.round(zoom * 100)}%</span>
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
@@ -400,6 +408,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      }}
      onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
+      {groups.map(group => <g key={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="14" fill={group.color ?? '#2563eb'} fillOpacity=".08" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 4 : 2} strokeDasharray="12 6"/><text x={group.x + 15} y={group.y + 26} fill={group.color ?? '#2563eb'} fontWeight="bold" fontSize="20">{group.name}</text></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
        {steps.slice(0, -1).map((step, index) => {
         const from = orderPoint(step);
@@ -485,6 +494,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>}
    </div>
    <aside className="editor-inspector">
+    {selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label>{(['x','y','width','height'] as const).map(key => <label key={key}>{key}<input type="number" value={group[key]} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, [key]: Number(e.target.value) } : item))}/></label>)}<button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
+    <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
     <details className="editor-section"><summary>シナリオ設定</summary>
     <label>タイトル<input value={metadata.title} onChange={e => setMetadata(v => ({ ...v, title: e.target.value }))}/></label>
     <label>ID<input value={metadata.id} onChange={e => setMetadata(v => ({ ...v, id: e.target.value }))}/></label>
