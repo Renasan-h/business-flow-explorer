@@ -15,6 +15,7 @@ import EditorCanvas from './editor/EditorCanvas';
 import EditorNodes from './editor/EditorNodes';
 import EditorGroups from './editor/EditorGroups';
 import EditorEdges from './editor/EditorEdges';
+import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import { resolveEditorSelection } from './editor/selection';
 
 type Actor = Scenario['actors'][number];
@@ -673,21 +674,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerCancel={() => { marquee.current = null; setMarqueeEnd(null); multiDrag.current = null; waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       <EditorGroups groups={groups} selectedGroup={selectedGroup} tool={tool} onSelect={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); }}/>
-      {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
-       {steps.slice(0, -1).map((step, index) => {
-        const from = orderPoint(step);
-        const to = orderPoint(steps[index + 1]);
-        return from && to ? <line key={step.id} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#fbbf24" strokeWidth="3" strokeDasharray="9 5" pointerEvents="none"/> : null;
-       })}
-       {orderCursor && orderDrag.current && (() => { const sourcePoint = orderPoint(steps.find(step => step.id === orderDrag.current?.source)!); return sourcePoint ? <line x1={sourcePoint.x} y1={sourcePoint.y} x2={orderCursor.x} y2={orderCursor.y} stroke="#f97316" strokeWidth="4" strokeDasharray="8 4" pointerEvents="none"/> : null; })()}
-       {steps.map((step, index) => {
-        const point = orderPoint(step);
-        return point && <g key={step.id} className="editor-order-marker" role="button" tabIndex={0} aria-label={`再生順序 ${index + 1}: ${step.title}`} onPointerDown={event => { event.stopPropagation(); orderDrag.current = { pointerId: event.pointerId, source: step.id, x: event.clientX, y: event.clientY, moved: false }; event.currentTarget.closest('svg')?.setPointerCapture(event.pointerId); }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseOrder(step.id); } }}>
-         <circle cx={point.x} cy={point.y} r="19" fill={orderSource === step.id ? '#ea580c' : '#92400e'} stroke="#fde68a" strokeWidth="2"/>
-         <text x={point.x} y={point.y + 5} fontSize="14" fill="white" textAnchor="middle" pointerEvents="none">{index + 1}</text>
-        </g>;
-       })}
-      </g>}
+      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
       <EditorEdges actors={actors} steps={steps} showLines={showLines} selectedStep={selectedStep} tool={tool} onSelect={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); }}/>
       {wire && (() => {
        const from = actors.find(actor => actor.id === wire.from);
