@@ -10,6 +10,8 @@ const VIEW_WIDTH = 1100;
 const VIEW_HEIGHT = 620;
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 90;
+// CSSでキャンバスを縮小しても文字テクスチャの輪郭を保つため、高密度でラスタライズする。
+const textResolution = () => Math.min(4, Math.max(2, (window.devicePixelRatio || 1) * 2));
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
 /** PixiJS描画担当。Reactの状態はstateRef経由でTickerに渡し、再生中の再初期化を防ぐ。 */
 export default function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished, onSelectActor }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void; onSelectActor: (id: string) => void }) {
@@ -58,7 +60,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   const app = new Application();
   void app.init({
    width: VIEW_WIDTH, height: VIEW_HEIGHT, background: palette.technical.bg,
-   antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
+   antialias: true, resolution: Math.min(3, Math.max(1, window.devicePixelRatio || 1)), autoDensity: true,
   }).then(() => {
    if (cancelled) { app.destroy(true); return; }
    hostElement.appendChild(app.canvas);
@@ -130,7 +132,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   if (!start || !end) return;
 
   const label = (value: string, x: number, y: number, size = 14) => {
-   const text = new Text({ text: value, style: new TextStyle({
+   const text = new Text({ text: value, resolution: textResolution(), style: new TextStyle({
     fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center', wordWrap: true, wordWrapWidth: size === 12 ? NODE_WIDTH - 12 : 220, breakWords: true,
    }) });
    text.anchor.set(0.5);
@@ -181,7 +183,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
     .fill({ color, alpha: 0.09 }).roundRect(group.x, group.y, group.width, group.height, 14)
     .stroke({ color, width: 2, alpha: 0.7 });
    layer.addChild(background);
-   const heading = new Text({ text: group.name, style: new TextStyle({ fontFamily: 'sans-serif', fontSize: 20, fill: color }) });
+   const heading = new Text({ text: group.name, resolution: textResolution(), style: new TextStyle({ fontFamily: 'sans-serif', fontSize: 20, fill: color }) });
    heading.position.set(group.x + 14, group.y + 10);
    layer.addChild(heading);
   }
