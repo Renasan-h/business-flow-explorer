@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { parse, stringify } from 'yaml';
 import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
+import EditorPanel from './editor/EditorPanel';
+import { resolveEditorSelection } from './editor/selection';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
 import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
@@ -489,9 +491,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     <svg ref={svgRef} onContextMenu={event => {
      event.preventDefault();
      const target = event.target as Element;
-     const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
-     const groupId = actorId ? null : target.closest('[data-group-id]')?.getAttribute('data-group-id') ?? null;
-     const stepId = actorId || groupId ? null : target.closest('[data-step-id]')?.getAttribute('data-step-id') ?? null;
+     const { actorId, groupId, stepId } = resolveEditorSelection(target);
      const canvas = event.currentTarget.parentElement!.getBoundingClientRect();
      const menuWidth = 190;
      const menuHeight = actorId ? 150 : stepId ? 100 : 100;
@@ -561,21 +561,24 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
-      const node = target.closest('[data-actor-id]');
-      const actorId = node?.getAttribute('data-actor-id') ?? null;
+      const { actorId, stepId } = resolveEditorSelection(target);
       // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
       if (actorId) {
        setSelectedActor(actorId);
        setSelectedStep(null);
        setSelectedGroup(null);
       } else {
-       const edge = target.closest('[data-step-id]');
-       if (edge) {
-        setSelectedStep(edge.getAttribute('data-step-id'));
+       if (stepId) {
+        setSelectedStep(stepId);
         setSelectedActor(null);
         setSelectedGroup(null);
         return;
        }
+       // 空白のクリックはすべての選択状態を解除する。
+       setSelectedActor(null);
+       setSelectedStep(null);
+       setSelectedGroup(null);
+       setSelectedActors([]);
       }
       const actor = actors.find(item => item.id === actorId);
       drag.current = { id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset };
@@ -796,9 +799,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       </>}
      </div>}
    </div>
-   <aside className={`editor-inspector${inspectorCollapsed ? " is-collapsed" : ""}`} aria-label="選択中のオブジェクト設定">
-    <div className="editor-panel-heading"><strong>設定</strong><button type="button" className="editor-panel-toggle" aria-label={inspectorCollapsed ? "設定パネルを展開" : "設定パネルを最小化"} title={inspectorCollapsed ? "設定パネルを展開" : "設定パネルを最小化"} aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed(value => !value)}>{inspectorCollapsed ? "◀" : "▶"}</button></div>
-    {!inspectorCollapsed && <>
+   <EditorPanel title="設定" className="editor-inspector" collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed(value => !value)}>
+    <>
     {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
     {!activeActor && !activeStep && selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label><fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
     {!activeActor && !activeStep && !selectedGroup && <>
@@ -882,12 +884,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <button onClick={() => deleteStep(activeStep.id)}>通信を削除</button>
     </details>}
 
-    </>}
-   </aside>
+    </>
+   </EditorPanel>
    {/* 再生順は設定フォームと独立した列に置き、長い設定欄のスクロールを不要にする。 */}
-   <aside className={`editor-order-panel${orderCollapsed ? " is-collapsed" : ""}`} aria-label="通信の再生順">
-    <div className="editor-panel-heading"><strong>再生順</strong><button type="button" className="editor-panel-toggle" aria-label={orderCollapsed ? "再生順パネルを展開" : "再生順パネルを最小化"} title={orderCollapsed ? "再生順パネルを展開" : "再生順パネルを最小化"} aria-expanded={!orderCollapsed} onClick={() => setOrderCollapsed(value => !value)}>{orderCollapsed ? "◀" : "▶"}</button></div>
-    {!orderCollapsed && <>
+   <EditorPanel title="再生順" className="editor-order-panel" collapsed={orderCollapsed} onToggle={() => setOrderCollapsed(value => !value)}>
+    <>
     <details className="editor-section" open><summary>通信の再生順（{steps.length}件）</summary>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
     <div className="editor-step-list">{steps.map((step, index) =>
@@ -922,8 +923,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>削除</button>
      </div>)}</div>
     </details>
-    </>}
-   </aside>
+    </>
+   </EditorPanel>
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
  </div>;
