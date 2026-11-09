@@ -10,8 +10,8 @@ const W = 150;
 const H = 76;
 
 /** 親エディターのデータを描画するプレビュー。再生状態のみ内部管理し、削除は親へ通知する。 */
-export default function FlowPreview({ actors, steps: allSteps, title, onClose, onDeleteStep, onExit }: {
- actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
+export default function FlowPreview({ actors, steps: allSteps, title, interfaces, onClose, onDeleteStep, onExit }: {
+ actors: Actor[]; steps: Step[]; title: string; interfaces?: Scenario['interfaces']; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
 }) {
  const [index, setIndex] = useState(0);
  const [selectedPreviewIf, setSelectedPreviewIf] = useState<string | null>(null);
@@ -196,8 +196,8 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
   {selectedPreviewIf && <div className="node-details-backdrop if-definition-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedPreviewIf(null); }}>
    <aside className="node-details-panel if-definition-drawer" role="dialog" aria-modal="true" aria-label="プレビューIF定義">
     <div className="node-details-heading"><h2>IF定義</h2><button type="button" onClick={() => setSelectedPreviewIf(null)} aria-label="閉じる">✕</button></div>
-    <p>IF参照: {selectedPreviewIf}</p>
-    <p>プレビューではIF参照IDを表示しています。IF定義の詳細はシナリオのIF定義データを参照してください。</p>
+    {interfaces?.filter(item => item.id === selectedPreviewIf).map(item => <section key={item.id}><h3>{item.name}</h3><p>{item.description}</p><p>ID: {item.id}</p>{item.fields?.map((field, index) => <p key={index}><strong>{field.name}</strong>（{field.type}）{field.required ? '・必須' : ''} {field.description}</p>)}</section>)}
+    {!interfaces?.some(item => item.id === selectedPreviewIf) && <p>IF定義がありません: {selectedPreviewIf}</p>}
    </aside>
   </div>}
  </div>;
