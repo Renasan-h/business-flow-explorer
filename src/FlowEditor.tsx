@@ -21,6 +21,7 @@ import { resolveEditorSelection } from './editor/selection';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { validateEditorScenario } from './editor/validateEditorScenario';
+import { screenToSvgPoint, screenToWorldPoint } from './editor/coordinates';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -107,13 +108,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
  // ポインター座標を拡大率と移動量を考慮したワールド座標へ変換する。
  const toWorld = (x: number, y: number) => {
-  const svg = svgRef.current!;
-  const matrix = svg.getScreenCTM();
-  if (!matrix) return { x: 0, y: 0 };
-  const point = svg.createSVGPoint();
-  point.x = x; point.y = y;
-  const local = point.matrixTransform(matrix.inverse());
-  return { x: (local.x - offset.x) / zoom, y: (local.y - offset.y) / zoom };
+  const svg = svgRef.current;
+  return svg ? screenToWorldPoint(svg, x, y, offset, zoom) ?? { x: 0, y: 0 } : { x: 0, y: 0 };
  };
  // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
@@ -580,15 +576,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
-      const matrix = event.currentTarget.getScreenCTM();
-      if (!matrix) return;
-      const inverse = matrix.inverse();
-      const origin = event.currentTarget.createSVGPoint();
-      origin.x = current.x; origin.y = current.y;
-      const pointer = event.currentTarget.createSVGPoint();
-      pointer.x = event.clientX; pointer.y = event.clientY;
-      const start = origin.matrixTransform(inverse);
-      const end = pointer.matrixTransform(inverse);
+      const start = screenToSvgPoint(event.currentTarget, current.x, current.y);
+      const end = screenToSvgPoint(event.currentTarget, event.clientX, event.clientY);
+      if (!start || !end) return;
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       if (current.groupId) {
