@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { stringify } from 'yaml';
-import { parseTemplateYaml, type Scenario } from './scenario';
+import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
@@ -298,6 +298,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    if (!templateFile && !path) throw new Error('YAMLファイルを選択するか、ファイルパスを指定してください');
    if (mode === 'reference' && !path) throw new Error('サブシナリオ参照には /scenarios/ 内の相対パスが必要です。ファイルダイアログからはパスを取得できません');
    let content: string;
+   let sourceUrl: string | null = null;
    if (mode === 'inline' && templateFile) {
     if (!/\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
     content = await templateFile.text();
@@ -309,9 +310,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     const response = await fetch(url.pathname);
     if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
     content = await response.text();
+    sourceUrl = url.href;
    }
-   const fragment = parseTemplateYaml(content);
-   if (fragment.hasReferences) throw new Error('参照を含むテンプレートは現在直接取り込めません。参照のない断片YAMLを指定してください');
+   const parsedFragment = parseTemplateYaml(content);
+   // 相対参照は読み込み元URLを基準に再帰解決する。ローカルファイルは
+   // ディレクトリ情報をブラウザから取得できないため、参照付きなら公開パスを指定する。
+   if (parsedFragment.hasReferences && !sourceUrl) throw new Error('参照付きYAMLは公開ディレクトリの相対パスから読み込んでください');
+   const fragment = parsedFragment.hasReferences ? await loadTemplateFragment(sourceUrl!) : parsedFragment;
    if (mode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const actorIds = new Set(actors.map(item => item.id));
    const stepIds = new Set(steps.map(item => item.id));
