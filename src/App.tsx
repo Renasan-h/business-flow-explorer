@@ -4,6 +4,7 @@ import FlowEditor from './FlowEditor';
 import { listScenarios, loadScenario, playbackValidationError, type Scenario } from './scenario';
 
 import Scene from './playback/PlaybackScene';
+import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
 import CategoryTree, { buildCategoryTree } from './playback/CategoryTree';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
 
@@ -173,7 +174,7 @@ export default function App() {
         {fields.filter(([,value]) => Boolean(value)).map(([label,value]) => <p key={label}><strong>{label}</strong>：{value}</p>)}
        </aside></div>;
       })()}
-      {selectedInterfaceId && <div className="node-details-backdrop if-definition-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedInterfaceId(null); }}><aside className="node-details-panel if-definition-drawer" role="dialog" aria-modal="true" aria-label="IF仕様"><div className="node-details-heading"><h2>IF仕様</h2><button onClick={() => setSelectedInterfaceId(null)}>✕</button></div>{scenario.interfaces?.filter(item => item.id === selectedInterfaceId).map(item => <section key={item.id}><h3>{item.name}</h3><p>{item.description}</p><p>ID: {item.id}</p>{item.fields?.map((field, index) => <p key={index}><strong>{field.name}</strong>（{field.type}）{field.required ? '・必須' : ''} {field.description}</p>)}</section>)}{!scenario.interfaces?.some(item => item.id === selectedInterfaceId) && <p>IF定義がありません: {selectedInterfaceId}</p>}</aside></div>}
+      <InterfaceDefinitionDrawer interfaceId={selectedInterfaceId} interfaces={scenario.interfaces} onClose={() => setSelectedInterfaceId(null)}/>
        <div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code><div className="if-playback-links">{current.forwardIf && <button type="button" className="if-definition-link" onClick={() => setSelectedInterfaceId(current.forwardIf!)}>往路IF: {scenario.interfaces?.find(item => item.id === current.forwardIf)?.name ?? current.forwardIf}</button>}{current.reverseIf && <button type="button" className="if-definition-link" onClick={() => setSelectedInterfaceId(current.reverseIf!)}>復路IF: {scenario.interfaces?.find(item => item.id === current.reverseIf)?.name ?? current.reverseIf}</button>}{current.reversePayload && <p>復路通信内容: {current.reversePayload}</p>}</div></section></>}
    </main>
   </div>
