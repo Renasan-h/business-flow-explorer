@@ -191,7 +191,7 @@ export async function loadScenario(path: string): Promise<Scenario> {
 }
 
 export async function listScenarios(): Promise<string[]> {
- const response = await fetch('/scenarios/index.json', { cache: 'no-store' });
+ const response = await fetch('/scenarios/manifest.json', { cache: 'no-store' });
  if (!response.ok) throw new Error('Scenario index load failed');
  return z.array(z.string()).parse(await response.json());
 }
