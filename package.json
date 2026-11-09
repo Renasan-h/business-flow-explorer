@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predev": "node scripts/generate-scenario-manifest.mjs",
+    "prebuild": "node scripts/generate-scenario-manifest.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.0.0",
