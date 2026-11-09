@@ -20,6 +20,7 @@ import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorC
 import { resolveEditorSelection } from './editor/selection';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
+import { validateEditorScenario } from './editor/validateEditorScenario';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -249,13 +250,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   // 保存ダイアログ表示中の状態変化に左右されないよう、保存対象を固定する。
   const snapshotAtSave = snapshot();
   setMessage('');
-  if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return false; }
-  const ids = new Set(actors.map(actor => actor.id));
-  if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return false; }
-  if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return false; }
-  // グループに削除済みノードが残ると、再読込時に存在しない参照が残る。
-  const validActorIds = new Set(actors.map(actor => actor.id));
-  if (groups.some(group => (group.memberIds ?? []).some(id => !validActorIds.has(id)))) { setMessage('領域コンテナに存在しないノードが含まれています。所属ノードを見直してください。'); return false; }
+  const validationError = validateEditorScenario(actors, steps, groups);
+  if (validationError) { setMessage(validationError); return false; }
   // file参照は編集結果を参照先へ書き戻さない。変更を黙って破棄しないよう保存を止める。
   for (const reference of templateReferences) {
    const current = JSON.stringify({ actors: actors.filter(item => reference.actorIds.includes(item.id)), steps: steps.filter(item => reference.stepIds.includes(item.id)) });
