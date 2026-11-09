@@ -108,7 +108,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   };
   element.addEventListener('wheel', wheel, { passive: false });
   return () => element.removeEventListener('wheel', wheel);
- }, [zoom]);
+ }, [zoom, preview]);
  // 削除後も番号を再利用せず、編集中の識別番号を維持する。
  const nextNodeNumber = useRef(initial.actors.length + 1);
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
