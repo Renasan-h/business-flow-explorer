@@ -19,6 +19,7 @@ import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
+import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -556,17 +557,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const dx = end.x - start.x;
        const dy = end.y - start.y;
        // 全選択ノードの相対位置を維持したままキャンバス境界内に収める。
-       const minDx = Math.max(...active.initial.map(item => NODE_WIDTH / 2 - item.x));
-       const maxDx = Math.min(...active.initial.map(item => WIDTH - NODE_WIDTH / 2 - item.x));
-       const minDy = Math.max(...active.initial.map(item => NODE_HEIGHT / 2 - item.y));
-       const maxDy = Math.min(...active.initial.map(item => HEIGHT - NODE_HEIGHT / 2 - item.y));
-       const moveX = Math.max(minDx, Math.min(maxDx, dx));
-       const moveY = Math.max(minDy, Math.min(maxDy, dy));
-       const originals = new Map(active.initial.map(item => [item.id, item]));
-       setActors(current => current.map(actor => {
-        const original = originals.get(actor.id);
-        return original ? { ...actor, position: { x: original.x + moveX, y: original.y + moveY } } : actor;
-       }));
+       const delta = boundedGroupDelta(active.initial, { x: dx, y: dy }, {
+        width: WIDTH, height: HEIGHT, nodeWidth: NODE_WIDTH, nodeHeight: NODE_HEIGHT,
+       });
+       setActors(current => moveSelectedActors(current, active.initial, delta));
        return;
       }
       if (waypointDrag.current?.pointerId === event.pointerId) {
@@ -625,14 +619,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (marquee.current?.pointerId === event.pointerId) {
        const selection = marquee.current;
        const end = toWorld(event.clientX, event.clientY);
-       const left = Math.min(selection.start.x, end.x);
-       const right = Math.max(selection.start.x, end.x);
-       const top = Math.min(selection.start.y, end.y);
-       const bottom = Math.max(selection.start.y, end.y);
-       const matches = actors.filter(actor => actor.position.x + NODE_WIDTH / 2 >= left &&
-        actor.position.x - NODE_WIDTH / 2 <= right &&
-        actor.position.y + NODE_HEIGHT / 2 >= top &&
-        actor.position.y - NODE_HEIGHT / 2 <= bottom).map(actor => actor.id);
+       const matches = actorsInSelection(actors, selectionRectangle(selection.start, end), NODE_WIDTH, NODE_HEIGHT);
        setSelectedActors(current => selection.additive ? [...new Set([...current, ...matches])] : matches);
        marquee.current = null;
        setMarqueeEnd(null);
