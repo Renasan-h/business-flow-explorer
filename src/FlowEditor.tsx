@@ -11,6 +11,7 @@ import EditorToolbar from './editor/EditorToolbar';
 import GroupSettings from './editor/GroupSettings';
 import ActorSettings from './editor/ActorSettings';
 import StepSettings from './editor/StepSettings';
+import EditorCanvas from './editor/EditorCanvas';
 import { resolveEditorSelection } from './editor/selection';
 import { routeConnection, routeViaWaypoints, routePath, offsetRoute } from './connectionRouting';
 
@@ -453,7 +454,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)}/>}
   {interfacePanel && <InterfaceDefinitionDialog interfaceId={interfacePanel} interfaces={interfaces} setInterfaces={setInterfaces} onClose={() => setInterfacePanel(null)} onImportFields={importInterfaceFields}/>}
   <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
-   <div className="editor-canvas" ref={canvasRef}>
+   <EditorCanvas canvasRef={canvasRef}>
     <svg ref={svgRef} onContextMenu={event => {
      event.preventDefault();
      const target = event.target as Element;
@@ -764,7 +765,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        <button type="button" role="menuitem" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}>表示をリセット</button>
       </>}
      </div>}
-   </div>
+   </EditorCanvas>
    <EditorPanel title="設定" className="editor-inspector" collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed(value => !value)}>
     <>
     {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
