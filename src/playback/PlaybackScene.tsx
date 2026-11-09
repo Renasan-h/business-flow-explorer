@@ -133,10 +133,12 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
 
   const label = (value: string, x: number, y: number, size = 14) => {
    const text = new Text({ text: value, resolution: textResolution(), style: new TextStyle({
-    fontFamily: 'sans-serif', fontSize: size, fill: colors.text, align: 'center', wordWrap: true, wordWrapWidth: size === 12 ? NODE_WIDTH - 12 : 220, breakWords: true,
+    fontFamily: 'Arial, sans-serif', fontSize: size, fontWeight: '600', fill: colors.text, align: 'center', wordWrap: true, wordWrapWidth: size === 12 ? NODE_WIDTH - 12 : 220, breakWords: true,
    }) });
+   // サブピクセル配置によるテクスチャ補間を避ける。
+   text.roundPixels = true;
    text.anchor.set(0.5);
-   text.position.set(x, y);
+   text.position.set(Math.round(x), Math.round(y));
    layer.addChild(text);
   };
 
@@ -183,8 +185,9 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
     .fill({ color, alpha: 0.09 }).roundRect(group.x, group.y, group.width, group.height, 14)
     .stroke({ color, width: 2, alpha: 0.7 });
    layer.addChild(background);
-   const heading = new Text({ text: group.name, resolution: textResolution(), style: new TextStyle({ fontFamily: 'sans-serif', fontSize: 20, fill: color }) });
-   heading.position.set(group.x + 14, group.y + 10);
+   const heading = new Text({ text: group.name, resolution: textResolution(), style: new TextStyle({ fontFamily: 'Arial, sans-serif', fontSize: 20, fontWeight: '600', fill: color }) });
+   heading.roundPixels = true;
+   heading.position.set(Math.round(group.x + 14), Math.round(group.y + 10));
    layer.addChild(heading);
   }
   const sendColor = theme === 'dark' ? 0x22d3ee : 0x2563eb;
