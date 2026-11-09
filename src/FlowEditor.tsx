@@ -7,6 +7,7 @@ import PlaybackOrderPanel from './editor/PlaybackOrderPanel';
 import TemplateImportDialog from './editor/TemplateImportDialog';
 import InterfaceDefinitionDialog from './editor/InterfaceDefinitionDialog';
 import ScenarioSettings from './editor/ScenarioSettings';
+import EditorToolbar from './editor/EditorToolbar';
 import { resolveEditorSelection } from './editor/selection';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
@@ -447,26 +448,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (!(event.target as Element).closest('.editor-context-menu')) setContextMenu(null);
  }}>
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={requestExit}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
-  <div className="editor-toolbar">
-   <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
-   <button className={tool === 'multi' ? 'selected' : ''} aria-pressed={tool === 'multi'} onClick={() => { setTool('multi'); setSource(null); setSelectedActor(null); setSelectedStep(null); setSelectedGroup(null); }}>複数ノード選択・移動</button>
-   {tool === 'multi' && <><span className="viewport-hint">空白をドラッグして範囲選択、Shift＋クリックで追加・解除、選択ノードをドラッグして一括移動</span><button type="button" onClick={() => setSelectedActors(actors.map(actor => actor.id))}>すべて選択</button><button type="button" onClick={() => setSelectedActors([])}>選択解除</button><span>{selectedActors.length}件選択中</span></>}
-   <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
-   <button onClick={addActor}>＋ ノード追加</button>
-   <button onClick={addGroup}>＋ 領域追加</button>
-   <button onClick={addInterface}>＋ IF定義</button>
-   <button type="button" onClick={() => { setTemplateImportOpen(true); setTemplateError(null); }}>テンプレートの読み込み…</button>
-   <button onClick={() => setZoom(z => Math.max(.3, +(z / 1.2).toFixed(2)))}>−</button>
-   <span>{Math.round(zoom * 100)}%</span>
-   <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
-   <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); const canvas = canvasRef.current; if (canvas) { canvas.scrollLeft = (canvas.scrollWidth - canvas.clientWidth) / 2; canvas.scrollTop = (canvas.scrollHeight - canvas.clientHeight) / 2; } }}>表示リセット</button>
-   <span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
-   {scenarioPath && <span className="viewport-hint">編集対象: {scenarioPath}</span>}
-   <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
-   <button type="button" className={orderMode ? 'selected' : ''} aria-pressed={orderMode} onClick={() => { setOrderMode(value => !value); setOrderSource(null); }}>再生順序変更モード</button>
-   {orderMode && <span className="viewport-hint">番号をドラッグして移動先の番号で離すか、番号を2つクリックして並べ替えます。</span>}
-   {source && <span>接続元: {source} → 接続先を選択</span>}
-  </div>
+  <EditorToolbar tool={tool} setTool={setTool} source={source} setSource={setSource} actors={actors} selectedActors={selectedActors} setSelectedActors={setSelectedActors} clearSelection={() => { setSelectedActor(null); setSelectedStep(null); setSelectedGroup(null); }} addActor={addActor} addGroup={addGroup} addInterface={addInterface} openTemplate={() => { setTemplateImportOpen(true); setTemplateError(null); }} zoom={zoom} setZoom={setZoom} resetView={() => { setOffset({ x: 0, y: 0 }); const canvas = canvasRef.current; if (canvas) { canvas.scrollLeft = (canvas.scrollWidth - canvas.clientWidth) / 2; canvas.scrollTop = (canvas.scrollHeight - canvas.clientHeight) / 2; } }} scenarioPath={scenarioPath} showLines={showLines} setShowLines={setShowLines} orderMode={orderMode} setOrderMode={setOrderMode} setOrderSource={setOrderSource}/>
   {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)}/>
   {interfacePanel && <InterfaceDefinitionDialog interfaceId={interfacePanel} interfaces={interfaces} setInterfaces={setInterfaces} onClose={() => setInterfacePanel(null)} onImportFields={importInterfaceFields}/>
   <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
