@@ -180,6 +180,13 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
  return { actors, steps, root: isRoot ? data as ScenarioData : undefined };
 }
 
+/** エディター用: ネストしたfile参照を安全に再帰展開して読み込む。 */
+export async function loadTemplateFragment(path: string): Promise<{ actors: Actor[]; steps: Step[] }> {
+ const result = await readFragments(path, new Set());
+ if (result.root) throw new Error('テンプレートはmetadataを持たない断片YAMLを指定してください');
+ return { actors: result.actors, steps: result.steps };
+}
+
 /** YAMLの検証・参照展開・ノード配置を行い、描画用のScenarioを返す。 */
 export async function loadScenario(path: string): Promise<Scenario> {
  const result = await readFragments(path, new Set());
