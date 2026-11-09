@@ -4,6 +4,7 @@ import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenar
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
 import PlaybackOrderPanel from './editor/PlaybackOrderPanel';
+import TemplateImportDialog from './editor/TemplateImportDialog';
 import { resolveEditorSelection } from './editor/selection';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
@@ -35,7 +36,6 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [templateFile, setTemplateFile] = useState<File | null>(null);
  const [templateImportOpen, setTemplateImportOpen] = useState(false);
  const [templateError, setTemplateError] = useState<string | null>(null);
- const templateFileRef = useRef<HTMLInputElement>(null);
  const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[]; original: string }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
@@ -465,25 +465,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    {orderMode && <span className="viewport-hint">番号をドラッグして移動先の番号で離すか、番号を2つクリックして並べ替えます。</span>}
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
-  {templateImportOpen && <div className="template-import-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setTemplateImportOpen(false); }}>
-       <section className="template-import-dialog" role="dialog" aria-modal="true" aria-labelledby="template-import-title">
-    <button type="button" className="template-import-close" aria-label="閉じる" onClick={() => setTemplateImportOpen(false)}>×</button>
-    <div className="template-import-source">
-     <label id="template-import-title" className="template-import-title">テンプレートの読み込み</label>
-     <div className="template-import-file">
-      <input aria-label="テンプレートの相対パス" value={templatePath} onChange={e => setTemplatePath(e.target.value)} placeholder="scenarios内の相対パス（例: fragments/common.yaml）"/>
-      <input ref={templateFileRef} type="file" accept=".yaml,.yml" className="template-import-hidden" aria-label="ローカルYAMLを選択" onChange={event => setTemplateFile(event.target.files?.[0] ?? null)}/>
-      <button type="button" className="template-import-browse" onClick={() => templateFileRef.current?.click()}>ファイルを選択…</button>
-     </div>
-     {templateFile && <span className="template-import-selected" title={templateFile.name}>{templateFile.name}<button type="button" aria-label="選択ファイルを解除" onClick={() => { setTemplateFile(null); if (templateFileRef.current) templateFileRef.current.value = ''; }}>×</button></span>}
-    </div>
-    <div className="template-import-actions">
-     <button type="button" onClick={() => void importTemplate('inline')}>直接読み込む</button>
-     <button type="button" onClick={() => void importTemplate('reference')}>サブシナリオとして読み込む</button>
-    </div>
-    {templateError && <p className="template-import-error" role="alert">{templateError}</p>}
-   </section>
-   </div>}
+  {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)}/>
   {interfacePanel && <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setInterfacePanel(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label="IF定義の編集"><div className="node-details-heading"><h2>IF定義</h2><button type="button" className="if-panel-close" aria-label="IF定義画面を閉じる" onClick={() => setInterfacePanel(null)}>×</button></div>{interfaces.filter(item => item.id === interfacePanel).map(item => <div key={item.id} className="if-definition-editor"><label>ID<input value={item.id} readOnly/></label><label>名称<input value={item.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, name: e.target.value } : value))}/></label><label>説明<textarea value={item.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, description: e.target.value } : value))}/></label><div className="if-field-toolbar"><h3>項目定義</h3><label className="if-file-import">ファイルから項目を追加<input type="file" accept=".yaml,.yml,.json" onChange={event => { const file = event.target.files?.[0]; if (file) void importInterfaceFields(item.id, file); event.target.value = ''; }}/></label></div><div className="if-fields-header"><span>項目名</span><span>型</span><span>説明</span><span>必須</span><span>操作</span></div>{(item.fields ?? []).map((field, index) => <div key={index} className="if-field"><label aria-label="項目名"><input value={field.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, name: e.target.value } : f) } : value))}/></label><label aria-label="型"><input value={field.type} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, type: e.target.value } : f) } : value))}/></label><label aria-label="説明"><input value={field.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, description: e.target.value } : f) } : value))}/></label><label><input type="checkbox" checked={field.required ?? false} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, required: e.target.checked } : f) } : value))}/>必須</label><button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).filter((_, i) => i !== index) } : value))}>項目を削除</button></div>)}<button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: [...(value.fields ?? []), { name: '', type: 'string' }] } : value))}>＋ 項目追加</button><button onClick={() => { setInterfaces(items => items.filter(value => value.id !== item.id)); setInterfacePanel(null); }}>IF定義を削除</button></div>)}{!interfaces.some(item => item.id === interfacePanel) && <p>参照先IF定義がありません: {interfacePanel}</p>}</aside></div>}
   <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
    <div className="editor-canvas" ref={canvasRef}>
