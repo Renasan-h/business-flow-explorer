@@ -513,7 +513,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        } else {
         marquee.current = { pointerId: event.pointerId, start: toWorld(event.clientX, event.clientY), additive: event.shiftKey };
         setMarqueeEnd(toWorld(event.clientX, event.clientY));
-        if (!event.shiftKey) setSelectedActors([]);
+        if (!event.shiftKey) {
+         setSelectedActors([]);
+         // 複数選択モードでも空白領域は既存の単一選択を解除する。
+         setSelectedActor(null);
+         setSelectedStep(null);
+         setSelectedGroup(null);
+        }
        }
        event.currentTarget.setPointerCapture(event.pointerId);
        event.preventDefault();
