@@ -12,8 +12,9 @@ import GroupSettings from './editor/GroupSettings';
 import ActorSettings from './editor/ActorSettings';
 import StepSettings from './editor/StepSettings';
 import EditorCanvas from './editor/EditorCanvas';
+import EditorNodes from './editor/EditorNodes';
 import { resolveEditorSelection } from './editor/selection';
-import { routeConnection, routeViaWaypoints, routePath, offsetRoute } from './connectionRouting';
+import { routeConnection, routeViaWaypoints, routePath, offsetRoute, pointOnRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -798,4 +799,4 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
  </div>;
-}
+}       <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
