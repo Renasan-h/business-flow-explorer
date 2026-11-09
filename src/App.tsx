@@ -7,6 +7,11 @@ import Scene from './playback/PlaybackScene';
 import CategoryTree, { buildCategoryTree } from './playback/CategoryTree';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
 
+// 再生画面の論理サイズとノード寸法。PixiJS描画側と一致させる。
+const VIEW_WIDTH = 1100;
+const VIEW_HEIGHT = 620;
+const NODE_WIDTH = 150;
+const NODE_HEIGHT = 90;
 const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(value * 100) / 100));
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 
