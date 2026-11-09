@@ -8,6 +8,7 @@ import TemplateImportDialog from './editor/TemplateImportDialog';
 import InterfaceDefinitionDialog from './editor/InterfaceDefinitionDialog';
 import ScenarioSettings from './editor/ScenarioSettings';
 import EditorToolbar from './editor/EditorToolbar';
+import GroupSettings from './editor/GroupSettings';
 import { resolveEditorSelection } from './editor/selection';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
@@ -767,7 +768,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <EditorPanel title="設定" className="editor-inspector" collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed(value => !value)}>
     <>
     {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
-    {!activeActor && !activeStep && selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label><fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
+    {!activeActor && !activeStep && selectedGroup && groups.filter(group => group.id === selectedGroup).map(group => <GroupSettings key={group.id} group={group} actors={actors} setGroups={setGroups} onDelete={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); }}/>)}
     {!activeActor && !activeStep && !selectedGroup && <>
     <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
     <ScenarioSettings metadata={metadata} onChange={setMetadata}/>
