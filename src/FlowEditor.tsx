@@ -30,7 +30,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [interfacePanel, setInterfacePanel] = useState<string | null>(null);
  const [templateMode, setTemplateMode] = useState<'inline' | 'reference'>('inline');
  const [templatePath, setTemplatePath] = useState('');
- const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[] }[]>([]);
+ const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[]; original: string }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
@@ -229,6 +229,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const ids = new Set(actors.map(actor => actor.id));
   if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return false; }
   if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return false; }
+  // file参照は編集結果を参照先へ書き戻さない。変更を黙って破棄しないよう保存を止める。
+  for (const reference of templateReferences) {
+   const current = JSON.stringify({ actors: actors.filter(item => reference.actorIds.includes(item.id)), steps: steps.filter(item => reference.stepIds.includes(item.id)) });
+   if (current !== reference.original) { setMessage('参照テンプレートの内容が変更されています。変更を保持するには直接展開モードで再読込してください: ' + reference.file); return false; }
+  }
   // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
   const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
   // 片方向通信では復路フィールドをYAMLに一切出力しない。
@@ -291,6 +296,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
    const fragment = parseTemplateYaml(await response.text());
    if (fragment.hasReferences) throw new Error('参照を含むテンプレートは現在直接取り込めません。参照のない断片YAMLを指定してください');
+   if (templateMode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const actorIds = new Set(actors.map(item => item.id));
    const stepIds = new Set(steps.map(item => item.id));
    if (fragment.actors.some(item => actorIds.has(item.id)) || fragment.steps.some(item => stepIds.has(item.id))) throw new Error('IDが重複しています。テンプレートのIDを変更してください');
@@ -298,7 +304,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setActors(current => [...current, ...newActors]);
    setSteps(current => [...current, ...fragment.steps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (templateMode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id) }]);
+   if (templateMode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: fragment.steps }) }]);
    setMessage(templateMode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
   } catch (error) { setMessage('テンプレート読込失敗: ' + String(error)); }
  };
