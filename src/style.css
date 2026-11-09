@@ -343,3 +343,7 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 .template-import-error{width:min(560px,100%);margin:10px 0 0;padding:12px;border:1px solid #f87171;border-radius:8px;background:#451a1a;color:#fecaca}
 .template-import-close{position:fixed;top:max(20px,calc(50% - 230px));right:max(20px,calc(50% - 250px));z-index:1101;border:0;background:transparent;color:var(--text,#e4edfa);font-size:25px;cursor:pointer}
 @media(max-width:600px){.template-import-dialog{padding:22px}.template-import-close{top:24px;right:24px}}
+
+.template-import-dialog{position:relative}
+.template-import-dialog .template-import-close{position:absolute;top:12px;right:14px;font-size:24px;padding:3px 9px;border-radius:8px}
+.template-import-dialog .template-import-error{width:100%;margin:0}
