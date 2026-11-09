@@ -124,6 +124,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position: { x: 220 + (current.length % 12) * 255, y: 180 + Math.floor(current.length / 12) * 200 } }]);
   setSelectedActor(id);
   setSelectedStep(null);
+  setSelectedGroup(null);
   setTool('move');
  };
  /**
@@ -154,6 +155,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setNodeNumbers(current => ({ ...current, [newId]: number }));
   setSelectedActor(newId);
   setSelectedStep(null);
+  setSelectedGroup(null);
   setSource(null);
   setTool('move');
   setMessage('ノードを複製しました。通信線は引き継がれません。');
@@ -177,6 +179,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (!target || !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`)) return;
   setSteps(current => current.filter(step => step.id !== id));
   setSelectedStep(current => current === id ? null : current);
+  setSelectedGroup(null);
   setDraggedStep(current => current === id ? null : current);
   setDropTarget(current => current === id ? null : current);
   setMessage('再生ステップを削除しました。');
@@ -190,6 +193,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    changeStep(reverse.id, { bidirectional: true, reverseFrom: from, reverseTo: to });
    setSelectedStep(reverse.id);
    setSelectedActor(null);
+   setSelectedGroup(null);
    setSource(null);
    setTool('move');
    setMessage('既存の接続を双方向に変更しました。');
@@ -200,6 +204,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (existing) {
    setSelectedStep(existing.id);
    setSelectedActor(null);
+   setSelectedGroup(null);
    setSource(null);
    setTool('move');
    setMessage('この接続は登録済みです。通信設定から双方向に変更できます。');
@@ -211,6 +216,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setSteps(current => [...current, { id, title: '新しい通信', description: '', ...(branchLabel ? { branchLabel } : {}), actions: [{ type: 'transfer', from, to, payload: '通信内容', durationMs: 1200 }] }]);
   setSelectedStep(id);
   setSelectedActor(null);
+  setSelectedGroup(null);
   setSource(null);
   setTool('move');
   setMessage('通信線を追加しました。');
@@ -223,6 +229,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   } else {
    setSelectedActor(id);
    setSelectedStep(null);
+   setSelectedGroup(null);
   }
  };
  /** 入力検証後にYAMLを書き出す。GitHubやシナリオ一覧の自動更新は行わない。 */
@@ -379,7 +386,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setMessage('IF項目を' + fields.length + '件読み込みました');
   } catch (error) { setMessage('IF項目の読込に失敗: ' + String(error)); }
  };
- const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); };
+ const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); };
  const addInterface = () => { const id = 'if-' + crypto.randomUUID().slice(0, 8); setInterfaces(items => [...items, { id, name: '新しいIF定義', description: '', fields: [] }]); setInterfacePanel(id); };
  // 順序編集モード中だけ再生順序線と番号を表示する。
  const [orderMode, setOrderMode] = useState(false);
@@ -471,8 +478,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       y: Math.max(0, Math.min(event.clientY - canvas.top, canvas.height - menuHeight)),
       actorId, stepId, groupId,
      });
-     if (actorId) { setSelectedActor(actorId); setSelectedStep(null); }
-     else if (stepId) { setSelectedStep(stepId); setSelectedActor(null); }
+     if (actorId) { setSelectedActor(actorId); setSelectedStep(null); setSelectedGroup(null); }
+     else if (stepId) { setSelectedStep(stepId); setSelectedActor(null); setSelectedGroup(null); }
      else if (groupId) { setSelectedGroup(groupId); setSelectedActor(null); setSelectedStep(null); }
     }} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
      onPointerDown={event => {
@@ -507,6 +514,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (actorId) {
        setSelectedActor(actorId);
        setSelectedStep(null);
+       setSelectedGroup(null);
       } else {
        const edge = target.closest('[data-step-id]');
        if (edge) {
@@ -620,7 +628,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         ? routeConnection(actors, step.reverseFrom, step.reverseTo, step.routing ?? 'straight') : [];
        const reversePath = routePath(offsetRoute(reversePoints, -12));
        const middle = pointOnRoute(forward, .5);
-       return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); }}>
+       return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); setSelectedGroup(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
         {step.bidirectional && <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
@@ -662,14 +670,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     {contextMenu && <div className="editor-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}
       onPointerDown={event => event.stopPropagation()}>
       {contextMenu.actorId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setContextMenu(null); }}>ノードを編集</button>
+       <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}>ノードを編集</button>
        <button type="button" role="menuitem" onClick={() => { duplicateActor(contextMenu.actorId!); setContextMenu(null); }}>ノードを複製</button>
        <button type="button" role="menuitem" className="danger" onClick={() => deleteActor(contextMenu.actorId!)}>ノードを削除</button>
       </> : contextMenu.groupId ? <>
        <button type="button" role="menuitem" onClick={() => { setSelectedGroup(contextMenu.groupId); setContextMenu(null); }}>領域を編集</button>
        <button type="button" role="menuitem" className="danger" onClick={() => { setGroups(items => items.filter(item => item.id !== contextMenu.groupId)); setSelectedGroup(null); setContextMenu(null); }}>領域を削除</button>
       </> : contextMenu.stepId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setContextMenu(null); }}>通信を編集</button>
+       <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}>通信を編集</button>
        <button type="button" role="menuitem" className="danger" onClick={() => { deleteStep(contextMenu.stepId!); setContextMenu(null); }}>通信を削除</button>
       </> : <>
        <button type="button" role="menuitem" onClick={() => { addActor(); setContextMenu(null); }}>ノードを追加</button>
@@ -775,7 +783,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        title="ドラッグして並び替え"
        onDragStart={event => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', step.id); setDraggedStep(step.id); }}
        onDragEnd={() => { setDraggedStep(null); setDropTarget(null); }}>⠿</span>
-      <button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); }}>{index + 1}. {step.title}</button>
+      <button className={selectedStep === step.id ? 'selected' : ''} onClick={() => { setSelectedStep(step.id); setSelectedActor(null); setSelectedGroup(null); }}>{index + 1}. {step.title}</button>
       <button disabled={index === 0} aria-label="上へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index-1], copy[index]] = [copy[index], copy[index-1]]; return copy; })}>↑</button>
       <button disabled={index === steps.length-1} aria-label="下へ" onClick={() => setSteps(v => { const copy = [...v]; [copy[index+1], copy[index]] = [copy[index], copy[index+1]]; return copy; })}>↓</button>
       <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>削除</button>
