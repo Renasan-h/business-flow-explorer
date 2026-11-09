@@ -12,6 +12,10 @@
 | --- | --- | --- |
 | `src/App.tsx` | シナリオ選択、カテゴリツリー、PixiJS再生画面、編集画面の切替 | 表示ツリーと再生処理は今後さらに分割する。カテゴリは `/` 区切りの再帰階層 |
 | `src/FlowEditor.tsx` | エディターのデータ所有、保存、操作の統合、SVGキャンバスと設定フォーム | 現状は責務が多い移行対象。新機能はできるだけ `src/editor/` へ抽出 |
+| `src/editor/PlaybackOrderPanel.tsx` | 再生順のDnD・上下移動・選択と削除の操作UI | ステップ配列は親から受け取り、並び替え後はonChangeで親へ通知。表示順と保存順の一致を確認 |
+| `src/editor/TemplateImportDialog.tsx` | テンプレートのパス入力・ファイル選択・直接/参照読み込みの操作UI | YAML解析と参照解決は親で実施。モーダル閉鎖時の選択ファイル・エラー状態に注意 |
+| `src/editor/InterfaceDefinitionDialog.tsx` | IF定義の名称・説明・項目の編集とファイル選択 | インポート時の構造検証は親のonImportFields。IDの不整合・重複を検査 |
+| `src/editor/ScenarioSettings.tsx` | タイトル・ID・説明・階層カテゴリのフォーム | metadata全体を親へ通知。スラッシュ区切りカテゴリを維持 |
 | `src/editor/EditorPanel.tsx` | Eclipse風の右側ドック、最小化ボタン、表示内容の切替 | 最小化状態は親が所有。パネル自体は業務データを変更しない |
 | `src/editor/selection.ts` | SVGイベントターゲットからノード・通信・領域・空白を判定 | 優先順位はノード→領域→通信→空白。空白は全てnull。純粋関数として維持 |
 | `src/FlowPreview.tsx` | エディター内のSVG再生プレビュー | ステップの経由点・双方向・IFの表示と整合させる |
@@ -54,8 +58,8 @@
 ## 今後の段階的な分離候補
 - `EditorCanvas`: SVG描画、選択、ドラッグ・パン・ズーム。操作は専用フックへ。
 - `EditorInspector`: ノード・通信・領域・シナリオの設定フォーム。
-- `PlaybackOrderPanel`: 並べ替えと順序表示。
-- `TemplateImportDialog`、`InterfaceDefinitionDialog`: モーダルUIと検証。
+- `PlaybackOrderPanel`: 並べ替えと順序表示（抽出済み）。
+- `TemplateImportDialog`、`InterfaceDefinitionDialog`: モーダルUIは抽出済み。YAML検証は親側に残し、サービス化を次段階で行う。
 - `ScenarioBrowser`、`PlaybackCanvas`: Appのカテゴリ選択とPixiJS描画。
 - 保存処理・参照IDの検証・経路生成はUIから独立したサービス/純粋関数へ。
 
@@ -63,3 +67,9 @@
 
 ## 現時点の検証状態
 GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テストは未実施。
+
+## 2026-11-10 第2段階の実施状況
+- 抽出済み: PlaybackOrderPanel、TemplateImportDialog、InterfaceDefinitionDialog、ScenarioSettings。
+- 親コンポーネントは保存データ・選択状態・ダイアログ開閉状態を保持する。子コンポーネントは表示とユーザー入力を受け持つ。
+- **未抽出**: SVG描画/ポインター操作のEditorCanvas、ノード/通信/領域設定のEditorInspector、ツールバー、AppのPixiJS再生画面。巨大なJSXの機械的移動は操作の回帰リスクがあるため、型チェック・ブラウザ確認を伴う段階に分ける。
+- **検証状況**: GitHub上の変更反映のみ。npm run buildおよびブラウザ回帰テストは未実施。
