@@ -316,6 +316,7 @@ export default function App() {
  const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
+ const [scenarioCategories, setScenarioCategories] = useState<Record<string, string>>({});
  const [selected, setSelected] = useState('');
  const [scenario, setScenario] = useState<Scenario | null>(null);
  const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
@@ -354,6 +355,7 @@ export default function App() {
     if (cancelled) return;
     setPaths(paths);
     setScenarioTitles(Object.fromEntries(paths.map((path, index) => [path, scenarios[index].metadata.title])));
+    setScenarioCategories(Object.fromEntries(paths.map((path, index) => [path, scenarios[index].metadata.category || '未分類'])));
     setSelected(paths[0] || '');
    })
    .catch(error => { if (!cancelled) setError(String(error)); });
@@ -433,7 +435,11 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{paths.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
+   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{Object.entries(paths.reduce<Record<string, string[]>>((groups, path) => {
+     const category = scenarioCategories[path] || '未分類';
+     (groups[category] ??= []).push(path);
+     return groups;
+    }, {})).map(([category, items]) => <details className="scenario-category" key={category} open><summary>{category}（{items.length}）</summary>{items.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}</details>)}<p className="hint">public/scenarios にYAMLを追加し、index.jsonへ登録してください。</p></aside>
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
