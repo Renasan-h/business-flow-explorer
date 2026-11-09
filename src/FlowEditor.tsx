@@ -16,7 +16,6 @@ import EditorNodes from './editor/EditorNodes';
 import EditorGroups from './editor/EditorGroups';
 import EditorEdges from './editor/EditorEdges';
 import { resolveEditorSelection } from './editor/selection';
-import { routeConnection } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
