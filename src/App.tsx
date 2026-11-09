@@ -178,6 +178,17 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    layer.addChild(line);
    return { start: { x: sx, y: sy }, end: { x: ex, y: ey } };
   };
+  // 汎用領域グループを通信線とノードの背面に描画する。
+  for (const group of scenario.groups ?? []) {
+   const color = Number.parseInt((group.color ?? '#2563eb').slice(1), 16);
+   const background = new Graphics().roundRect(group.x, group.y, group.width, group.height, 14)
+    .fill({ color, alpha: 0.09 }).roundRect(group.x, group.y, group.width, group.height, 14)
+    .stroke({ color, width: 2, alpha: 0.7 });
+   layer.addChild(background);
+   const heading = new Text({ text: group.name, style: new TextStyle({ fontFamily: 'sans-serif', fontSize: 20, fill: color }) });
+   heading.position.set(group.x + 14, group.y + 10);
+   layer.addChild(heading);
+  }
   const sendColor = theme === 'dark' ? 0x22d3ee : 0x2563eb;
   const inactiveColor = theme === 'dark' ? 0x64748b : 0x9ca3af;
 
