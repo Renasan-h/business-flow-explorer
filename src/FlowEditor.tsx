@@ -695,6 +695,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     <label>タイトル<input value={metadata.title} onChange={e => setMetadata(v => ({ ...v, title: e.target.value }))}/></label>
     <label>ID<input value={metadata.id} onChange={e => setMetadata(v => ({ ...v, id: e.target.value }))}/></label>
     <label>説明<textarea value={metadata.description} onChange={e => setMetadata(v => ({ ...v, description: e.target.value }))}/></label>
+    <label>カテゴリ（/ 区切りで階層化）<input value={metadata.category} onChange={e => setMetadata(v => ({ ...v, category: e.target.value }))} placeholder="例: 業務/受注/決済"/></label>
     </details>
     </>}
     {activeActor && <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumbers[activeActor.id]}）</summary>
