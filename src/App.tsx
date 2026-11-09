@@ -15,6 +15,33 @@ const NODE_HEIGHT = 90;
 const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(value * 100) / 100));
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
+type CategoryNode = { scenarios: string[]; children: Map<string, CategoryNode> };
+/** カテゴリを区切り文字ごとにツリーへ追加する。階層数に制限は設けない。 */
+function buildCategoryTree(paths: string[], categories: Record<string, string>): CategoryNode {
+ const root: CategoryNode = { scenarios: [], children: new Map() };
+ for (const path of paths) {
+  const segments = (categories[path] || '未分類').split('/').map(segment => segment.trim()).filter(Boolean);
+  let current = root;
+  for (const segment of segments.length ? segments : ['未分類']) {
+   if (!current.children.has(segment)) current.children.set(segment, { scenarios: [], children: new Map() });
+   current = current.children.get(segment)!;
+  }
+  current.scenarios.push(path);
+ }
+ return root;
+}
+function categorySize(node: CategoryNode): number {
+ return node.scenarios.length + [...node.children.values()].reduce((total, child) => total + categorySize(child), 0);
+}
+/** 自身の直下のシナリオと、子カテゴリを再帰的に表示する。 */
+function CategoryTree({ node, selected, onSelect, titles, depth = 0 }: { node: CategoryNode; selected: string; onSelect: (path: string) => void; titles: Record<string, string>; depth?: number }) {
+ return <>{node.scenarios.map(path => <button className={path === selected ? 'selected' : ''} key={path} onClick={() => onSelect(path)}>{titles[path] ?? path}</button>)}
+  {[...node.children.entries()].map(([name, child]) => <details key={name} className={depth === 0 ? 'scenario-category' : 'scenario-subcategory'} open={depth === 0 ? true : undefined}>
+   <summary>{name}（{categorySize(child)}）</summary>
+   <CategoryTree node={child} selected={selected} onSelect={onSelect} titles={titles} depth={depth + 1}/>
+  </details>)}
+ </>;
+}
 /** PixiJS描画担当。Reactの状態はstateRef経由でTickerに渡し、再生中の再初期化を防ぐ。 */
 function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished, onSelectActor }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void; onSelectActor: (id: string) => void }) {
  const host = useRef<HTMLDivElement>(null);
@@ -447,16 +474,7 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>{Object.entries(paths.reduce<Record<string, Record<string, string[]>>>((groups, path) => {
-     const parts = (scenarioCategories[path] || '未分類').split('/').map(part => part.trim()).filter(Boolean);
-     const parent = parts.shift() || '未分類';
-     const child = parts.join('/');
-     ((groups[parent] ??= {})[child] ??= []).push(path);
-     return groups;
-    }, {})).map(([category, subcategories]) => <details className="scenario-category" key={category} open><summary>{category}（{Object.values(subcategories).reduce((count, items) => count + items.length, 0)}）</summary>
-     {(subcategories[''] ?? []).map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}
-     {Object.entries(subcategories).filter(([name]) => name).map(([name, items]) => <details key={name} className="scenario-subcategory"><summary>{name}（{items.length}）</summary>{items.map(p => <button className={p === selected ? 'selected' : ''} key={p} onClick={() => setSelected(p)}>{scenarioTitles[p]}</button>)}</details>)}
-    </details>)}<p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p></aside>
+   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button><CategoryTree node={buildCategoryTree(paths, scenarioCategories)} selected={selected} onSelect={setSelected} titles={scenarioTitles}/><p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p></aside>
    <main>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
