@@ -530,7 +530,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      {activeStep.bidirectional && <>
       <label>復路IF資料<input value={activeStep.reverseIf ?? ''} onChange={e => changeStep(activeStep.id, { reverseIf: e.target.value || undefined })} placeholder="例: IF-ORDER-002"/></label>
       <label>復路通信内容<textarea value={activeStep.reversePayload ?? ''} onChange={e => changeStep(activeStep.id, { reversePayload: e.target.value || undefined })} placeholder="例: 処理結果・応答データ"/></label>
-     </>
+     </>}
      {activeStep.actions.map((action, index) => <div key={index}>
       <label>往路送信元<select value={action.from} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, from: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
       <label>往路送信先<select value={action.to} onChange={e => changeStep(activeStep.id, { actions: activeStep.actions.map((a, i) => i === index ? { ...a, to: e.target.value } : a) })}>{actors.map(actor => <option key={actor.id} value={actor.id}>{actor.name}</option>)}</select></label>
