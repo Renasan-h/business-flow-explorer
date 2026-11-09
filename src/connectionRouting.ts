@@ -125,3 +125,25 @@ export function offsetRoute(points: Point[], distance: number): Point[] {
   return { x: point.x + (prev.x + next.x) / 2, y: point.y + (prev.y + next.y) / 2 };
  });
 }
+
+/**
+ * 手動経由点を順番に通る直交経路を構築する。
+ * 始点・終点はノード外周に固定し、経由点だけユーザーが編集する。
+ * 障害物回避は自動モードに委ね、手動モードでは指定位置を優先する。
+ */
+export function routeViaWaypoints(nodes: RouteNode[], fromId: string, toId: string, waypoints: Point[]): Point[] {
+ const endpoints = routeConnection(nodes, fromId, toId, 'straight');
+ if (endpoints.length < 2) return endpoints;
+ const anchors = [endpoints[0], ...waypoints, endpoints[endpoints.length - 1]];
+ const route: Point[] = [anchors[0]];
+ for (let i = 1; i < anchors.length; i++) {
+  const previous = route[route.length - 1];
+  const target = anchors[i];
+  if (previous.x !== target.x && previous.y !== target.y) {
+   // 先に水平移動することで全区間を水平・垂直線分で構成する。
+   route.push({ x: target.x, y: previous.y });
+  }
+  route.push(target);
+ }
+ return route.filter((point, index) => index === 0 || point.x !== route[index - 1].x || point.y !== route[index - 1].y);
+}
