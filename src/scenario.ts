@@ -60,7 +60,7 @@ const stepEntry = z.union([step, z.object({
  file: z.string().min(1),
  handoff: action.omit({ type: true }).optional(),
 }).strict()]);
-const group = z.object({ id: z.string().min(1), name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), x: z.number().finite(), y: z.number().finite(), width: z.number().positive(), height: z.number().positive() });
+const group = z.object({ id: z.string().min(1), name: z.string().min(1), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), x: z.number().finite(), y: z.number().finite(), width: z.number().positive(), height: z.number().positive(), memberIds: z.array(z.string().min(1)).optional() });
 const interfaceDefinition = z.object({ id: z.string().min(1), name: z.string().min(1), description: z.string().optional(), fields: z.array(z.object({ name: z.string(), type: z.string(), required: z.boolean().optional(), description: z.string().optional() })).optional() });
 const fragmentSchema = z.object({
  groups: z.array(group).optional(),
