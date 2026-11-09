@@ -20,6 +20,7 @@ import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorC
 import { resolveEditorSelection } from './editor/selection';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
+import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 
@@ -57,9 +58,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
  const [orderCollapsed, setOrderCollapsed] = useState(false);
  const canvasRef = useRef<HTMLDivElement>(null);
- const marquee = useRef<{ pointerId: number; start: { x: number; y: number }; additive: boolean } | null>(null);
- const [marqueeEnd, setMarqueeEnd] = useState<{ x: number; y: number } | null>(null);
- const multiDrag = useRef<{ pointerId: number; x: number; y: number; initial: { id: string; x: number; y: number }[] } | null>(null);
+ // 複数選択の一時的なポインター状態は専用フックで管理する。
+ const { marquee, marqueeEnd, setMarqueeEnd, multiDrag } = useMultiSelectionPointerState();
  const [source, setSource] = useState<string | null>(null);
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
