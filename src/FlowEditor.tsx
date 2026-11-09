@@ -4,7 +4,7 @@ import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenar
 import FlowPreview from './FlowPreview';
 import { NODE_TYPES } from './nodeCatalog';
 import { NodeIcon } from './NodeIcon';
-import { routeConnection, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
+import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRoute } from './connectionRouting';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -43,6 +43,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  const wirePointer = useRef<number | null>(null);
+ // 経由点ドラッグはノード・キャンバスのドラッグとは排他的に処理する。
+ const waypointDrag = useRef<{ pointerId: number; stepId: string; index: number } | null>(null);
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -485,6 +487,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerDown={event => {
       if (event.button !== 0) return;
       const target = event.target as Element;
+      const waypointHandle = target.closest('[data-waypoint-index]');
+      if (waypointHandle) {
+       const stepId = waypointHandle.getAttribute('data-waypoint-step');
+       const index = Number(waypointHandle.getAttribute('data-waypoint-index'));
+       if (stepId && Number.isInteger(index)) {
+        waypointDrag.current = { pointerId: event.pointerId, stepId, index };
+        setSelectedStep(stepId); setSelectedActor(null); setSelectedGroup(null);
+        event.currentTarget.setPointerCapture(event.pointerId);
+       }
+       return;
+      }
       const handle = target.closest('[data-connection-handle]');
       if (handle) {
        const from = handle.getAttribute('data-connection-handle');
@@ -529,6 +542,15 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={event => {
+      if (waypointDrag.current?.pointerId === event.pointerId) {
+       const { stepId, index } = waypointDrag.current;
+       const point = toWorld(event.clientX, event.clientY);
+       setSteps(current => current.map(step => step.id !== stepId ? step : {
+        ...step, waypoints: (step.waypoints ?? []).map((waypoint, i) => i === index
+         ? { x: Math.max(0, Math.min(WIDTH, point.x)), y: Math.max(0, Math.min(HEIGHT, point.y)) } : waypoint),
+       }));
+       return;
+      }
       if (orderDrag.current?.pointerId === event.pointerId) {
        const active = orderDrag.current;
        if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5) active.moved = true;
@@ -573,6 +595,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
      }}
      onPointerUp={event => {
+      if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
       if (orderDrag.current?.pointerId === event.pointerId) {
        const dragOrder = orderDrag.current;
        const point = toWorld(event.clientX, event.clientY);
@@ -595,7 +618,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       if (drag.current?.id === event.pointerId) drag.current = null;
      }}
-     onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
+     onPointerCancel={() => { waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="8" fill={group.color ?? '#2563eb'} fillOpacity=".045" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 2 : 1}/><rect x={group.x + 10} y={group.y - 30} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="31" rx="8" fill={group.color ?? '#2563eb'} stroke={group.color ?? '#2563eb'} strokeWidth="1"/><rect x={group.x + 10} y={group.y - 9} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="10" fill={group.color ?? '#2563eb'}/><text x={group.x + 24} y={group.y - 9} fill="#ffffff" fontWeight="600" fontSize="15">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
@@ -618,7 +641,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const to = actors.find(actor => actor.id === action.to);
        if (!from || !to) return null;
        const active = selectedStep === step.id;
-       const points = routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
+       const points = step.routing === 'orthogonal' && step.waypoints?.length
+        ? routeViaWaypoints(actors, action.from, action.to, step.waypoints)
+        : routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
        // 逆方向も接続されている場合だけ線をずらす。片方向は中央の1本。
        const bidirectional = Boolean(step.bidirectional) || steps.some(other => other.actions.some(otherAction =>
         otherAction.from === action.to && otherAction.to === action.from));
@@ -634,6 +659,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         {step.bidirectional && <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
         {step.bidirectional && <path d={reversePath} fill="none" stroke={active ? '#a78bfa' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>}
+        {active && step.routing === 'orthogonal' && step.waypoints?.map((point, waypointIndex) =>
+         <circle key={waypointIndex} data-waypoint-step={step.id} data-waypoint-index={waypointIndex}
+          cx={point.x} cy={point.y} r="10" fill="#f97316" stroke="#fff" strokeWidth="2"
+          className="editor-waypoint" aria-label={`経由点 ${waypointIndex + 1}`}/>)}
         <circle cx={middle.x} cy={middle.y} r={active ? 8 : 5} fill={active ? '#22d3ee' : '#7b94b3'}/>
         {step.branchLabel && <g pointerEvents="none">
          <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
@@ -729,6 +758,22 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     {activeStep && <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
      <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeDirection(activeStep.id, e.target.value === 'both')}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
+      {activeStep.routing === 'orthogonal' && <div className="editor-waypoint-settings">
+       <strong>折れ線の経由点（手動）</strong>
+       <p>経由点を追加すると手動配線に切り替わります。オレンジ色の点をドラッグして位置を調整してください。</p>
+       {(activeStep.waypoints ?? []).map((point, index) => <div key={index} className="editor-waypoint-row">
+        <span>経由点 {index + 1}（{Math.round(point.x)}, {Math.round(point.y)}）</span>
+        <button type="button" onClick={() => changeStep(activeStep.id, { waypoints: (activeStep.waypoints ?? []).filter((_, i) => i !== index) })}>削除</button>
+       </div>)}
+       <button type="button" disabled={(activeStep.waypoints?.length ?? 0) >= 100} onClick={() => {
+        const action = activeStep.actions[0];
+        if (!action) return;
+        const points = routeConnection(actors, action.from, action.to, 'orthogonal');
+        const point = pointOnRoute(points, .5);
+        changeStep(activeStep.id, { waypoints: [...(activeStep.waypoints ?? []), point] });
+       }}>＋ 経由点を追加</button>
+       {Boolean(activeStep.waypoints?.length) && <button type="button" onClick={() => changeStep(activeStep.id, { waypoints: [] })}>自動配線に戻す</button>}
+      </div>}
      {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
       <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
      </label>}
