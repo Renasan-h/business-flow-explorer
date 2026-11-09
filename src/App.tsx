@@ -5,7 +5,7 @@ import { listScenarios, loadScenario, playbackValidationError, type Scenario } f
 
 import Scene from './playback/PlaybackScene';
 import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
-import CategoryTree, { buildCategoryTree } from './playback/CategoryTree';
+import ScenarioSidebar from './playback/ScenarioSidebar';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
 
 // 再生画面の論理サイズとノード寸法。PixiJS描画側と一致させる。
@@ -143,13 +143,10 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   {scenarioMenuOpen && <button type="button" className="scenario-menu-backdrop" aria-label="シナリオ一覧を閉じる" onClick={() => setScenarioMenuOpen(false)}/>}
-   <aside id="scenario-navigation" className={`scenario-sidebar${scenarioMenuOpen ? ' is-open' : ''}`} aria-label="シナリオ一覧">
-    <div className="scenario-sidebar-heading"><h3>シナリオ</h3><button type="button" className="scenario-menu-close" aria-label="シナリオ一覧を閉じる" onClick={() => setScenarioMenuOpen(false)}>✕</button></div>
-    <button type="button" className="new-flow-button" onClick={() => { setScenarioMenuOpen(false); setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>
-    <CategoryTree node={buildCategoryTree(paths, scenarioCategories)} selected={selected} onSelect={path => { setSelected(path); setScenarioMenuOpen(false); }} titles={scenarioTitles}/>
-    <p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p>
-   </aside>
+   <ScenarioSidebar open={scenarioMenuOpen} paths={paths} titles={scenarioTitles} categories={scenarioCategories} selected={selected}
+    onClose={() => setScenarioMenuOpen(false)}
+    onSelect={path => { setSelected(path); setScenarioMenuOpen(false); }}
+    onCreate={() => { setScenarioMenuOpen(false); setPlaying(false); setEditorMode('new'); }}/>
    <main>
     <button type="button" className="scenario-menu-toggle" aria-label="シナリオ一覧を開く" aria-controls="scenario-navigation" aria-expanded={scenarioMenuOpen} onClick={() => setScenarioMenuOpen(true)}>☰ <span>シナリオ一覧</span></button>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
