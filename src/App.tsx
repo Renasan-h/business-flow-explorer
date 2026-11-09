@@ -19,6 +19,8 @@ export default function App() {
  // none:通常再生、edit:既存編集、new:新規作成。編集内容は保存まで通常画面へ反映されない。
  const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
+ // 狭い描画領域ではシナリオ一覧を左側のオーバーレイとして開く。
+ const [scenarioMenuOpen, setScenarioMenuOpen] = useState(false);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
  const [scenarioCategories, setScenarioCategories] = useState<Record<string, string>>({});
  const [selected, setSelected] = useState('');
@@ -140,8 +142,15 @@ export default function App() {
  return <div className="app">
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
-   <aside><h3>シナリオ</h3><button type="button" className="new-flow-button" onClick={() => { setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button><CategoryTree node={buildCategoryTree(paths, scenarioCategories)} selected={selected} onSelect={setSelected} titles={scenarioTitles}/><p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p></aside>
+   {scenarioMenuOpen && <button type="button" className="scenario-menu-backdrop" aria-label="シナリオ一覧を閉じる" onClick={() => setScenarioMenuOpen(false)}/>}
+   <aside id="scenario-navigation" className={`scenario-sidebar${scenarioMenuOpen ? ' is-open' : ''}`} aria-label="シナリオ一覧">
+    <div className="scenario-sidebar-heading"><h3>シナリオ</h3><button type="button" className="scenario-menu-close" aria-label="シナリオ一覧を閉じる" onClick={() => setScenarioMenuOpen(false)}>✕</button></div>
+    <button type="button" className="new-flow-button" onClick={() => { setScenarioMenuOpen(false); setPlaying(false); setEditorMode('new'); }}>＋ 新規フロー作成</button>
+    <CategoryTree node={buildCategoryTree(paths, scenarioCategories)} selected={selected} onSelect={path => { setSelected(path); setScenarioMenuOpen(false); }} titles={scenarioTitles}/>
+    <p className="hint">public/scenarios のindex.jsonで対象ディレクトリを指定してください。</p>
+   </aside>
    <main>
+    <button type="button" className="scenario-menu-toggle" aria-label="シナリオ一覧を開く" aria-controls="scenario-navigation" aria-expanded={scenarioMenuOpen} onClick={() => setScenarioMenuOpen(true)}>☰ <span>シナリオ一覧</span></button>
     <div className="top"><div><h1>{scenario?.metadata.title || '読み込み中...'}</h1><p>{scenario?.metadata.description}</p></div><div className="switch">{scenario && <button type="button" onClick={() => { setPlaying(false); setEditorMode('edit'); }}>✎ フローを編集</button>}<button className={mode === 'technical' ? 'selected' : ''} onClick={() => setMode('technical')}>Technical</button><button className={mode === 'illustration' ? 'selected' : ''} onClick={() => setMode('illustration')}>Illustration</button></div></div>
     {error && <p className="error">{error}</p>}
     {scenario && visibleScenario && current && <><div className="scene-toolbar"><span>通信経路の表示</span><div className="switch"><button type="button" className={focus ? 'selected' : ''} aria-pressed={focus} onClick={() => setFocus(true)}>現在の通信</button><button type="button" className={!focus ? 'selected' : ''} aria-pressed={!focus} onClick={() => setFocus(false)}>全体の接続</button></div></div>{branchGroups(scenario.actors, scenario.steps).length > 0 && <div className="branch-selector">
