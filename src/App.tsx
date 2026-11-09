@@ -7,6 +7,7 @@ import Scene from './playback/PlaybackScene';
 import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
 import ScenarioSidebar from './playback/ScenarioSidebar';
 import PlaybackControls from './playback/PlaybackControls';
+import ActorDetailsDrawer from './playback/ActorDetailsDrawer';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
 
 // 再生画面の論理サイズとノード寸法。PixiJS描画側と一致させる。
@@ -170,16 +171,7 @@ export default function App() {
      onTogglePlayback={togglePlayback}
      onNext={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}
      onSpeedChange={setSpeed}/>
-    <div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance} onSelectActor={setSelectedActorId}/></div>{selectedActorId && scenario.actors.some(actor => actor.id === selectedActorId) && (() => {
-       const actor = scenario.actors.find(item => item.id === selectedActorId)!;
-       const fields: [string, string | undefined][] = [['種類', actor.type], ['説明', actor.description], ['環境', actor.environment], ['接続先・URL', actor.endpoint], ['インスタンス名', actor.instanceName], ['IPアドレス', actor.ip], ['タグ', actor.tags?.join(', ')], ['関連資料', actor.documents?.join(', ')]];
-       return <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedActorId(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label={`${actor.name}の詳細`}>
-        <div className="node-details-heading"><h2>{actor.name}</h2><button type="button" className="icon-close-button" onClick={() => setSelectedActorId(null)} aria-label="閉じる">✕</button></div>
-        <p><strong>Actor ID</strong>：{actor.id}</p>
-        {actor.color && <p><strong>ノード色</strong>：<span className="node-details-swatch" style={{backgroundColor: actor.color}}/> {actor.color}</p>}
-        {fields.filter(([,value]) => Boolean(value)).map(([label,value]) => <p key={label}><strong>{label}</strong>：{value}</p>)}
-       </aside></div>;
-      })()}
+    <div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance} onSelectActor={setSelectedActorId}/></div><ActorDetailsDrawer actor={scenario.actors.find(item => item.id === selectedActorId) ?? null} onClose={() => setSelectedActorId(null)}/>
       <InterfaceDefinitionDrawer interfaceId={selectedInterfaceId} interfaces={scenario.interfaces} onClose={() => setSelectedInterfaceId(null)}/>
        <div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code><div className="if-playback-links">{current.forwardIf && <button type="button" className="if-definition-link" onClick={() => setSelectedInterfaceId(current.forwardIf!)}>往路IF: {scenario.interfaces?.find(item => item.id === current.forwardIf)?.name ?? current.forwardIf}</button>}{current.reverseIf && <button type="button" className="if-definition-link" onClick={() => setSelectedInterfaceId(current.reverseIf!)}>復路IF: {scenario.interfaces?.find(item => item.id === current.reverseIf)?.name ?? current.reverseIf}</button>}{current.reversePayload && <p>復路通信内容: {current.reversePayload}</p>}</div></section></>}
    </main>
