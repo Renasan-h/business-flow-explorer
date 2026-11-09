@@ -1,3 +1,4 @@
+import { playbackSteps } from './branchPlayback';
 import { useEffect, useState } from 'react';
 import FlowEditor from './FlowEditor';
 import { listScenarios, loadScenario, playbackValidationError, type Scenario } from './scenario';
