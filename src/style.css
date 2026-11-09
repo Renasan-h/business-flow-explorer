@@ -396,3 +396,33 @@ html,body,#root{height:100%;overflow:hidden}
 .editor-waypoint-settings>p{margin:0;font-size:12px;color:var(--muted)}
 .editor-waypoint-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
 .editor-waypoint-row button{width:auto;margin:0;padding:6px 10px}
+
+/* インスペクターと再生順のペインを独立して折りたたみ、キャンバスに幅を返す。 */
+.flow-editor>.editor-layout{--inspector-width:300px;--order-width:300px;grid-template-columns:minmax(0,1fr) var(--inspector-width) var(--order-width)}
+.flow-editor>.editor-layout.inspector-collapsed{--inspector-width:46px}
+.flow-editor>.editor-layout.order-collapsed{--order-width:46px}
+.flow-editor>.editor-layout>.editor-inspector,.flow-editor>.editor-layout>.editor-order-panel{padding:8px;min-width:0}
+.editor-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 4px 10px}
+.editor-panel-heading strong{font-size:13px}
+.editor-panel-heading button{padding:5px 7px;white-space:nowrap;font-size:12px}
+.editor-inspector.is-collapsed,.editor-order-panel.is-collapsed{overflow:hidden!important}
+.is-collapsed>.editor-panel-heading{display:flex;flex-direction:column;align-items:center;gap:10px}
+.is-collapsed>.editor-panel-heading strong{writing-mode:vertical-rl;white-space:nowrap}
+.is-collapsed>.editor-panel-heading button{writing-mode:vertical-rl;white-space:nowrap}
+.editor-node-multiselected>rect{stroke:#f97316!important;stroke-width:4!important}
+.editor-selection-marquee{fill:rgba(34,211,238,.12);stroke:#22d3ee;stroke-width:2;stroke-dasharray:7 5}
+@media(max-width:1150px) and (min-width:701px){
+ .flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr) var(--inspector-width) var(--order-width);grid-template-rows:minmax(0,1fr)}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector{grid-column:2;grid-row:1}
+ .flow-editor>.editor-layout>.editor-order-panel{grid-column:3;grid-row:1}
+}
+@media(max-width:700px){
+ .flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(180px,1fr) auto auto}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector{grid-column:1;grid-row:2;max-height:28vh}
+ .flow-editor>.editor-layout>.editor-order-panel{grid-column:1;grid-row:3;max-height:25vh}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed{height:38px;max-height:38px}
+ .is-collapsed>.editor-panel-heading{flex-direction:row}
+ .is-collapsed>.editor-panel-heading strong,.is-collapsed>.editor-panel-heading button{writing-mode:horizontal-tb}
+}
