@@ -212,7 +212,7 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
    const active = actor.id === action.from || actor.id === action.to;
    const g = new Graphics()
     .roundRect(actor.position.x - NODE_WIDTH / 2, actor.position.y - NODE_HEIGHT / 2, NODE_WIDTH, NODE_HEIGHT, mode === 'illustration' ? 20 : 12)
-    .fill(active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node)
+    .fill(actor.color ? Number.parseInt(actor.color.slice(1), 16) : (active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node))
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
    if (focus && !active) g.alpha = 0.38;
    layer.addChild(g);
