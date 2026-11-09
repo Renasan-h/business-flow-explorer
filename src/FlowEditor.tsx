@@ -89,7 +89,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
   Object.fromEntries(initial.actors.map((actor, index) => [actor.id, index + 1])));
 
- const drag = useRef<{ id: number; actorId: string | null; groupId?: string; resizeGroup?: boolean; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
+ const drag = useRef<{ id: number; actorId: string | null; groupId?: string; resizeGroup?: boolean; initialMembers?: { id: string; x: number; y: number }[]; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
  const activeActor = actors.find(actor => actor.id === selectedActor);
  const activeStep = steps.find(step => step.id === selectedStep);
 
@@ -401,7 +401,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setSelectedGroup(group.id);
        setSelectedActor(null);
        setSelectedStep(null);
-       drag.current = { id: event.pointerId, actorId: null, groupId: group.id, resizeGroup: Boolean(resizeHandle), initialSize: { width: group.width, height: group.height }, x: event.clientX, y: event.clientY, initial: { x: group.x, y: group.y }, offset };
+       drag.current = { id: event.pointerId, actorId: null, groupId: group.id, resizeGroup: Boolean(resizeHandle), initialMembers: actors.filter(actor => group.memberIds?.includes(actor.id)).map(actor => ({ id: actor.id, ...actor.position })), initialSize: { width: group.width, height: group.height }, x: event.clientX, y: event.clientY, initial: { x: group.x, y: group.y }, offset };
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
@@ -442,7 +442,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       if (current.groupId) {
-       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx / zoom), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy / zoom) } : { ...item, x: Math.max(0, current.initial.x + dx / zoom), y: Math.max(0, current.initial.y + dy / zoom) } : item));
+       const nextX = Math.max(0, current.initial.x + dx / zoom);
+       const nextY = Math.max(0, current.initial.y + dy / zoom);
+       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx / zoom), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy / zoom) } : { ...item, x: nextX, y: nextY } : item));
+       // 領域移動時は所属ノードだけをドラッグ開始時の座標から同量移動する。
+       if (!current.resizeGroup && current.initialMembers?.length) {
+        const memberPositions = new Map(current.initialMembers.map(item => [item.id, item]));
+        setActors(items => items.map(actor => {
+         const initial = memberPositions.get(actor.id);
+         return initial ? { ...actor, position: { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, initial.x + nextX - current.initial.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, initial.y + nextY - current.initial.y)) } } : actor;
+        }));
+       }
       } else if (current.actorId) {
        const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx / zoom));
        const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy / zoom));
@@ -553,7 +563,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      </div>}
    </div>
    <aside className="editor-inspector">
-    {selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label>{(['x','y','width','height'] as const).map(key => <label key={key}>{key}<input type="number" value={group[key]} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, [key]: Number(e.target.value) } : item))}/></label>)}<button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
+    {selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label>{(['x','y','width','height'] as const).map(key => <label key={key}>{key}<input type="number" value={group[key]} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, [key]: Number(e.target.value) } : item))}/></label>)}<fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
     <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
     <details className="editor-section"><summary>シナリオ設定</summary>
     <label>タイトル<input value={metadata.title} onChange={e => setMetadata(v => ({ ...v, title: e.target.value }))}/></label>
