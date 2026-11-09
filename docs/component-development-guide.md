@@ -13,6 +13,9 @@
 | `src/playback/PlaybackScene.tsx` | PixiJSの描画、再生アニメーション、パン・ズーム、ノードクリック | 再生状態は親からpropsで受け取り、Pixiアプリの破棄とイベント解除を確認 |
 | `src/playback/CategoryTree.tsx` | カテゴリの再帰表示とツリー生成 | /区切りの階層、カテゴリごとの件数、未分類を維持 |
 | `src/playback/types.ts` | 再生モード、テーマ、速度の共有型 | UIとPixiJSの型の整合を維持 |
+| `src/editor/EditorNodes.tsx` | ノードのSVG表示、番号、削除・接続ハンドル | data-actor-idとdata-connection-handleを維持し、操作イベントは親へ委譲 |
+| `src/editor/EditorGroups.tsx` | 領域枠、ラベルタブ、リサイズハンドル | data-group-idとdata-group-resizeを維持 |
+| `src/editor/EditorEdges.tsx` | 通信線、双方向レーン、経由点、分岐ラベルのSVG表示 | 経路計算はconnectionRoutingを利用。data-step-idとdata-waypoint-indexを維持 |
 | `src/editor/EditorCanvas.tsx` | SVG編集領域のスクロールビューポート | refとスクロール座標を維持。SVG本体の描画・イベントはまだ親に残る |
 | `src/App.tsx` | シナリオ選択、カテゴリツリー、PixiJS再生画面、編集画面の切替 | 表示ツリーと再生処理は今後さらに分割する。カテゴリは `/` 区切りの再帰階層 |
 | `src/FlowEditor.tsx` | エディターのデータ所有、保存、操作の統合、SVGキャンバスと設定フォーム | 現状は責務が多い移行対象。新機能はできるだけ `src/editor/` へ抽出 |
@@ -101,3 +104,9 @@ GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テ�
 - CSSは依然として `src/style.css` に集中しており、コンポーネント別の整理は未完了。
 - 保存/テンプレート参照解決/イベント処理のサービス化、UIの回帰テスト追加も未完了。
 - ビルド、ブラウザ操作、GitHub Actionsの成功確認は実施できていない。ローカルで `npm ci && npm run build` を実行し、エラーがあれば修正する。
+
+## 2026-11-10 第6段階: SVG描画の責務分離
+- `EditorNodes`、`EditorGroups`、`EditorEdges` にノード・領域・通信線のSVG描画を分離した。
+- `FlowEditor` はデータ更新・選択・ドラッグ・パン・再生順マーカー・コンテキストメニュー・保存を引き続き担当する。
+- **未完了**: ポインター操作を専用フックに分割、再生順マーカーのコンポーネント化、保存サービスの分離、CSS分割、単体テスト・E2Eテスト追加。
+- **ビルド・動作確認未実施**。GitHubへの反映は動作保証を意味しない。特にノード選択、接続線、経由点ドラッグ、グループ移動、右クリック、YAML保存を確認すること。
