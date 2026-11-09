@@ -13,6 +13,7 @@
 | `src/playback/PlaybackScene.tsx` | PixiJSの描画、再生アニメーション、パン・ズーム、ノードクリック | 再生状態は親からpropsで受け取り、Pixiアプリの破棄とイベント解除を確認 |
 | `src/playback/CategoryTree.tsx` | カテゴリの再帰表示とツリー生成 | /区切りの階層、カテゴリごとの件数、未分類を維持 |
 | `src/playback/types.ts` | 再生モード、テーマ、速度の共有型 | UIとPixiJSの型の整合を維持 |
+| `src/editor/EditorContextMenu.tsx` | ノード・領域・通信・空白の右クリックメニュー | 選択・削除・複製・表示リセットはコールバックで親に委譲 |
 | `src/editor/PlaybackOrderMarkers.tsx` | 再生順序の線・番号マーカーのSVG表示とキーボード操作 | DnDの状態と並び替えは親が管理。SVGポインターキャプチャを維持 |
 | `src/editor/EditorNodes.tsx` | ノードのSVG表示、番号、削除・接続ハンドル | data-actor-idとdata-connection-handleを維持し、操作イベントは親へ委譲 |
 | `src/editor/EditorGroups.tsx` | 領域枠、ラベルタブ、リサイズハンドル | data-group-idとdata-group-resizeを維持 |
@@ -117,3 +118,9 @@ GitHubへの反映のみ。TypeScriptビルド、ブラウザ動作、回帰テ�
 - 複数選択モードの空白クリックで `selectedActor`・`selectedStep`・`selectedGroup` も解除するよう修正。
 - **残作業**: キャンバスポインター操作のフック化、コンテキストメニュー分離、YAML保存と参照解決のサービス化、CSS整理、単体/E2Eテスト。
 - **検証未実施**: npm run build・ブラウザ操作の成功は確認できていない。コミット反映と動作保証は別である。
+
+## 2026-11-10 第8段階: 右クリックメニュー分離
+- `EditorContextMenu.tsx` を追加。右クリックの対象判定と表示座標は `FlowEditor`、操作メニューの表示は `EditorContextMenu`、実データの更新・削除確認は `FlowEditor` が担当する。
+- ノード・領域・通信・空白領域の各操作は明示的なコールバック経由。削除操作後のメニュー閉鎖を統一。
+- **残作業**: SVGポインター操作のフック化、保存・テンプレート参照のサービス化、CSS分割、テスト整備。
+- **未検証**: この変更のTypeScriptビルドおよびブラウザ回帰テストは実行していない。
