@@ -8,7 +8,7 @@ import { routeConnection, routeViaWaypoints, routePath, pointOnRoute, offsetRout
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
-type Tool = 'move' | 'connect';
+type Tool = 'move' | 'connect' | 'multi';
 type FilePicker = { showSaveFilePicker?: (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<{ createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }> }> };
 
 // ワールドを広げ、キャンバスのスクロールで横10ノード以上を配置可能にする。
@@ -37,6 +37,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
  const [selectedStep, setSelectedStep] = useState<string | null>(null);
+ const [selectedActors, setSelectedActors] = useState<string[]>([]);
+ const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+ const [orderCollapsed, setOrderCollapsed] = useState(false);
+ const canvasRef = useRef<HTMLDivElement>(null);
+ const marquee = useRef<{ pointerId: number; start: { x: number; y: number }; additive: boolean } | null>(null);
+ const [marqueeEnd, setMarqueeEnd] = useState<{ x: number; y: number } | null>(null);
+ const multiDrag = useRef<{ pointerId: number; x: number; y: number; initial: { id: string; x: number; y: number }[] } | null>(null);
  const [draggedStep, setDraggedStep] = useState<string | null>(null);
  const [dropTarget, setDropTarget] = useState<string | null>(null);
  const [source, setSource] = useState<string | null>(null);
@@ -96,6 +103,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
  const drag = useRef<{ id: number; actorId: string | null; groupId?: string; resizeGroup?: boolean; initialMembers?: { id: string; x: number; y: number }[]; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
  const activeActor = actors.find(actor => actor.id === selectedActor);
+ // 初期表示をワールド中央に合わせる。既存ノード座標や保存データは変更しない。
+ useEffect(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  canvas.scrollLeft = Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2);
+  canvas.scrollTop = Math.max(0, (canvas.scrollHeight - canvas.clientHeight) / 2);
+ }, []);
  const activeStep = steps.find(step => step.id === selectedStep);
 
  // ポインター座標を拡大率と移動量を考慮したワールド座標へ変換する。
@@ -123,7 +137,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
   const number = nextNodeNumber.current++;
   setNodeNumbers(current => ({ ...current, [id]: number }));
-  setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position: { x: 220 + (current.length % 12) * 255, y: 180 + Math.floor(current.length / 12) * 200 } }]);
+  const canvas = canvasRef.current;
+  const rect = canvas?.getBoundingClientRect();
+  const center = rect ? toWorld(rect.left + rect.width / 2, rect.top + rect.height / 2) : { x: WIDTH / 2, y: HEIGHT / 2 };
+  const position = { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, center.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, center.y)) };
+  setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position }]);
   setSelectedActor(id);
   setSelectedStep(null);
   setSelectedGroup(null);
@@ -428,6 +446,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   <div className="editor-header"><div><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={requestExit}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <div className="editor-toolbar">
    <button className={tool === 'move' ? 'selected' : ''} onClick={() => { setTool('move'); setSource(null); }}>移動・選択</button>
+   <button className={tool === 'multi' ? 'selected' : ''} aria-pressed={tool === 'multi'} onClick={() => { setTool('multi'); setSource(null); setSelectedActor(null); setSelectedStep(null); setSelectedGroup(null); }}>複数ノード選択・移動</button>
+   {tool === 'multi' && <><span className="viewport-hint">空白をドラッグして範囲選択、Shift＋クリックで追加・解除、選択ノードをドラッグして一括移動</span><button type="button" onClick={() => setSelectedActors(actors.map(actor => actor.id))}>すべて選択</button><button type="button" onClick={() => setSelectedActors([])}>選択解除</button><span>{selectedActors.length}件選択中</span></>}
    <button className={tool === 'connect' ? 'selected' : ''} onClick={() => setTool('connect')}>通信線を追加</button>
    <button onClick={addActor}>＋ ノード追加</button>
    <button onClick={addGroup}>＋ 領域追加</button>
@@ -436,7 +456,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <button onClick={() => setZoom(z => Math.max(.3, +(z / 1.2).toFixed(2)))}>−</button>
    <span>{Math.round(zoom * 100)}%</span>
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
-   <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}>表示リセット</button>
+   <button onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); const canvas = canvasRef.current; if (canvas) { canvas.scrollLeft = (canvas.scrollWidth - canvas.clientWidth) / 2; canvas.scrollTop = (canvas.scrollHeight - canvas.clientHeight) / 2; } }}>表示リセット</button>
    <span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
    {scenarioPath && <span className="viewport-hint">編集対象: {scenarioPath}</span>}
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
@@ -464,8 +484,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    </section>
    </div>}
   {interfacePanel && <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setInterfacePanel(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label="IF定義の編集"><div className="node-details-heading"><h2>IF定義</h2><button type="button" className="if-panel-close" aria-label="IF定義画面を閉じる" onClick={() => setInterfacePanel(null)}>×</button></div>{interfaces.filter(item => item.id === interfacePanel).map(item => <div key={item.id} className="if-definition-editor"><label>ID<input value={item.id} readOnly/></label><label>名称<input value={item.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, name: e.target.value } : value))}/></label><label>説明<textarea value={item.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, description: e.target.value } : value))}/></label><div className="if-field-toolbar"><h3>項目定義</h3><label className="if-file-import">ファイルから項目を追加<input type="file" accept=".yaml,.yml,.json" onChange={event => { const file = event.target.files?.[0]; if (file) void importInterfaceFields(item.id, file); event.target.value = ''; }}/></label></div><div className="if-fields-header"><span>項目名</span><span>型</span><span>説明</span><span>必須</span><span>操作</span></div>{(item.fields ?? []).map((field, index) => <div key={index} className="if-field"><label aria-label="項目名"><input value={field.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, name: e.target.value } : f) } : value))}/></label><label aria-label="型"><input value={field.type} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, type: e.target.value } : f) } : value))}/></label><label aria-label="説明"><input value={field.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, description: e.target.value } : f) } : value))}/></label><label><input type="checkbox" checked={field.required ?? false} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, required: e.target.checked } : f) } : value))}/>必須</label><button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).filter((_, i) => i !== index) } : value))}>項目を削除</button></div>)}<button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: [...(value.fields ?? []), { name: '', type: 'string' }] } : value))}>＋ 項目追加</button><button onClick={() => { setInterfaces(items => items.filter(value => value.id !== item.id)); setInterfacePanel(null); }}>IF定義を削除</button></div>)}{!interfaces.some(item => item.id === interfacePanel) && <p>参照先IF定義がありません: {interfacePanel}</p>}</aside></div>}
-  <div className="editor-layout">
-   <div className="editor-canvas">
+  <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
+   <div className="editor-canvas" ref={canvasRef}>
     <svg ref={svgRef} onContextMenu={event => {
      event.preventDefault();
      const target = event.target as Element;
@@ -715,7 +735,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       </>}
      </div>}
    </div>
-   <aside className="editor-inspector" aria-label="選択中のオブジェクト設定">
+   <aside className={`editor-inspector${inspectorCollapsed ? " is-collapsed" : ""}`} aria-label="選択中のオブジェクト設定">
+    <div className="editor-panel-heading"><strong>設定</strong><button type="button" aria-expanded={!inspectorCollapsed} onClick={() => setInspectorCollapsed(value => !value)}>{inspectorCollapsed ? "展開 ›" : "最小化 ‹"}</button></div>
+    {!inspectorCollapsed && <>
     {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
     {!activeActor && !activeStep && selectedGroup && (() => { const group = groups.find(item => item.id === selectedGroup); return group && <details className="editor-section" open><summary>領域設定</summary><label>領域名<input value={group.name} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, name: e.target.value } : item))}/></label><label>色<input type="color" value={group.color ?? '#2563eb'} onChange={e => setGroups(items => items.map(item => item.id === group.id ? { ...item, color: e.target.value } : item))}/></label><fieldset className="group-members"><legend>所属ノード</legend>{actors.map(actor => <label key={actor.id}><input type="checkbox" checked={Boolean(group.memberIds?.includes(actor.id))} onChange={event => setGroups(items => items.map(item => item.id !== group.id ? item : { ...item, memberIds: event.target.checked ? [...(item.memberIds ?? []), actor.id] : (item.memberIds ?? []).filter(id => id !== actor.id) }))}/>{actor.name}</label>)}</fieldset><button onClick={() => { setGroups(items => items.filter(item => item.id !== group.id)); setSelectedGroup(null); }}>領域を削除</button></details>; })()}
     {!activeActor && !activeStep && !selectedGroup && <>
@@ -799,9 +821,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      <button onClick={() => deleteStep(activeStep.id)}>通信を削除</button>
     </details>}
 
+    </>}
    </aside>
    {/* 再生順は設定フォームと独立した列に置き、長い設定欄のスクロールを不要にする。 */}
-   <aside className="editor-order-panel" aria-label="通信の再生順">
+   <aside className={`editor-order-panel${orderCollapsed ? " is-collapsed" : ""}`} aria-label="通信の再生順">
+    <div className="editor-panel-heading"><strong>再生順</strong><button type="button" aria-expanded={!orderCollapsed} onClick={() => setOrderCollapsed(value => !value)}>{orderCollapsed ? "展開 ›" : "最小化 ‹"}</button></div>
+    {!orderCollapsed && <>
     <details className="editor-section" open><summary>通信の再生順（{steps.length}件）</summary>
     <p className="editor-reorder-hint">左の「⠿」をドラッグして再生順を入れ替えられます。</p>
     <div className="editor-step-list">{steps.map((step, index) =>
@@ -836,6 +861,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       <button type="button" className="editor-step-delete" aria-label={`${step.title}を削除`} title="このステップを削除" onClick={() => deleteStep(step.id)}>削除</button>
      </div>)}</div>
     </details>
+    </>}
    </aside>
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
