@@ -520,6 +520,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        if (edge) {
         setSelectedStep(edge.getAttribute('data-step-id'));
         setSelectedActor(null);
+        setSelectedGroup(null);
         return;
        }
       }
