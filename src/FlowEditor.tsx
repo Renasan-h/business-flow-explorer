@@ -358,23 +358,29 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // 順序編集モード中だけ再生順序線と番号を表示する。
  const [orderMode, setOrderMode] = useState(false);
  const [orderSource, setOrderSource] = useState<string | null>(null);
+ const orderDrag = useRef<{ pointerId: number; source: string; x: number; y: number; moved: boolean } | null>(null);
+ const [orderCursor, setOrderCursor] = useState<{ x: number; y: number } | null>(null);
  const orderPoint = (step: Step) => {
   const action = step.actions[0];
   const from = actors.find(actor => actor.id === action?.from);
   const to = actors.find(actor => actor.id === action?.to);
   return from && to ? { x: (from.position.x + to.position.x) / 2, y: (from.position.y + to.position.y) / 2 - 55 } : null;
  };
+ const moveOrder = (fromId: string, toId: string) => {
+  if (fromId === toId) return;
+  setSteps(current => {
+   const next = [...current];
+   const from = next.findIndex(step => step.id === fromId);
+   const to = next.findIndex(step => step.id === toId);
+   if (from < 0 || to < 0) return current;
+   const [step] = next.splice(from, 1);
+   next.splice(to, 0, step);
+   return next.map((step, index) => ({ ...step, order: index + 1 }));
+  });
+ };
  const chooseOrder = (id: string) => {
   if (!orderSource) { setOrderSource(id); return; }
-  if (orderSource !== id) setSteps(current => {
-   const reordered = [...current];
-   const from = reordered.findIndex(step => step.id === orderSource);
-   const to = reordered.findIndex(step => step.id === id);
-   if (from < 0 || to < 0) return current;
-   const [item] = reordered.splice(from, 1);
-   reordered.splice(to, 0, item);
-   return reordered;
-  });
+  if (orderSource !== id) moveOrder(orderSource, id);
   setOrderSource(null);
  };
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
@@ -414,7 +420,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    {scenarioPath && <span className="viewport-hint">編集対象: {scenarioPath}</span>}
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
    <button type="button" className={orderMode ? 'selected' : ''} aria-pressed={orderMode} onClick={() => { setOrderMode(value => !value); setOrderSource(null); }}>再生順序変更モード</button>
-   {orderMode && <span className="viewport-hint">番号を2つ選択すると、最初のステップを2番目の位置へ移動します。</span>}
+   {orderMode && <span className="viewport-hint">番号をドラッグして移動先の番号で離すか、番号を2つクリックして並べ替えます。</span>}
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
   {interfacePanel && <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setInterfacePanel(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label="IF定義の編集"><div className="node-details-heading"><h2>IF定義</h2><button onClick={() => setInterfacePanel(null)}>✕</button></div>{interfaces.filter(item => item.id === interfacePanel).map(item => <div key={item.id} className="if-definition-editor"><label>ID<input value={item.id} readOnly/></label><label>名称<input value={item.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, name: e.target.value } : value))}/></label><label>説明<textarea value={item.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, description: e.target.value } : value))}/></label><h3>項目定義</h3>{(item.fields ?? []).map((field, index) => <div key={index} className="if-field"><label>項目名<input value={field.name} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, name: e.target.value } : f) } : value))}/></label><label>型<input value={field.type} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, type: e.target.value } : f) } : value))}/></label><label>説明<input value={field.description ?? ''} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, description: e.target.value } : f) } : value))}/></label><label><input type="checkbox" checked={field.required ?? false} onChange={e => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).map((f, i) => i === index ? { ...f, required: e.target.checked } : f) } : value))}/>必須</label><button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: (value.fields ?? []).filter((_, i) => i !== index) } : value))}>項目を削除</button></div>)}<button onClick={() => setInterfaces(items => items.map(value => value.id === item.id ? { ...value, fields: [...(value.fields ?? []), { name: '', type: 'string' }] } : value))}>＋ 項目追加</button><button onClick={() => { setInterfaces(items => items.filter(value => value.id !== item.id)); setInterfacePanel(null); }}>IF定義を削除</button></div>)}{!interfaces.some(item => item.id === interfacePanel) && <p>参照先IF定義がありません: {interfacePanel}</p>}</aside></div>}
@@ -481,6 +487,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={event => {
+      if (orderDrag.current?.pointerId === event.pointerId) {
+       const active = orderDrag.current;
+       if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5) active.moved = true;
+       if (active.moved) setOrderCursor(toWorld(event.clientX, event.clientY));
+       return;
+      }
       if (wirePointer.current === event.pointerId) {
        setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
        return;
@@ -519,6 +531,15 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
      }}
      onPointerUp={event => {
+      if (orderDrag.current?.pointerId === event.pointerId) {
+       const dragOrder = orderDrag.current;
+       const point = toWorld(event.clientX, event.clientY);
+       const destination = steps.map(step => ({ id: step.id, point: orderPoint(step) })).find(item => item.point && Math.hypot(item.point.x - point.x, item.point.y - point.y) < 32);
+       if (dragOrder.moved && destination) { moveOrder(dragOrder.source, destination.id); setOrderSource(null); }
+       else if (!dragOrder.moved) chooseOrder(dragOrder.source);
+       orderDrag.current = null;
+       setOrderCursor(null);
+      }
       if (wirePointer.current === event.pointerId) {
        const point = toWorld(event.clientX, event.clientY);
        // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
@@ -532,7 +553,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       if (drag.current?.id === event.pointerId) drag.current = null;
      }}
-     onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); }}> 
+     onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="14" fill={group.color ?? '#2563eb'} fillOpacity=".08" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 4 : 2} strokeDasharray="12 6"/><text x={group.x + 15} y={group.y + 26} fill={group.color ?? '#2563eb'} fontWeight="bold" fontSize="20">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
@@ -541,9 +562,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         const to = orderPoint(steps[index + 1]);
         return from && to ? <line key={step.id} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#fbbf24" strokeWidth="3" strokeDasharray="9 5" pointerEvents="none"/> : null;
        })}
+       {orderCursor && orderDrag.current && (() => { const sourcePoint = orderPoint(steps.find(step => step.id === orderDrag.current?.source)!); return sourcePoint ? <line x1={sourcePoint.x} y1={sourcePoint.y} x2={orderCursor.x} y2={orderCursor.y} stroke="#f97316" strokeWidth="4" strokeDasharray="8 4" pointerEvents="none"/> : null; })()}
        {steps.map((step, index) => {
         const point = orderPoint(step);
-        return point && <g key={step.id} className="editor-order-marker" role="button" tabIndex={0} aria-label={`再生順序 ${index + 1}: ${step.title}`} onPointerDown={event => { event.stopPropagation(); chooseOrder(step.id); }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseOrder(step.id); } }}>
+        return point && <g key={step.id} className="editor-order-marker" role="button" tabIndex={0} aria-label={`再生順序 ${index + 1}: ${step.title}`} onPointerDown={event => { event.stopPropagation(); orderDrag.current = { pointerId: event.pointerId, source: step.id, x: event.clientX, y: event.clientY, moved: false }; event.currentTarget.closest('svg')?.setPointerCapture(event.pointerId); }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseOrder(step.id); } }}>
          <circle cx={point.x} cy={point.y} r="19" fill={orderSource === step.id ? '#ea580c' : '#92400e'} stroke="#fde68a" strokeWidth="2"/>
          <text x={point.x} y={point.y + 5} fontSize="14" fill="white" textAnchor="middle" pointerEvents="none">{index + 1}</text>
         </g>;
