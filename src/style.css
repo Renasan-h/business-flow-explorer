@@ -458,3 +458,46 @@ html,body,#root{height:100%;overflow:hidden}
  .flow-editor>.editor-layout>.editor-inspector.is-collapsed>.editor-panel-heading,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed>.editor-panel-heading{flex-direction:column}
  .flow-editor>.editor-layout>.editor-inspector.is-collapsed strong,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed strong{writing-mode:vertical-rl}
 }
+
+/* Responsive playback: keep navigation and step details reachable within the viewport. */
+.scenario-menu-toggle,.scenario-menu-close,.scenario-menu-backdrop{display:none}
+.scenario-sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.scenario-sidebar-heading h3{margin:0 0 12px}
+.app>.layout>main{min-width:0;overflow-x:hidden;overflow-y:auto}
+.app .steps{min-width:0;max-width:100%;overflow-x:auto;flex-wrap:nowrap;padding:6px 0 10px;scrollbar-width:thin}
+.app .steps>button{flex:0 0 auto;max-width:min(300px,75vw);white-space:normal;overflow-wrap:anywhere}
+.app .explanation{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.app .explanation code{display:block;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap}
+.app .scene-action-bar,.app .controls,.app .scene-toolbar{min-width:0;max-width:100%;flex-wrap:wrap}
+.app .scene-size-wrapper{max-width:100%}
+
+/* Preview: reserve space for the current step below the canvas instead of letting
+   the SVG's intrinsic height push the details outside the visible region. */
+.preview-screen{min-width:0;max-width:100%;min-height:100dvh;overflow-x:hidden}
+.preview-layout{min-width:0;max-width:100%;align-items:start}
+.preview-layout>div:first-child{display:flex;flex-direction:column;min-width:0;min-height:0}
+.preview-canvas{display:block;width:100%;height:clamp(220px,48dvh,560px);min-height:0;flex:none}
+.preview-step-info{flex:none;min-width:0;max-width:100%;max-height:30dvh;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain}
+.preview-step-info p{white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-steps{min-width:0;max-height:min(68dvh,640px);overflow-y:auto}
+.preview-header,.preview-toolbar{min-width:0;max-width:100%}
+
+@media(max-width:1000px){
+ .app>.layout{grid-template-columns:minmax(0,1fr)}
+ .app>.layout>.scenario-sidebar{display:none;position:fixed;inset:0 auto 0 0;width:min(340px,88vw);max-width:88vw;z-index:1101;overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--panel-border,#344765);border-bottom:0;box-shadow:8px 0 32px #0008;padding:20px;background:var(--page,#0b1220)}
+ .app>.layout>.scenario-sidebar.is-open{display:block}
+ .scenario-menu-toggle{display:inline-flex;align-items:center;gap:9px;margin:0 0 14px;min-height:40px}
+ .scenario-menu-close{display:inline-flex;align-items:center;justify-content:center}
+ .scenario-menu-backdrop{display:block;position:fixed;inset:0;z-index:1100;background:#0009;border:0;border-radius:0;padding:0;margin:0}
+ .app>.layout>main{width:100%;max-width:100%;min-width:0}
+ .preview-layout{grid-template-columns:minmax(0,1fr)}
+ .preview-canvas{height:clamp(210px,42dvh,440px)}
+ .preview-steps{max-height:260px}
+}
+@media(max-width:600px){
+ .preview-canvas{height:clamp(180px,34dvh,340px)}
+ .preview-step-info{max-height:32dvh}
+ .app .scene-size-wrapper{width:100%;min-height:200px}
+ .app .top,.app .scene-action-bar{min-width:0}
+ .app .controls>span{margin-left:0}
+}
