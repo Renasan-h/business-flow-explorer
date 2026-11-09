@@ -37,58 +37,5 @@ export default function EditorNodes({ actors, selectedActors, tool, source, sele
        <text data-connection-handle={actor.id} x={actor.position.x + NODE_WIDTH / 2} y={actor.position.y + 5}
         textAnchor="middle" fill="#082238" fontSize="16" fontWeight="bold" className="editor-connection-handle">＋</text>
       </g>)}
-     </g>
-    </svg>
-    {contextMenu && <div className="editor-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}
-      onPointerDown={event => event.stopPropagation()}>
-      {contextMenu.actorId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedActor(contextMenu.actorId); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}>ノードを編集</button>
-       <button type="button" role="menuitem" onClick={() => { duplicateActor(contextMenu.actorId!); setContextMenu(null); }}>ノードを複製</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => deleteActor(contextMenu.actorId!)}>ノードを削除</button>
-      </> : contextMenu.groupId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedGroup(contextMenu.groupId); setContextMenu(null); }}>領域を編集</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => { setGroups(items => items.filter(item => item.id !== contextMenu.groupId)); setSelectedGroup(null); setContextMenu(null); }}>領域を削除</button>
-      </> : contextMenu.stepId ? <>
-       <button type="button" role="menuitem" onClick={() => { setSelectedStep(contextMenu.stepId); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}>通信を編集</button>
-       <button type="button" role="menuitem" className="danger" onClick={() => { deleteStep(contextMenu.stepId!); setContextMenu(null); }}>通信を削除</button>
-      </> : <>
-       <button type="button" role="menuitem" onClick={() => { addActor(); setContextMenu(null); }}>ノードを追加</button>
-       <button type="button" role="menuitem" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}>表示をリセット</button>
-      </>}
-     </div>}
-   </EditorCanvas>
-   <EditorPanel title="設定" className="editor-inspector" collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed(value => !value)}>
-    <>
-    {!activeActor && !activeStep && !selectedGroup && <p className="editor-inspector-hint">ノード・通信・領域を選択すると、対応する設定が表示されます。</p>}
-    {!activeActor && !activeStep && selectedGroup && groups.filter(group => group.id === selectedGroup).map(group => <GroupSettings key={group.id} group={group} actors={actors} setGroups={setGroups} onDelete={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); }}/>)}
-    {!activeActor && !activeStep && !selectedGroup && <>
-    <details className="editor-section"><summary>IF定義一覧（{interfaces.length}件）</summary>{interfaces.map(item => <button key={item.id} onClick={() => setInterfacePanel(item.id)}>{item.name}</button>)}<button onClick={addInterface}>＋ IF定義を追加</button></details>
-    <ScenarioSettings metadata={metadata} onChange={setMetadata}/>
-    </>}
-    {activeActor && <ActorSettings activeActor={activeActor} actors={actors} nodeNumber={nodeNumbers[activeActor.id]} changeActor={changeActor} renameActor={(previous: string, next: string) => {
-     if (!next || (next !== previous && actors.some(actor => actor.id === next))) return;
-     changeActor(previous, { id: next });
-     setNodeNumbers(current => { const updated = { ...current }; updated[next] = updated[previous]; delete updated[previous]; return updated; });
-     setSelectedActor(next);
-     setSteps(current => current.map(step => ({
-      ...step, reverseFrom: step.reverseFrom === previous ? next : step.reverseFrom,
-      reverseTo: step.reverseTo === previous ? next : step.reverseTo,
-      actions: step.actions.map(action => ({ ...action, from: action.from === previous ? next : action.from, to: action.to === previous ? next : action.to }))
-     })));
-    }} duplicateActor={duplicateActor} deleteActor={deleteActor}/>} 
-    {activeStep && <StepSettings activeStep={activeStep} actors={actors} interfaces={interfaces} changeStep={changeStep} changeDirection={changeDirection} openInterface={setInterfacePanel} deleteStep={deleteStep}/>} 
-
-    </>
-   </EditorPanel>
-   {/* 再生順は設定フォームと独立した列に置き、長い設定欄のスクロールを不要にする。 */}
-   <EditorPanel title="再生順" className="editor-order-panel" collapsed={orderCollapsed} onToggle={() => setOrderCollapsed(value => !value)}>
-    <>
-    <PlaybackOrderPanel steps={steps} selectedStep={selectedStep} onChange={setSteps} onSelect={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); }} onDelete={deleteStep}/>
-    </>
-   </EditorPanel>
-  </div>
-  {message && <p className="editor-message" role="status">{message}</p>}
- </div>;
-}       <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
  </>;
 }
