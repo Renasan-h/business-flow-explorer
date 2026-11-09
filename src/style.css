@@ -501,3 +501,12 @@ html,body,#root{height:100%;overflow:hidden}
  .app .top,.app .scene-action-bar{min-width:0}
  .app .controls>span{margin-left:0}
 }
+
+/* STEPのIFリンクは再生を中断せず、画面左の前面ドロワーを開く。 */
+.if-playback-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.if-definition-link{display:inline-flex;align-items:center;max-width:100%;overflow-wrap:anywhere;text-align:left;border-color:var(--selected-border,#38bdf8);color:var(--text,#e4edfa);text-decoration:underline;text-underline-offset:3px}
+.if-definition-link:hover{background:var(--selected-bg,#17528a)}
+.if-definition-backdrop{position:fixed;inset:0;z-index:1300;display:flex;align-items:stretch;justify-content:flex-start;background:#0009}
+.if-definition-backdrop>.if-definition-drawer{position:relative;inset:auto;transform:none;margin:0;width:min(460px,92vw);max-width:92vw;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;border-radius:0;border-right:1px solid var(--panel-border,#344765);box-shadow:8px 0 32px #0007;background:var(--page,#0b1220);color:var(--text,#e4edfa);padding:20px}
+.if-definition-drawer p{overflow-wrap:anywhere}
+@media(max-width:600px){.if-definition-backdrop>.if-definition-drawer{width:min(420px,94vw);max-width:94vw;padding:14px}}
