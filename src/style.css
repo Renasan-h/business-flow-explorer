@@ -426,3 +426,35 @@ html,body,#root{height:100%;overflow:hidden}
  .is-collapsed>.editor-panel-heading{flex-direction:row}
  .is-collapsed>.editor-panel-heading strong,.is-collapsed>.editor-panel-heading button{writing-mode:horizontal-tb}
 }
+
+/* Eclipse風: 最小化したペインをキャンバスの右端に細いドックとしてまとめる。 */
+.flow-editor>.editor-layout{--dock-width:44px;--expanded-width:minmax(230px,300px);grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--expanded-width)}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed){grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--dock-width)}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed)>.editor-order-panel{grid-column:2}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed)>.editor-inspector{grid-column:3}
+.flow-editor>.editor-layout.order-collapsed:not(.inspector-collapsed){grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--dock-width)}
+.flow-editor>.editor-layout.inspector-collapsed.order-collapsed{grid-template-columns:minmax(0,1fr) var(--dock-width) var(--dock-width)}
+.flow-editor>.editor-layout>.editor-inspector.is-collapsed,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed{padding:6px 3px;overflow:hidden!important}
+.editor-panel-heading{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 2px 10px}
+.editor-panel-heading strong{font-size:13px;white-space:nowrap}
+.editor-panel-heading .editor-panel-toggle{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;min-width:30px;max-width:30px;min-height:30px;margin:0;padding:0;border-radius:6px;font-size:15px;line-height:1;writing-mode:horizontal-tb;cursor:pointer}
+.editor-panel-heading .editor-panel-toggle:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+.is-collapsed>.editor-panel-heading{display:flex;flex-direction:column;align-items:center;gap:12px}
+.is-collapsed>.editor-panel-heading strong{writing-mode:vertical-rl;white-space:nowrap;order:2}
+.is-collapsed>.editor-panel-heading .editor-panel-toggle{writing-mode:horizontal-tb;order:1}
+.editor-inspector .editor-color-field{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.editor-inspector .editor-color-field>span:first-child{flex:0 0 auto;white-space:nowrap}
+.editor-inspector .editor-color-field input[type="color"]{appearance:auto;display:block;box-sizing:border-box;flex:0 0 52px;width:52px!important;min-width:52px!important;max-width:52px!important;height:36px!important;min-height:36px!important;padding:3px!important;margin:0!important;border:1px solid #64748b;border-radius:6px;background:transparent;cursor:pointer}
+.editor-inspector .editor-color-field input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.editor-inspector .editor-color-field input[type="color"]::-webkit-color-swatch{border:0;border-radius:3px}
+.editor-inspector .editor-color-field .editor-color-value{font-size:12px;white-space:nowrap;font-family:monospace}
+@media(max-width:700px){
+ .flow-editor>.editor-layout,.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed),.flow-editor>.editor-layout.order-collapsed:not(.inspector-collapsed),.flow-editor>.editor-layout.inspector-collapsed.order-collapsed{grid-template-columns:minmax(0,1fr) var(--dock-width) var(--dock-width);grid-template-rows:minmax(180px,1fr) auto auto}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1 / 4;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector:not(.is-collapsed){grid-column:1 / 4;grid-row:2}
+ .flow-editor>.editor-layout>.editor-order-panel:not(.is-collapsed){grid-column:1 / 4;grid-row:3}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed{grid-column:2;grid-row:2 / 4;height:auto;max-height:none}
+ .flow-editor>.editor-layout>.editor-order-panel.is-collapsed{grid-column:3;grid-row:2 / 4;height:auto;max-height:none}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed>.editor-panel-heading,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed>.editor-panel-heading{flex-direction:column}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed strong,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed strong{writing-mode:vertical-rl}
+}
