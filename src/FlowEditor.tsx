@@ -229,6 +229,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const ids = new Set(actors.map(actor => actor.id));
   if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) { setMessage('ノードIDの重複または未入力があります。'); return false; }
   if (new Set(steps.map(step => step.id)).size !== steps.length || steps.some(step => !step.id.trim() || step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) || (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) { setMessage('通信のID・参照先・所要時間を確認してください。'); return false; }
+  // グループに削除済みノードが残ると、再読込時に存在しない参照が残る。
+  const validActorIds = new Set(actors.map(actor => actor.id));
+  if (groups.some(group => (group.memberIds ?? []).some(id => !validActorIds.has(id)))) { setMessage('領域コンテナに存在しないノードが含まれています。所属ノードを見直してください。'); return false; }
   // file参照は編集結果を参照先へ書き戻さない。変更を黙って破棄しないよう保存を止める。
   for (const reference of templateReferences) {
    const current = JSON.stringify({ actors: actors.filter(item => reference.actorIds.includes(item.id)), steps: steps.filter(item => reference.stepIds.includes(item.id)) });
