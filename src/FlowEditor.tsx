@@ -28,8 +28,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [interfaces, setInterfaces] = useState<NonNullable<Scenario['interfaces']>>(() => initial.interfaces ?? []);
  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
  const [interfacePanel, setInterfacePanel] = useState<string | null>(null);
- const [templateMode, setTemplateMode] = useState<'inline' | 'reference'>('inline');
  const [templatePath, setTemplatePath] = useState('');
+ const [templateFile, setTemplateFile] = useState<File | null>(null);
+ const templateFileRef = useRef<HTMLInputElement>(null);
  const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[]; original: string }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
  const [selectedActor, setSelectedActor] = useState<string | null>(null);
@@ -289,17 +290,29 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
- const importTemplate = async () => {
+ const importTemplate = async (mode: 'inline' | 'reference') => {
   try {
-   if (!templatePath.trim() || !/^[a-zA-Z0-9_./-]+\.ya?ml$/.test(templatePath) || templatePath.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
-   const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
-   const url = new URL(templatePath, base);
-   if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
-   const response = await fetch(url.pathname);
-   if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
-   const fragment = parseTemplateYaml(await response.text());
+   // ファイルダイアログはブラウザの安全制約により絶対パスを公開しない。
+   // 直接読込は選択ファイルの内容を利用し、参照読込は公開ディレクトリ内のパスが必須。
+   const path = templatePath.trim();
+   if (!templateFile && !path) throw new Error('YAMLファイルを選択するか、ファイルパスを指定してください');
+   if (mode === 'reference' && !path) throw new Error('サブシナリオ参照には /scenarios/ 内の相対パスが必要です。ファイルダイアログからはパスを取得できません');
+   let content: string;
+   if (mode === 'inline' && templateFile) {
+    if (!/\\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
+    content = await templateFile.text();
+   } else {
+    if (!/^[a-zA-Z0-9_./-]+\\.ya?ml$/.test(path) || path.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
+    const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
+    const url = new URL(path, base);
+    if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
+    const response = await fetch(url.pathname);
+    if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
+    content = await response.text();
+   }
+   const fragment = parseTemplateYaml(content);
    if (fragment.hasReferences) throw new Error('参照を含むテンプレートは現在直接取り込めません。参照のない断片YAMLを指定してください');
-   if (templateMode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
+   if (mode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const actorIds = new Set(actors.map(item => item.id));
    const stepIds = new Set(steps.map(item => item.id));
    if (fragment.actors.some(item => actorIds.has(item.id)) || fragment.steps.some(item => stepIds.has(item.id))) throw new Error('IDが重複しています。テンプレートのIDを変更してください');
@@ -307,7 +320,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setActors(current => [...current, ...newActors]);
    setSteps(current => [...current, ...fragment.steps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (templateMode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: fragment.steps }) }]);
+   if (mode === 'reference') setTemplateReferences(current => [...current, { file: templatePath, actorIds: newActors.map(item => item.id), stepIds: fragment.steps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: fragment.steps }) }]);
    setMessage(templateMode === 'reference' ? '参照テンプレートを読み込みました。保存時にfile参照を維持します。' : 'テンプレートを直接定義として追加しました。');
   } catch (error) { setMessage('テンプレート読込失敗: ' + String(error)); }
  };
@@ -349,9 +362,21 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <button onClick={addActor}>＋ ノード追加</button>
    <button onClick={addGroup}>＋ 領域追加</button>
    <button onClick={addInterface}>＋ IF定義</button>
-   <label>テンプレート<input value={templatePath} onChange={e => setTemplatePath(e.target.value)} placeholder="例: fragments/common.yaml"/></label>
-   <select aria-label="テンプレート読込方法" value={templateMode} onChange={e => setTemplateMode(e.target.value as 'inline' | 'reference')}><option value="inline">直接定義として読込</option><option value="reference">サブシナリオとして参照</option></select>
-   <button type="button" onClick={() => void importTemplate()}>テンプレート読込</button>
+   <section className="template-import" aria-label="テンプレート取込">
+    <div className="template-import-source">
+     <span className="template-import-title">テンプレート</span>
+     <div className="template-import-file">
+      <input aria-label="テンプレートの相対パス" value={templatePath} onChange={e => setTemplatePath(e.target.value)} placeholder="scenarios内の相対パス（例: fragments/common.yaml）"/>
+      <input ref={templateFileRef} type="file" accept=".yaml,.yml" className="template-import-hidden" aria-label="ローカルYAMLを選択" onChange={event => setTemplateFile(event.target.files?.[0] ?? null)}/>
+      <button type="button" className="template-import-browse" onClick={() => templateFileRef.current?.click()}>ファイルを選択…</button>
+     </div>
+     {templateFile && <span className="template-import-selected" title={templateFile.name}>{templateFile.name}<button type="button" aria-label="選択ファイルを解除" onClick={() => { setTemplateFile(null); if (templateFileRef.current) templateFileRef.current.value = ''; }}>×</button></span>}
+    </div>
+    <div className="template-import-actions">
+     <button type="button" onClick={() => void importTemplate('inline')}>直接読み込む</button>
+     <button type="button" onClick={() => void importTemplate('reference')}>サブシナリオとして追加</button>
+    </div>
+   </section>
    <button onClick={() => setZoom(z => Math.max(.3, +(z / 1.2).toFixed(2)))}>−</button>
    <span>{Math.round(zoom * 100)}%</span>
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
