@@ -262,6 +262,28 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
+ // 順序編集モード中だけ再生順序線と番号を表示する。
+ const [orderMode, setOrderMode] = useState(false);
+ const [orderSource, setOrderSource] = useState<string | null>(null);
+ const orderPoint = (step: Step) => {
+  const action = step.actions[0];
+  const from = actors.find(actor => actor.id === action?.from);
+  const to = actors.find(actor => actor.id === action?.to);
+  return from && to ? { x: (from.position.x + to.position.x) / 2, y: (from.position.y + to.position.y) / 2 - 55 } : null;
+ };
+ const chooseOrder = (id: string) => {
+  if (!orderSource) { setOrderSource(id); return; }
+  if (orderSource !== id) setSteps(current => {
+   const reordered = [...current];
+   const from = reordered.findIndex(step => step.id === orderSource);
+   const to = reordered.findIndex(step => step.id === id);
+   if (from < 0 || to < 0) return current;
+   const [item] = reordered.splice(from, 1);
+   reordered.splice(to, 0, item);
+   return reordered;
+  });
+  setOrderSource(null);
+ };
  const isNew = initial.actors.length === 0 && initial.steps.length === 0;
  useEffect(() => { setMessage(''); }, [tool]);
  // プレビューに編集中の状態を渡す。戻っても編集中の変更は保持される。
@@ -281,6 +303,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    <span className="viewport-hint">Ctrl + ホイールで拡大・縮小</span>
    {scenarioPath && <span className="viewport-hint">編集対象: {scenarioPath}</span>}
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
+   <button type="button" className={orderMode ? 'selected' : ''} aria-pressed={orderMode} onClick={() => { setOrderMode(value => !value); setOrderSource(null); }}>再生順序変更モード</button>
+   {orderMode && <span className="viewport-hint">番号を2つ選択すると、最初のステップを2番目の位置へ移動します。</span>}
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
   <div className="editor-layout">
@@ -376,6 +400,20 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      }}
      onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
+      {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
+       {steps.slice(0, -1).map((step, index) => {
+        const from = orderPoint(step);
+        const to = orderPoint(steps[index + 1]);
+        return from && to ? <line key={step.id} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#fbbf24" strokeWidth="3" strokeDasharray="9 5" pointerEvents="none"/> : null;
+       })}
+       {steps.map((step, index) => {
+        const point = orderPoint(step);
+        return point && <g key={step.id} className="editor-order-marker" role="button" tabIndex={0} aria-label={`再生順序 ${index + 1}: ${step.title}`} onPointerDown={event => { event.stopPropagation(); chooseOrder(step.id); }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseOrder(step.id); } }}>
+         <circle cx={point.x} cy={point.y} r="19" fill={orderSource === step.id ? '#ea580c' : '#92400e'} stroke="#fde68a" strokeWidth="2"/>
+         <text x={point.x} y={point.y + 5} fontSize="14" fill="white" textAnchor="middle" pointerEvents="none">{index + 1}</text>
+        </g>;
+       })}
+      </g>}
       {showLines && steps.flatMap(step => step.actions.map((action, index) => {
        const from = actors.find(actor => actor.id === action.from);
        const to = actors.find(actor => actor.id === action.to);
