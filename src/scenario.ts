@@ -35,6 +35,8 @@ const step = z.object({
  order: z.number().finite().optional(),
  // 未指定時は直線。折れ線を選んだ通信だけYAMLに保存する。
  routing: z.enum(['straight', 'orthogonal']).optional(),
+ // 手動折れ線の経由点。順番に通過するワールド座標。
+ waypoints: z.array(z.object({ x: z.number().finite(), y: z.number().finite() })).max(100).optional(),
  // 1件の通信定義で往復2本の接続線を描く。省略時は片方向。
  bidirectional: z.boolean().optional(),
  // 双方向時は復路の送受信先を明示的に保存する。
