@@ -14,6 +14,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
  actors: Actor[]; steps: Step[]; title: string; onClose: () => void; onDeleteStep: (id: string) => void; onExit: () => void;
 }) {
  const [index, setIndex] = useState(0);
+ const [selectedPreviewIf, setSelectedPreviewIf] = useState<string | null>(null);
  const [playing, setPlaying] = useState(false);
  const [progress, setProgress] = useState(0);
  // 双方向通信は同一ステップ内で往路・復路を順番に再生する。
@@ -184,7 +185,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        cy={pointOnRoute(activeRoute, progress).y} r="10" fill="#22d3ee" stroke="#fff" strokeWidth="2"/>}
      </g>
     </svg>
-    <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{returning ? (step?.reversePayload ?? action?.payload) : action?.payload}</p>{(returning ? step?.reverseIf : step?.forwardIf) && <p>IF資料: {returning ? step?.reverseIf : step?.forwardIf}</p>}</div>
+    <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{returning ? (step?.reversePayload ?? action?.payload) : action?.payload}</p>{(returning ? step?.reverseIf : step?.forwardIf) && <button type="button" className="if-definition-link" onClick={() => setSelectedPreviewIf((returning ? step?.reverseIf : step?.forwardIf) ?? null)}>IF定義: {returning ? step?.reverseIf : step?.forwardIf}</button>}</div>
    </div>
    <aside className="preview-steps"><h3>再生ステップ</h3>{steps.map((item, i) =>
     <div key={item.id} className="preview-step-row">
@@ -192,5 +193,12 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
      <button type="button" className="preview-step-delete" aria-label={item.title + 'を削除'} onClick={() => removeStep(item.id)}>削除</button>
     </div>)}</aside>
   </div>
+  {selectedPreviewIf && <div className="node-details-backdrop if-definition-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedPreviewIf(null); }}>
+   <aside className="node-details-panel if-definition-drawer" role="dialog" aria-modal="true" aria-label="プレビューIF定義">
+    <div className="node-details-heading"><h2>IF定義</h2><button type="button" onClick={() => setSelectedPreviewIf(null)} aria-label="閉じる">✕</button></div>
+    <p>IF参照: {selectedPreviewIf}</p>
+    <p>プレビューではIF参照IDを表示しています。IF定義の詳細はシナリオのIF定義データを参照してください。</p>
+   </aside>
+  </div>}
  </div>;
 }
