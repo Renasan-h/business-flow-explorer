@@ -17,3 +17,14 @@ export function screenToWorldPoint(
  const local = screenToSvgPoint(svg, clientX, clientY);
  return local ? { x: (local.x - offset.x) / zoom, y: (local.y - offset.y) / zoom } : null;
 }
+
+/** ドラッグ開始点から現在点までの移動量をワールド座標で返す。 */
+export function screenDragDelta(
+ svg: SVGSVGElement, startX: number, startY: number,
+ endX: number, endY: number, zoom: number,
+): { x: number; y: number } | null {
+ const start = screenToSvgPoint(svg, startX, startY);
+ const end = screenToSvgPoint(svg, endX, endY);
+ if (!start || !end) return null;
+ return { x: (end.x - start.x) / zoom, y: (end.y - start.y) / zoom };
+}

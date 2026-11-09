@@ -21,7 +21,7 @@ import { resolveEditorSelection } from './editor/selection';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { validateEditorScenario } from './editor/validateEditorScenario';
-import { screenToSvgPoint, screenToWorldPoint } from './editor/coordinates';
+import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -576,15 +576,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       const current = drag.current;
       if (!current || current.id !== event.pointerId) return;
-      const start = screenToSvgPoint(event.currentTarget, current.x, current.y);
-      const end = screenToSvgPoint(event.currentTarget, event.clientX, event.clientY);
-      if (!start || !end) return;
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
+      const delta = screenDragDelta(event.currentTarget, current.x, current.y, event.clientX, event.clientY, zoom);
+      if (!delta) return;
+      const { x: dx, y: dy } = delta;
       if (current.groupId) {
-       const nextX = Math.max(0, current.initial.x + dx / zoom);
-       const nextY = Math.max(0, current.initial.y + dy / zoom);
-       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx / zoom), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy / zoom) } : { ...item, x: nextX, y: nextY } : item));
+       const nextX = Math.max(0, current.initial.x + dx);
+       const nextY = Math.max(0, current.initial.y + dy);
+       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy) } : { ...item, x: nextX, y: nextY } : item));
        // 領域移動時は所属ノードだけをドラッグ開始時の座標から同量移動する。
        if (!current.resizeGroup && current.initialMembers?.length) {
         const memberPositions = new Map(current.initialMembers.map(item => [item.id, item]));
@@ -594,8 +592,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         }));
        }
       } else if (current.actorId) {
-       const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx / zoom));
-       const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy / zoom));
+       const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx));
+       const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy));
        changeActor(current.actorId, { position: { x, y } });
       } else {
        setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
