@@ -16,7 +16,7 @@ const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(val
 const playbackSpeeds: PlaybackSpeed[] = [0.5, 1, 1.5, 2];
 const palette = { technical: { bg: 0x0a1427, node: 0x17375a, border: 0x38bdf8, line: 0x2b648a, text: 0xe2f2ff }, illustration: { bg: 0xf0f5fc, node: 0xffffff, border: 0x5b83d7, line: 0x9ab6d7, text: 0x263d62 } };
 /** PixiJS描画担当。Reactの状態はstateRef経由でTickerに渡し、再生中の再初期化を防ぐ。 */
-function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void }) {
+function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, onPan, onZoom, onFinished, onSelectActor }: { scenario: Scenario; step: number; mode: Mode; theme: Theme; playing: boolean; speed: PlaybackSpeed; focus: boolean; zoom: number; pan: {x:number;y:number}; onPan: (value: {x:number;y:number}) => void; onZoom: (value: number) => void; onFinished: () => void; onSelectActor: (id: string) => void }) {
  const host = useRef<HTMLDivElement>(null);
  const appRef = useRef<Application | null>(null);
  const layerRef = useRef<Container | null>(null);
@@ -27,6 +27,8 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
  const stateRef = useRef({ playing, speed, onFinished });
  const [ready, setReady] = useState(false);
  const pointerRef = useRef<{ id: number; x: number; y: number; pan: {x:number;y:number} } | null>(null);
+ const selectActorRef = useRef(onSelectActor);
+ selectActorRef.current = onSelectActor;
  const viewportRef = useRef({zoom, pan, onPan, onZoom});
  viewportRef.current = {zoom, pan, onPan, onZoom};
  // PixiJSキャンバス上のCtrl+ホイールは画面全体でなくフロー図のみ拡縮する。
@@ -215,6 +217,10 @@ function Scene({ scenario, step, mode, theme, playing, speed, focus, zoom, pan, 
     .fill(actor.color ? Number.parseInt(actor.color.slice(1), 16) : (active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node))
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
    if (focus && !active) g.alpha = 0.38;
+   // ノードの矩形全体を選択可能にする。表示モードに依存しない。
+   g.eventMode = 'static';
+   g.cursor = 'pointer';
+   g.on('pointertap', () => selectActorRef.current(actor.id));
    layer.addChild(g);
    // 表示アイコンはYAMLのiconを優先し、未指定ならtypeの標準アイコンを使う。
    // SVG画面と同じベクター定義をPixiJS Graphicsで描画する。
@@ -312,6 +318,7 @@ export default function App() {
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
  const [selected, setSelected] = useState('');
  const [scenario, setScenario] = useState<Scenario | null>(null);
+ const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
  // 再生開始前に決定する分岐の選択。変更時は再生位置を先頭へ戻す。
  const [branchChoices, setBranchChoices] = useState<Record<string, string>>({});
  const [error, setError] = useState('');
@@ -352,7 +359,7 @@ export default function App() {
    .catch(error => { if (!cancelled) setError(String(error)); });
   return () => { cancelled = true; };
  }, []);
- useEffect(() => { if (!selected) return; setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
+ useEffect(() => { if (!selected) return; setSelectedActorId(null); setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
  const [finished, setFinished] = useState(false);
  const routes = scenario ? playbackSteps(scenario.actors, scenario.steps, branchChoices) : [];
@@ -440,7 +447,17 @@ export default function App() {
         {group.options.map(option => <option key={option.id} value={option.id}>{option.branchLabel || option.title}</option>)}
        </select>
       </label>)}
-     </div>}<div className="scene-action-bar"><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={resetViewport}>等倍</button><span className="viewport-hint">ドラッグで移動 / Ctrl + ホイールで拡大・縮小</span></div><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === routes.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {routes.length}</span></div></div><div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance}/></div><div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
+     </div>}<div className="scene-action-bar"><div className="viewport-controls" role="group" aria-label="表示倍率と移動"><button type="button" onClick={() => setZoom(v => clampZoom(v / 1.2))} aria-label="縮小">−</button><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => setZoom(v => clampZoom(v * 1.2))} aria-label="拡大">＋</button><button type="button" onClick={resetViewport}>等倍</button><span className="viewport-hint">ドラッグで移動 / Ctrl + ホイールで拡大・縮小</span></div><div className="controls"><button onClick={() => { setPlaying(false); setFinished(false); setStep(0); }}>↺</button><button disabled={step === 0} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i - 1); }}>◀ 前へ</button><button onClick={togglePlayback}>{playing ? '⏸ 一時停止' : finished ? '↺ 最初から再生' : '▶ 再生'}</button><button disabled={step === routes.length - 1} onClick={() => { setPlaying(false); setFinished(false); setStep(i => i + 1); }}>次へ ▶</button><div className="playback-speed" role="group" aria-label="再生速度"><span className="playback-speed-label">再生速度</span><div className="speed-options">{playbackSpeeds.map(value => <button type="button" key={value} className={speed === value ? "selected" : ""} aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>)}</div></div><span>STEP {step + 1} / {routes.length}</span></div></div><div className="scene-size-wrapper" aria-label="右下をドラッグして表示領域の幅と高さを変更できます"><Scene scenario={visibleScenario} step={step} mode={mode} theme={theme} playing={playing} speed={speed} focus={focus} zoom={zoom} pan={pan} onPan={setPan} onZoom={setZoom} onFinished={advance} onSelectActor={setSelectedActorId}/></div>{selectedActorId && scenario.actors.some(actor => actor.id === selectedActorId) && (() => {
+       const actor = scenario.actors.find(item => item.id === selectedActorId)!;
+       const fields: [string, string | undefined][] = [['種類', actor.type], ['説明', actor.description], ['環境', actor.environment], ['接続先・URL', actor.endpoint], ['インスタンス名', actor.instanceName], ['IPアドレス', actor.ip], ['タグ', actor.tags?.join(', ')], ['関連資料', actor.documents?.join(', ')]];
+       return <div className="node-details-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedActorId(null); }}><aside className="node-details-panel" role="dialog" aria-modal="true" aria-label={`${actor.name}の詳細`}>
+        <div className="node-details-heading"><h2>{actor.name}</h2><button type="button" onClick={() => setSelectedActorId(null)} aria-label="閉じる">✕</button></div>
+        <p><strong>Actor ID</strong>：{actor.id}</p>
+        {actor.color && <p><strong>ノード色</strong>：<span className="node-details-swatch" style={{backgroundColor: actor.color}}/> {actor.color}</p>}
+        {fields.filter(([,value]) => Boolean(value)).map(([label,value]) => <p key={label}><strong>{label}</strong>：{value}</p>)}
+       </aside></div>;
+      })()}
+      <div className="steps">{routes.map((s, i) => <button key={s.id} className={i === step ? 'selected' : ''} onClick={() => { setPlaying(false); setFinished(false); setStep(i); }}>{i + 1}. {s.title}</button>)}</div><section className="explanation"><h2>{current.title}</h2><p>{current.description}</p><code>{current.actions[0].payload}</code></section></>}
    </main>
   </div>
  </div>;
