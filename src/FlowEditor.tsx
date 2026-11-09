@@ -241,8 +241,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const referencedActorIds = new Set(templateReferences.flatMap(item => item.actorIds));
  const referencedStepIds = new Set(templateReferences.flatMap(item => item.stepIds));
  const yamlActors = normalizedActors.filter(item => !referencedActorIds.has(item.id));
- const yamlSteps: Array<Step | { file: string }> = normalizedSteps.filter(item => !referencedStepIds.has(item.id));
- for (const reference of templateReferences) yamlSteps.push({ file: reference.file });
+ const yamlSteps: Array<Step | { file: string }> = [];
+ const inserted = new Set<string>();
+ for (const item of normalizedSteps) {
+  const reference = templateReferences.find(entry => entry.stepIds.includes(item.id));
+  if (!reference) { yamlSteps.push(item); continue; }
+  if (!inserted.has(reference.file)) { yamlSteps.push({ file: reference.file }); inserted.add(reference.file); }
+ }
+ for (const reference of templateReferences) if (!inserted.has(reference.file)) { yamlSteps.push({ file: reference.file }); inserted.add(reference.file); }
  const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: yamlActors, steps: yamlSteps }, { lineWidth: 0 });
   // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
   const filename = scenarioPath
