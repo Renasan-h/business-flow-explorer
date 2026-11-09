@@ -70,7 +70,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
    const resizeRenderer = () => {
     const width = Math.max(1, Math.round(hostElement.clientWidth));
     const height = Math.max(1, Math.round(hostElement.clientHeight));
-    if (app.renderer.width !== width || app.renderer.height !== height) {
+    if (app.renderer.screen.width !== width || app.renderer.screen.height !== height) {
      app.renderer.resize(width, height);
     }
    };
