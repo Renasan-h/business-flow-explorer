@@ -5,6 +5,7 @@ import { iconCommands, illustrationIconCommands } from '../nodeIconShapes';
 import type { Scenario } from '../scenario';
 import type { Mode, Theme, PlaybackSpeed } from './types';
 
+const clampZoom = (value: number) => Math.max(0.35, Math.min(2.5, Math.round(value * 100) / 100));
 const VIEW_WIDTH = 1100;
 const VIEW_HEIGHT = 620;
 const NODE_WIDTH = 150;
