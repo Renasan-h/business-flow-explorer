@@ -729,6 +729,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       })()}
       {tool === 'multi' && marquee.current && marqueeEnd && <rect className="editor-selection-marquee" x={Math.min(marquee.current.start.x, marqueeEnd.x)} y={Math.min(marquee.current.start.y, marqueeEnd.y)} width={Math.abs(marqueeEnd.x - marquee.current.start.x)} height={Math.abs(marqueeEnd.y - marquee.current.start.y)} pointerEvents="none"/>}
 
+       <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
      </g>
     </svg>
     {contextMenu && <div className="editor-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}
@@ -781,4 +782,4 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
  </div>;
-}       <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
+}
