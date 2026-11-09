@@ -89,7 +89,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
   Object.fromEntries(initial.actors.map((actor, index) => [actor.id, index + 1])));
 
- const drag = useRef<{ id: number; actorId: string | null; groupId?: string; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
+ const drag = useRef<{ id: number; actorId: string | null; groupId?: string; resizeGroup?: boolean; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
  const activeActor = actors.find(actor => actor.id === selectedActor);
  const activeStep = steps.find(step => step.id === selectedStep);
 
@@ -388,13 +388,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (tool !== 'move') return;
-      const groupId = target.closest('[data-group-id]')?.getAttribute('data-group-id') ?? null;
+      const resizeHandle = target.closest('[data-group-resize]');
+      const groupId = (resizeHandle ?? target.closest('[data-group-id]'))?.getAttribute(resizeHandle ? 'data-group-resize' : 'data-group-id') ?? null;
       const group = groups.find(item => item.id === groupId);
       if (group) {
        setSelectedGroup(group.id);
        setSelectedActor(null);
        setSelectedStep(null);
-       drag.current = { id: event.pointerId, actorId: null, groupId: group.id, x: event.clientX, y: event.clientY, initial: { x: group.x, y: group.y }, offset };
+       drag.current = { id: event.pointerId, actorId: null, groupId: group.id, resizeGroup: Boolean(resizeHandle), initialSize: { width: group.width, height: group.height }, x: event.clientX, y: event.clientY, initial: { x: group.x, y: group.y }, offset };
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
@@ -435,7 +436,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       if (current.groupId) {
-       setGroups(items => items.map(item => item.id === current.groupId ? { ...item, x: Math.max(0, current.initial.x + dx / zoom), y: Math.max(0, current.initial.y + dy / zoom) } : item));
+       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx / zoom), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy / zoom) } : { ...item, x: Math.max(0, current.initial.x + dx / zoom), y: Math.max(0, current.initial.y + dy / zoom) } : item));
       } else if (current.actorId) {
        const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx / zoom));
        const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy / zoom));
@@ -460,7 +461,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      }}
      onPointerCancel={() => { drag.current = null; wirePointer.current = null; setWire(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
-      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="14" fill={group.color ?? '#2563eb'} fillOpacity=".08" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 4 : 2} strokeDasharray="12 6"/><text x={group.x + 15} y={group.y + 26} fill={group.color ?? '#2563eb'} fontWeight="bold" fontSize="20">{group.name}</text></g>)}
+      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="14" fill={group.color ?? '#2563eb'} fillOpacity=".08" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 4 : 2} strokeDasharray="12 6"/><text x={group.x + 15} y={group.y + 26} fill={group.color ?? '#2563eb'} fontWeight="bold" fontSize="20">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
        {steps.slice(0, -1).map((step, index) => {
         const from = orderPoint(step);
