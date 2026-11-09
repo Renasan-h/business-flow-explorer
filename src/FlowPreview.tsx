@@ -175,7 +175,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        const active = actor.id === action?.from || actor.id === action?.to;
        return <g key={actor.id} opacity={active || allLines || !action ? 1 : .35}>
         <rect x={actor.position.x - W / 2} y={actor.position.y - H / 2} width={W} height={H} rx="12"
-         fill={active ? '#205a83' : '#20314a'} stroke={active ? '#22d3ee' : '#7398c9'} strokeWidth={active ? 3 : 1.5}/>
+         fill={actor.color ?? (active ? '#205a83' : '#20314a')} stroke={active ? '#22d3ee' : '#7398c9'} strokeWidth={active ? 3 : 1.5}/>
         <NodeIcon type={actor.type} x={actor.position.x} y={actor.position.y - 9} size={30} color="#f0f6ff"/>
         <text x={actor.position.x} y={actor.position.y + 19} fill="#f0f6ff" textAnchor="middle" fontSize="12">{actor.name.length > 13 ? actor.name.slice(0, 12) + '…' : actor.name}</text>
        </g>;
@@ -184,7 +184,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, onClose, o
        cy={pointOnRoute(activeRoute, progress).y} r="10" fill="#22d3ee" stroke="#fff" strokeWidth="2"/>}
      </g>
     </svg>
-    <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{action?.payload}</p></div>
+    <div className="preview-step-info"><strong>{step ? `${index + 1} / ${steps.length}　${step.title}` : '通信ステップがありません'}</strong><p>{step?.description}</p><p>{returning ? (step?.reversePayload ?? action?.payload) : action?.payload}</p>{(returning ? step?.reverseIf : step?.forwardIf) && <p>IF資料: {returning ? step?.reverseIf : step?.forwardIf}</p>}</div>
    </div>
    <aside className="preview-steps"><h3>再生ステップ</h3>{steps.map((item, i) =>
     <div key={item.id} className="preview-step-row">
