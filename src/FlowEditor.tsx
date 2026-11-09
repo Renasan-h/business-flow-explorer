@@ -519,7 +519,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       const handle = target.closest('[data-connection-handle]');
-      if (handle) {
+      if (handle && tool !== 'multi') {
        const from = handle.getAttribute('data-connection-handle');
        if (!from) return;
        wirePointer.current = event.pointerId;
@@ -700,7 +700,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      }}
      onPointerCancel={() => { marquee.current = null; setMarqueeEnd(null); multiDrag.current = null; waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
-      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="8" fill={group.color ?? '#2563eb'} fillOpacity=".045" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 2 : 1}/><rect x={group.x + 10} y={group.y - 30} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="31" rx="8" fill={group.color ?? '#2563eb'} stroke={group.color ?? '#2563eb'} strokeWidth="1"/><rect x={group.x + 10} y={group.y - 9} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="10" fill={group.color ?? '#2563eb'}/><text x={group.x + 24} y={group.y - 9} fill="#ffffff" fontWeight="600" fontSize="15">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
+      {groups.map(group => <g key={group.id} data-group-id={group.id} className="editor-group" onClick={event => { event.stopPropagation(); if (tool === 'multi') return; setSelectedGroup(group.id); setSelectedActor(null); setSelectedStep(null); }}><rect x={group.x} y={group.y} width={group.width} height={group.height} rx="8" fill={group.color ?? '#2563eb'} fillOpacity=".045" stroke={group.color ?? '#2563eb'} strokeWidth={selectedGroup === group.id ? 2 : 1}/><rect x={group.x + 10} y={group.y - 30} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="31" rx="8" fill={group.color ?? '#2563eb'} stroke={group.color ?? '#2563eb'} strokeWidth="1"/><rect x={group.x + 10} y={group.y - 9} width={Math.min(group.width - 20, Math.max(120, group.name.length * 13 + 36))} height="10" fill={group.color ?? '#2563eb'}/><text x={group.x + 24} y={group.y - 9} fill="#ffffff" fontWeight="600" fontSize="15">{group.name}</text><rect data-group-resize={group.id} x={group.x + group.width - 22} y={group.y + group.height - 22} width="22" height="22" rx="4" fill={group.color ?? '#2563eb'} className="editor-group-resize"/></g>)}
       {orderMode && <g className="editor-playback-order" aria-label="再生順序線">
        {steps.slice(0, -1).map((step, index) => {
         const from = orderPoint(step);
@@ -734,7 +734,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         ? routeConnection(actors, step.reverseFrom, step.reverseTo, step.routing ?? 'straight') : [];
        const reversePath = routePath(offsetRoute(reversePoints, -12));
        const middle = pointOnRoute(forward, .5);
-       return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); setSelectedStep(step.id); setSelectedActor(null); setSelectedGroup(null); }}>
+       return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); if (tool === 'multi') return; setSelectedStep(step.id); setSelectedActor(null); setSelectedGroup(null); }}>
         <path d={path} fill="none" stroke="transparent" strokeWidth="18"/>
         {step.bidirectional && <path d={reversePath} fill="none" stroke="transparent" strokeWidth="18"/>}
         <path d={path} fill="none" stroke={active ? '#22d3ee' : '#7b94b3'} strokeWidth={active ? 4 : 2} opacity={active ? 1 : .55}/>
