@@ -14,7 +14,7 @@ export default function TemplateImportDialog({ path, file, error, onPathChange, 
  return <>
   {<div className="template-import-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
        <section className="template-import-dialog" role="dialog" aria-modal="true" aria-labelledby="template-import-title">
-    <button type="button" className="template-import-close" aria-label="閉じる" onClick={() => onClose()}>×</button>
+    <button type="button" className="template-import-close icon-close-button" aria-label="閉じる" onClick={() => onClose()}>×</button>
     <div className="template-import-source">
      <label id="template-import-title" className="template-import-title">テンプレートの読み込み</label>
      <div className="template-import-file">
