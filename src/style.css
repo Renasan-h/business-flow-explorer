@@ -534,3 +534,8 @@ aside button.icon-close-button,
 .scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center;flex:0 0 34px;width:34px;min-width:34px;max-width:34px;height:34px;min-height:34px;padding:0;margin:0;border-radius:8px;line-height:1;font-size:20px;white-space:nowrap}
 .node-details-heading{min-width:0}
 .node-details-heading h2{min-width:0;overflow-wrap:anywhere}
+
+/* 再生キャンバスの比率を維持し、CSSによる非等方スケールや文字の補間を避ける。 */
+.scene-size-wrapper .scene{display:flex;align-items:center;justify-content:center}
+.scene-size-wrapper .scene canvas{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;flex:none}
+.app .explanation,.app .steps,.app .scene-toolbar{filter:none;transform:none}
