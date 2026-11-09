@@ -66,8 +66,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
  // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
+ // 編集中の実データを基準に初期スナップショットを作る。
+ // initial と編集用stateで配列の正規化状態が異なる場合も誤検知しない。
  const snapshot = () => JSON.stringify({ actors, steps, metadata, groups, interfaces, templateReferences });
- const savedSnapshot = useRef(JSON.stringify({ actors: initial.actors, steps: initial.steps, metadata: initial.metadata, groups: initial.groups ?? [], interfaces: initial.interfaces ?? [], templateReferences: [] }));
+ const savedSnapshot = useRef<string | null>(null);
+ if (savedSnapshot.current === null) savedSnapshot.current = snapshot();
  // 保存・破棄・キャンセルを順に確認する。保存が失敗・中断された場合は編集画面に留まる。
  const requestExit = async () => {
   if (snapshot() === savedSnapshot.current) { onClose(); return; }
@@ -263,6 +266,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  };
  /** 入力検証後にYAMLを書き出す。GitHubやシナリオ一覧の自動更新は行わない。 */
  const save = async (): Promise<boolean> => {
+  // 保存ダイアログ表示中の状態変化に左右されないよう、保存対象を固定する。
+  const snapshotAtSave = snapshot();
   setMessage('');
   if (actors.length < 2 || steps.length === 0) { setMessage('保存にはノード2件以上と通信1件以上が必要です。'); return false; }
   const ids = new Set(actors.map(actor => actor.id));
@@ -319,7 +324,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     URL.revokeObjectURL(url);
     setMessage('YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
    }
-   savedSnapshot.current = snapshot();
+   savedSnapshot.current = snapshotAtSave;
    return true;
   } catch (error) {
    if (error instanceof Error && error.name === 'AbortError') return false;
