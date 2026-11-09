@@ -510,3 +510,12 @@ html,body,#root{height:100%;overflow:hidden}
 .if-definition-backdrop>.if-definition-drawer{position:relative;inset:auto;transform:none;margin:0;width:min(460px,92vw);max-width:92vw;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;border-radius:0;border-right:1px solid var(--panel-border,#344765);box-shadow:8px 0 32px #0007;background:var(--page,#0b1220);color:var(--text,#e4edfa);padding:20px}
 .if-definition-drawer p{overflow-wrap:anywhere}
 @media(max-width:600px){.if-definition-backdrop>.if-definition-drawer{width:min(420px,94vw);max-width:94vw;padding:14px}}
+
+/* 複数選択ツールの説明は操作ボタンの上に遅延表示する。 */
+.editor-tool-tooltip-anchor{position:relative;display:inline-flex;align-items:center;isolation:isolate}
+.editor-tool-tooltip-anchor>button{width:100%}
+.editor-tool-tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translate(-50%,5px);width:max-content;max-width:min(380px,85vw);padding:9px 12px;border-radius:8px;border:1px solid var(--panel-border,#344765);background:var(--page,#0b1220);color:var(--text,#e4edfa);box-shadow:0 8px 22px #0007;font-size:12px;line-height:1.6;white-space:normal;overflow-wrap:anywhere;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;transition-delay:0s;z-index:2000}
+.editor-tool-tooltip-anchor:hover .editor-tool-tooltip,.editor-tool-tooltip-anchor:focus-within .editor-tool-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:.55s,.55s,0s}
+.editor-title-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;min-width:0}
+.editor-title-line h2{margin:0}
+.editor-target-path{font-size:12px;color:var(--secondary,#8ca3c0);overflow-wrap:anywhere}
