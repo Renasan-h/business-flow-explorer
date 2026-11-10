@@ -60,7 +60,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [orderCollapsed, setOrderCollapsed] = useState(false);
  const canvasRef = useRef<HTMLDivElement>(null);
  // 複数選択の一時的なポインター状態は専用フックで管理する。
- const { marquee, marqueeEnd, setMarqueeEnd, multiDrag } = useMultiSelectionPointerState();
+ const { marquee, marqueeEnd, setMarqueeEnd, multiDrag, reset: resetMultiSelectionPointer } = useMultiSelectionPointerState();
  const [source, setSource] = useState<string | null>(null);
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
@@ -631,7 +631,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       if (drag.current?.id === event.pointerId) drag.current = null;
      }}
-     onPointerCancel={() => { marquee.current = null; setMarqueeEnd(null); multiDrag.current = null; waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
+     onPointerCancel={() => { resetMultiSelectionPointer(); waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       <EditorGroups groups={groups} selectedGroup={selectedGroup} tool={tool} onSelect={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); }}/>
       <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
