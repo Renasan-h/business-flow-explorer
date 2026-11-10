@@ -434,12 +434,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)}/>}
   {interfacePanel && <InterfaceDefinitionDialog interfaceId={interfacePanel} interfaces={interfaces} setInterfaces={setInterfaces} onClose={() => setInterfacePanel(null)} onImportFields={importInterfaceFields}/>}
   <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
-   <EditorCanvas canvasRef={canvasRef}>
-    <svg ref={svgRef} onContextMenu={event => {
+   <EditorCanvas canvasRef={canvasRef} onContextMenu={event => {
+     if ((event.target as Element).closest('.editor-context-menu')) return;
      event.preventDefault();
      const target = event.target as Element;
      const { actorId, groupId, stepId } = resolveEditorSelection(target);
-     const canvas = event.currentTarget.parentElement!.getBoundingClientRect();
+     const canvas = event.currentTarget.getBoundingClientRect();
      const menuWidth = 190;
      const menuHeight = actorId ? 150 : stepId ? 100 : 100;
      setContextMenu({
@@ -450,7 +450,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      if (actorId) { setSelectedActor(actorId); setSelectedStep(null); setSelectedGroup(null); }
      else if (stepId) { setSelectedStep(stepId); setSelectedActor(null); setSelectedGroup(null); }
      else if (groupId) { setSelectedGroup(groupId); setSelectedActor(null); setSelectedStep(null); }
-    }} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
+    }}>
+    <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="編集可能なノード接続図"
      onPointerDown={event => {
       if (event.button !== 0) return;
       const target = event.target as Element;
