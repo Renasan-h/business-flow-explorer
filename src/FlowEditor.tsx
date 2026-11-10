@@ -129,9 +129,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
   const number = nextNodeNumber.current++;
   setNodeNumbers(current => ({ ...current, [id]: number }));
-  const canvas = canvasRef.current;
-  const rect = canvas?.getBoundingClientRect();
-  const center = rect ? toWorld(rect.left + rect.width / 2, rect.top + rect.height / 2) : { x: WIDTH / 2, y: HEIGHT / 2 };
+  // ノードと領域の新規作成で、表示中キャンバスの中心座標を共通利用する。
+  const center = visibleCanvasCenter(svgRef.current, canvasRef.current, offset, zoom, { x: WIDTH / 2, y: HEIGHT / 2 });
   const position = { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, center.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, center.y)) };
   setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position }]);
   setSelectedActor(id);
