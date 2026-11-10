@@ -211,9 +211,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setMessage('ノードと関連する通信を削除しました。');
  };
  /** 再生順一覧・通信設定の双方で同じ削除処理を使用する。 */
- const deleteStep = (id: string) => {
+ const deleteStep = (id: string, skipConfirmation = false) => {
   const target = steps.find(step => step.id === id);
-  if (!target || !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`)) return;
+  if (!target || (!skipConfirmation && !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`))) return;
   setSteps(current => current.filter(step => step.id !== id));
   setSelectedStep(current => current === id ? null : current);
   setSelectedGroup(null);
@@ -688,7 +688,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onEditGroup={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); setContextMenu(null); }}
      onDeleteGroup={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); setContextMenu(null); }}
      onEditStep={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}
-     onDeleteStep={id => { deleteStep(id); setContextMenu(null); }}
+     onDeleteStep={id => { deleteStep(id, true); setContextMenu(null); }}
      onAddWaypoint={addWaypoint}
      onRemoveWaypoints={removeWaypoints}
      waypointDirections={{ reverse: Boolean(steps.find(step => step.id === contextMenu?.stepId)?.bidirectional), forwardCount: steps.find(step => step.id === contextMenu?.stepId)?.waypoints?.length ?? 0, reverseCount: steps.find(step => step.id === contextMenu?.stepId)?.reverseWaypoints?.length ?? 0 }}
