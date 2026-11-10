@@ -172,9 +172,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setMessage('ノードを複製しました。通信線は引き継がれません。');
  };
  /** ノード削除は画面上の×・右クリック・設定欄で共通化する。関連通信も同時に削除する。 */
- const deleteActor = (id: string) => {
+ const deleteActor = (id: string, skipConfirmation = false) => {
   const target = actors.find(actor => actor.id === id);
-  if (!target || !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`)) return;
+  if (!target || (!skipConfirmation && !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`))) return;
   setActors(current => current.filter(actor => actor.id !== id));
   setSteps(current => current.filter(step => step.actions.every(action => action.from !== id && action.to !== id) && step.reverseFrom !== id && step.reverseTo !== id));
   setSelectedActor(current => current === id ? null : current);
@@ -658,7 +658,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     <EditorContextMenu menu={contextMenu}
      onEditActor={id => { setSelectedActor(id); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}
      onDuplicateActor={id => { duplicateActor(id); setContextMenu(null); }}
-     onDeleteActor={id => { deleteActor(id); setContextMenu(null); }}
+     onDeleteActor={id => { deleteActor(id, true); setContextMenu(null); }}
      onEditGroup={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); setContextMenu(null); }}
      onDeleteGroup={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); setContextMenu(null); }}
      onEditStep={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}
