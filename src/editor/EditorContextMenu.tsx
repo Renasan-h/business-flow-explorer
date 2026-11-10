@@ -7,7 +7,7 @@ export type EditorContextMenuState = {
  groupId: string | null;
 };
 
-export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor, onDeleteActor, onEditGroup, onDeleteGroup, onEditStep, onDeleteStep, onAddActor, onResetView }: {
+export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor, onDeleteActor, onEditGroup, onDeleteGroup, onEditStep, onDeleteStep, onAddWaypoint, onRemoveWaypoints, onAddActor, onResetView, waypointDirections }: {
  menu: EditorContextMenuState | null;
  onEditActor: (id: string) => void;
  onDuplicateActor: (id: string) => void;
@@ -16,6 +16,9 @@ export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor,
  onDeleteGroup: (id: string) => void;
  onEditStep: (id: string) => void;
  onDeleteStep: (id: string) => void;
+ onAddWaypoint: (id: string, direction: 'forward' | 'reverse') => void;
+ onRemoveWaypoints: (id: string, direction: 'forward' | 'reverse') => void;
+ waypointDirections: { reverse: boolean; forwardCount: number; reverseCount: number };
  onAddActor: () => void;
  onResetView: () => void;
 }) {
@@ -30,6 +33,10 @@ export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor,
    <button type="button" role="menuitem" className="danger" onClick={() => onDeleteGroup(menu.groupId!)}>領域を削除</button>
   </> : menu.stepId ? <>
    <button type="button" role="menuitem" onClick={() => onEditStep(menu.stepId!)}>通信を編集</button>
+   <button type="button" role="menuitem" onClick={() => onAddWaypoint(menu.stepId!, 'forward')}>往路の経由点を追加</button>
+   {waypointDirections.forwardCount > 0 && <button type="button" role="menuitem" onClick={() => onRemoveWaypoints(menu.stepId!, 'forward')}>往路の経由点を解除</button>}
+   {waypointDirections.reverse && <button type="button" role="menuitem" onClick={() => onAddWaypoint(menu.stepId!, 'reverse')}>復路の経由点を追加</button>}
+   {waypointDirections.reverseCount > 0 && <button type="button" role="menuitem" onClick={() => onRemoveWaypoints(menu.stepId!, 'reverse')}>復路の経由点を解除</button>}
    <button type="button" role="menuitem" className="danger" onClick={() => onDeleteStep(menu.stepId!)}>通信を削除</button>
   </> : <>
    <button type="button" role="menuitem" onClick={onAddActor}>ノードを追加</button>
