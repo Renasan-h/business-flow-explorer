@@ -22,6 +22,7 @@ import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { validateEditorScenario } from './editor/validateEditorScenario';
+import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 
 type Actor = Scenario['actors'][number];
@@ -275,9 +276,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  for (const reference of templateReferences) if (!inserted.has(reference.file)) { yamlSteps.push({ file: reference.file }); inserted.add(reference.file); }
  const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: yamlActors, steps: yamlSteps }, { lineWidth: 0 });
   // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
-  const filename = scenarioPath
-   ? (decodeURIComponent(scenarioPath.split('/').pop() ?? '') || 'scenario.yaml')
-   : (metadata.id.replace(/[^a-zA-Z0-9_-]/g, '-') || 'scenario') + '.yaml';
+  const filename = editorScenarioFilename(scenarioPath, metadata.id);
   try {
    const picker = (window as Window & FilePicker).showSaveFilePicker;
    if (picker) {
