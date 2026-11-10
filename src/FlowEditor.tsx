@@ -124,6 +124,29 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const action = step.actions[0];
   return { ...step, bidirectional: true, reverseFrom: step.reverseFrom || action?.to || '', reverseTo: step.reverseTo || action?.from || '' };
  }));
+ /** 接続元・接続先ノードの中点に経由点を追加する。 */
+ const addWaypoint = (id: string, direction: 'forward' | 'reverse') => {
+  const step = steps.find(item => item.id === id);
+  if (!step) return;
+  const action = step.actions[0];
+  const fromId = direction === 'reverse' ? step.reverseFrom : action?.from;
+  const toId = direction === 'reverse' ? step.reverseTo : action?.to;
+  if (!fromId || !toId || (direction === 'reverse' && !step.bidirectional)) return;
+  const from = actors.find(actor => actor.id === fromId);
+  const to = actors.find(actor => actor.id === toId);
+  if (!from || !to) return;
+  const field = direction === 'reverse' ? 'reverseWaypoints' : 'waypoints';
+  const existing = step[field] ?? [];
+  if (existing.length >= 100) return;
+  const midpoint = { x: (from.position.x + to.position.x) / 2, y: (from.position.y + to.position.y) / 2 };
+  changeStep(id, { routing: 'orthogonal', [field]: [...existing, midpoint] });
+  setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null);
+ };
+ /** 指定方向の経由点を解除する。 */
+ const removeWaypoints = (id: string, direction: 'forward' | 'reverse') => {
+  changeStep(id, direction === 'reverse' ? { reverseWaypoints: [] } : { waypoints: [] });
+  setContextMenu(null);
+ };
  /** 一意なIDを生成してノードを追加し、追加直後に設定欄へフォーカスする。 */
  const addActor = () => {
   const id = 'actor-' + crypto.randomUUID().slice(0, 8);
@@ -663,6 +686,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onDeleteGroup={id => { setGroups(items => items.filter(item => item.id !== id)); setSelectedGroup(null); setContextMenu(null); }}
      onEditStep={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null); }}
      onDeleteStep={id => { deleteStep(id); setContextMenu(null); }}
+     onAddWaypoint={addWaypoint}
+     onRemoveWaypoints={removeWaypoints}
+     waypointDirections={{ reverse: Boolean(steps.find(step => step.id === contextMenu?.stepId)?.bidirectional), forwardCount: steps.find(step => step.id === contextMenu?.stepId)?.waypoints?.length ?? 0, reverseCount: steps.find(step => step.id === contextMenu?.stepId)?.reverseWaypoints?.length ?? 0 }}
      onAddActor={() => { addActor(); setContextMenu(null); }}
      onResetView={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}/>
    </EditorCanvas>
