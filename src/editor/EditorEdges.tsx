@@ -28,7 +28,9 @@ export default function EditorEdges({ actors, steps, showLines, selectedStep, to
        const path = routePath(forward);
        // 復路は送信先→送信元で経路を再計算する。逆方向の法線で別レーンに配置する。
        const reversePoints = step.bidirectional && step.reverseFrom && step.reverseTo
-        ? routeConnection(actors, step.reverseFrom, step.reverseTo, step.routing ?? 'straight') : [];
+        ? (step.routing === 'orthogonal' && step.reverseWaypoints?.length
+         ? routeViaWaypoints(actors, step.reverseFrom, step.reverseTo, step.reverseWaypoints)
+         : routeConnection(actors, step.reverseFrom, step.reverseTo, step.routing ?? 'straight')) : [];
        const reversePath = routePath(offsetRoute(reversePoints, -12));
        const middle = pointOnRoute(forward, .5);
        return <g key={step.id + '-' + index} data-step-id={step.id} className="editor-edge" onClick={event => { event.stopPropagation(); if (tool === 'multi') return; onSelect(step.id); }}>
@@ -40,6 +42,10 @@ export default function EditorEdges({ actors, steps, showLines, selectedStep, to
          <circle key={waypointIndex} data-waypoint-step={step.id} data-waypoint-index={waypointIndex}
           cx={point.x} cy={point.y} r="10" fill="#f97316" stroke="#fff" strokeWidth="2"
           className="editor-waypoint" aria-label={`経由点 ${waypointIndex + 1}`}/>)}
+        {active && step.bidirectional && step.routing === 'orthogonal' && step.reverseWaypoints?.map((point, waypointIndex) =>
+         <circle key={'reverse-' + waypointIndex} data-waypoint-step={step.id} data-waypoint-direction="reverse" data-waypoint-index={waypointIndex}
+          cx={point.x} cy={point.y} r="10" fill="#a78bfa" stroke="#fff" strokeWidth="2"
+          className="editor-waypoint" aria-label={`復路経由点 ${waypointIndex + 1}`}/>)}
         {step.branchLabel && <g pointerEvents="none">
          <rect x={middle.x - Math.max(32, step.branchLabel.length * 7 / 2 + 8)} y={middle.y - 32} width={Math.max(64, step.branchLabel.length * 7 + 16)} height="22" rx="5" fill="#102c48" stroke="#38bdf8"/>
          <text x={middle.x} y={middle.y - 17} textAnchor="middle" fill="#f0f9ff" fontSize="12">{step.branchLabel}</text>
