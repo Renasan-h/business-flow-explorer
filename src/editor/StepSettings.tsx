@@ -35,6 +35,21 @@ export default function StepSettings({ activeStep, actors, interfaces, changeSte
        }}>＋ 経由点を追加</button>
        {Boolean(activeStep.waypoints?.length) && <button type="button" onClick={() => changeStep(activeStep.id, { waypoints: [] })}>自動配線に戻す</button>}
       </div>}
+     {activeStep.bidirectional && activeStep.routing === 'orthogonal' && <div className="editor-waypoint-settings">
+      <strong>復路の折れ線経由点（手動）</strong>
+      <p>紫色の点をドラッグして復路の経由点を調整できます。往路とは独立して保存されます。</p>
+      {(activeStep.reverseWaypoints ?? []).map((point, index) => <div key={index} className="editor-waypoint-row">
+       <span>復路経由点 {index + 1}（{Math.round(point.x)}, {Math.round(point.y)}）</span>
+       <button type="button" onClick={() => changeStep(activeStep.id, { reverseWaypoints: (activeStep.reverseWaypoints ?? []).filter((_, i) => i !== index) })}>削除</button>
+      </div>)}
+      <button type="button" disabled={(activeStep.reverseWaypoints?.length ?? 0) >= 100} onClick={() => {
+       if (!activeStep.reverseFrom || !activeStep.reverseTo) return;
+       const points = routeConnection(actors, activeStep.reverseFrom, activeStep.reverseTo, 'orthogonal');
+       const point = pointOnRoute(points, .5);
+       changeStep(activeStep.id, { reverseWaypoints: [...(activeStep.reverseWaypoints ?? []), point] });
+      }}>＋ 復路経由点を追加</button>
+      {Boolean(activeStep.reverseWaypoints?.length) && <button type="button" onClick={() => changeStep(activeStep.id, { reverseWaypoints: [] })}>復路を自動配線に戻す</button>}
+     </div>}
      {actors.some(actor => actor.type === 'decision' && activeStep.actions.some(action => action.from === actor.id)) && <label>分岐条件（例: Yes / No、成功 / 失敗）
       <input value={activeStep.branchLabel ?? ''} onChange={e => changeStep(activeStep.id, { branchLabel: e.target.value || undefined })} placeholder="この経路を通る条件"/>
      </label>}
