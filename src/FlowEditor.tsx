@@ -18,6 +18,7 @@ import EditorEdges from './editor/EditorEdges';
 import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
+import { resolveWaypointHandle } from './editor/resolveWaypointHandle';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
@@ -453,13 +454,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerDown={event => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      const waypointHandle = target.closest('[data-waypoint-index]');
-      if (waypointHandle) {
-       const stepId = waypointHandle.getAttribute('data-waypoint-step');
-       const index = Number(waypointHandle.getAttribute('data-waypoint-index'));
-       if (stepId && Number.isInteger(index)) {
-        waypointDrag.current = { pointerId: event.pointerId, stepId, index };
-        setSelectedStep(stepId); setSelectedActor(null); setSelectedGroup(null);
+      if (target.closest('[data-waypoint-index]')) {
+       const waypoint = resolveWaypointHandle(target);
+       if (waypoint) {
+        waypointDrag.current = { pointerId: event.pointerId, ...waypoint };
+        setSelectedStep(waypoint.stepId); setSelectedActor(null); setSelectedGroup(null);
         event.currentTarget.setPointerCapture(event.pointerId);
        }
        return;
