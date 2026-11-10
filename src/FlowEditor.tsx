@@ -446,12 +446,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      event.preventDefault();
      const target = event.target as Element;
      const { actorId, groupId, stepId } = resolveEditorSelection(target);
-     const canvas = event.currentTarget.getBoundingClientRect();
+     // メニューはfixed表示するため、スクロール位置に依存しない画面座標を使う。
      const menuWidth = 190;
      const menuHeight = actorId ? 150 : stepId ? 100 : 100;
      setContextMenu({
-      x: Math.max(0, Math.min(event.clientX - canvas.left, canvas.width - menuWidth)),
-      y: Math.max(0, Math.min(event.clientY - canvas.top, canvas.height - menuHeight)),
+      x: Math.max(0, Math.min(event.clientX, window.innerWidth - menuWidth)),
+      y: Math.max(0, Math.min(event.clientY, window.innerHeight - menuHeight)),
       actorId, stepId, groupId,
      });
      if (actorId) { setSelectedActor(actorId); setSelectedStep(null); setSelectedGroup(null); }
