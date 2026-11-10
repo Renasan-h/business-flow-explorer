@@ -24,5 +24,11 @@ export function useMultiSelectionPointerState() {
  const marquee = useRef<MarqueePointer | null>(null);
  const [marqueeEnd, setMarqueeEnd] = useState<EditorPoint | null>(null);
  const multiDrag = useRef<MultiDragPointer | null>(null);
- return { marquee, marqueeEnd, setMarqueeEnd, multiDrag };
+ /** ポインターキャンセル時に範囲選択と複数ドラッグの一時状態を破棄する。 */
+ const reset = () => {
+  marquee.current = null;
+  setMarqueeEnd(null);
+  multiDrag.current = null;
+ };
+ return { marquee, marqueeEnd, setMarqueeEnd, multiDrag, reset };
 }
