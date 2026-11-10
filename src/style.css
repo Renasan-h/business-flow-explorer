@@ -169,7 +169,7 @@ aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);f
 
 /* キャンバスの右クリックメニュー。スクロールやズームに依存しないCSS座標で配置する。 */
 .editor-canvas{position:relative}
-.editor-context-menu{position:absolute;z-index:30;width:190px;max-width:100%;padding:5px;border:1px solid #52779e;border-radius:9px;background:#16263e;box-shadow:0 12px 28px #0008;display:flex;flex-direction:column;gap:2px}
+.editor-context-menu{position:fixed;z-index:1000;width:190px;max-width:100%;padding:5px;border:1px solid #52779e;border-radius:9px;background:#16263e;box-shadow:0 12px 28px #0008;display:flex;flex-direction:column;gap:2px}
 .editor-context-menu button{display:block;width:100%;margin:0;padding:10px 12px;border:0;background:transparent;color:#edf6ff;text-align:left;border-radius:5px;font-size:13px}
 .editor-context-menu button:hover,.editor-context-menu button:focus-visible{background:#284866;outline:2px solid #7dd3fc;outline-offset:-2px}
 .editor-context-menu button.danger{color:#fda4af}
