@@ -25,6 +25,7 @@ import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointer
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
+import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -392,7 +393,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setMessage('IF項目を' + fields.length + '件読み込みました');
   } catch (error) { setMessage('IF項目の読込に失敗: ' + String(error)); }
  };
- const addGroup = () => { const id = 'group-' + crypto.randomUUID().slice(0, 8); setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', x: 100, y: 100, width: 600, height: 350 }]); setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); };
+ const addGroup = () => {
+  const id = 'group-' + crypto.randomUUID().slice(0, 8);
+  const size = { width: 600, height: 350 };
+  const center = visibleCanvasCenter(svgRef.current, canvasRef.current, offset, zoom, { x: WIDTH / 2, y: HEIGHT / 2 });
+  const origin = boundedGroupOrigin(center, size, { width: WIDTH, height: HEIGHT });
+  setGroups(items => [...items, { id, name: '新しい領域', color: '#2563eb', ...origin, ...size }]);
+  setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null);
+ };
  const addInterface = () => { const id = 'if-' + crypto.randomUUID().slice(0, 8); setInterfaces(items => [...items, { id, name: '新しいIF定義', description: '', fields: [] }]); setInterfacePanel(id); };
  // 順序編集モード中だけ再生順序線と番号を表示する。
  const [orderMode, setOrderMode] = useState(false);
