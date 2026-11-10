@@ -26,6 +26,7 @@ import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
+import { insertWaypointBetweenNodes } from './editor/waypointInsertion';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -138,8 +139,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const field = direction === 'reverse' ? 'reverseWaypoints' : 'waypoints';
   const existing = step[field] ?? [];
   if (existing.length >= 100) return;
-  const midpoint = { x: (from.position.x + to.position.x) / 2, y: (from.position.y + to.position.y) / 2 };
-  changeStep(id, { routing: 'orthogonal', [field]: [...existing, midpoint] });
+  // 1点目はノード間の中点、2点目以降は最も長い未分割区間の中点に配置する。
+  const waypoints = insertWaypointBetweenNodes(from.position, to.position, existing);
+  if (waypoints.length === existing.length) return;
+  changeStep(id, { routing: 'orthogonal', [field]: waypoints });
   setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null);
  };
  /** 指定方向の経由点を解除する。 */
