@@ -19,9 +19,9 @@ export default function StepSettings({ activeStep, actors, interfaces, changeSte
 <details className="editor-section" key={`step-${activeStep.id}`} open><summary>通信設定</summary>
      <label>接続方向<select value={activeStep.bidirectional ? 'both' : 'one'} onChange={e => changeDirection(activeStep.id, e.target.value === 'both')}><option value="one">片方向（1本）</option><option value="both">双方向（2本・1件で管理）</option></select></label>
      <label>接続線の形状<select value={activeStep.routing ?? 'straight'} onChange={e => changeStep(activeStep.id, { routing: e.target.value as 'straight' | 'orthogonal' })}><option value="straight">直線（標準）</option><option value="orthogonal">折れ線（ノードを迂回）</option></select></label>
-      {activeStep.routing === 'orthogonal' && <div className="editor-waypoint-settings">
-       <strong>折れ線の経由点（手動）</strong>
-       <p>経由点を追加すると手動配線に切り替わります。オレンジ色の点をドラッグして位置を調整してください。</p>
+      <div className="editor-waypoint-settings">
+       <strong>往路の経由点（手動）</strong>
+       <p>経由点を追加すると折れ線に切り替わります。通信線を選択するとオレンジ色の点をドラッグできます。</p>
        {(activeStep.waypoints ?? []).map((point, index) => <div key={index} className="editor-waypoint-row">
         <span>経由点 {index + 1}（{Math.round(point.x)}, {Math.round(point.y)}）</span>
         <button type="button" onClick={() => changeStep(activeStep.id, { waypoints: (activeStep.waypoints ?? []).filter((_, i) => i !== index) })}>削除</button>
@@ -31,11 +31,11 @@ export default function StepSettings({ activeStep, actors, interfaces, changeSte
         if (!action) return;
         const points = routeConnection(actors, action.from, action.to, 'orthogonal');
         const point = pointOnRoute(points, .5);
-        changeStep(activeStep.id, { waypoints: [...(activeStep.waypoints ?? []), point] });
+        changeStep(activeStep.id, { routing: 'orthogonal', waypoints: [...(activeStep.waypoints ?? []), point] });
        }}>＋ 経由点を追加</button>
        {Boolean(activeStep.waypoints?.length) && <button type="button" onClick={() => changeStep(activeStep.id, { waypoints: [] })}>自動配線に戻す</button>}
-      </div>}
-     {activeStep.bidirectional && activeStep.routing === 'orthogonal' && <div className="editor-waypoint-settings">
+      </div>
+     {activeStep.bidirectional && <div className="editor-waypoint-settings">
       <strong>復路の折れ線経由点（手動）</strong>
       <p>紫色の点をドラッグして復路の経由点を調整できます。往路とは独立して保存されます。</p>
       {(activeStep.reverseWaypoints ?? []).map((point, index) => <div key={index} className="editor-waypoint-row">
@@ -46,7 +46,7 @@ export default function StepSettings({ activeStep, actors, interfaces, changeSte
        if (!activeStep.reverseFrom || !activeStep.reverseTo) return;
        const points = routeConnection(actors, activeStep.reverseFrom, activeStep.reverseTo, 'orthogonal');
        const point = pointOnRoute(points, .5);
-       changeStep(activeStep.id, { reverseWaypoints: [...(activeStep.reverseWaypoints ?? []), point] });
+       changeStep(activeStep.id, { routing: 'orthogonal', reverseWaypoints: [...(activeStep.reverseWaypoints ?? []), point] });
       }}>＋ 復路経由点を追加</button>
       {Boolean(activeStep.reverseWaypoints?.length) && <button type="button" onClick={() => changeStep(activeStep.id, { reverseWaypoints: [] })}>復路を自動配線に戻す</button>}
      </div>}
