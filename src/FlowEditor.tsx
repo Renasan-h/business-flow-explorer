@@ -68,7 +68,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  const wirePointer = useRef<number | null>(null);
  // 経由点ドラッグはノード・キャンバスのドラッグとは排他的に処理する。
- const waypointDrag = useRef<{ pointerId: number; stepId: string; index: number } | null>(null);
+ const waypointDrag = useRef<{ pointerId: number; stepId: string; index: number; direction: 'forward' | 'reverse' } | null>(null);
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -562,11 +562,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (waypointDrag.current?.pointerId === event.pointerId) {
-       const { stepId, index } = waypointDrag.current;
+       const { stepId, index, direction } = waypointDrag.current;
        const point = toWorld(event.clientX, event.clientY);
-       setSteps(current => current.map(step => step.id !== stepId ? step : {
-        ...step, waypoints: (step.waypoints ?? []).map((waypoint, i) => i === index
-         ? { x: Math.max(0, Math.min(WIDTH, point.x)), y: Math.max(0, Math.min(HEIGHT, point.y)) } : waypoint),
+       const position = { x: Math.max(0, Math.min(WIDTH, point.x)), y: Math.max(0, Math.min(HEIGHT, point.y)) };
+       setSteps(current => current.map(step => {
+        if (step.id !== stepId) return step;
+        if (direction === 'reverse') return { ...step, reverseWaypoints: (step.reverseWaypoints ?? []).map((waypoint, i) => i === index ? position : waypoint) };
+        return { ...step, waypoints: (step.waypoints ?? []).map((waypoint, i) => i === index ? position : waypoint) };
        }));
        return;
       }
