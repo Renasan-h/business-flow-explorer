@@ -21,7 +21,7 @@ function readSettings(): Settings {
  return { scenarioBaseDirectory: value.scenarioBaseDirectory };
 }
 
-function scenarioFiles(root: string): string[] {
+function scenarioFiles(root: string, includeFragments = false): string[] {
  const found: string[] = [];
  const visit = (dir: string) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -31,7 +31,7 @@ function scenarioFiles(root: string): string[] {
    else if (entry.isFile() && /\.ya?ml$/i.test(entry.name)) {
     try {
      const data = parse(readFileSync(path, 'utf8'));
-     if (data?.schemaVersion === '1.0' && data?.metadata) {
+     if (includeFragments || (data?.schemaVersion === '1.0' && data?.metadata)) {
       found.push('/scenarios/' + relative(root, path).split(sep).map(encodeURIComponent).join('/'));
      }
     } catch (error) {
@@ -57,8 +57,8 @@ function scenarioDirectoryPlugin(): Plugin {
   let path: string;
   try { path = decodeURIComponent(pathname.slice('/scenarios/'.length)); }
   catch { res.writeHead(400).end(); return; }
-  if (path === 'manifest.json') {
-   const data = JSON.stringify(scenarioFiles(root));
+  if (path === 'catalog.json' || path === 'manifest.json') {
+   const data = JSON.stringify(scenarioFiles(root, path === 'catalog.json'));
    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
    res.end(req.method === 'HEAD' ? undefined : data);
    return;
