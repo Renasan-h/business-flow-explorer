@@ -474,7 +474,29 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const action = step.actions[0];
   const from = actors.find(actor => actor.id === action?.from);
   const to = actors.find(actor => actor.id === action?.to);
-  return from && to ? { x: (from.position.x + to.position.x) / 2, y: (from.position.y + to.position.y) / 2 - 55 } : null;
+  if (!from || !to) return null;
+  const x = (from.position.x + to.position.x) / 2;
+  const y = (from.position.y + to.position.y) / 2;
+  // マーカー半径と余白を考慮し、ノードに重ならない位置を選ぶ。
+  const dx = to.position.x - from.position.x;
+  const dy = to.position.y - from.position.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const nx = -dy / length;
+  const ny = dx / length;
+  const candidates = [
+   { x, y: y - 55 },
+   ...[55, 85, 115, 150, 200].flatMap(distance => [
+    { x: x + nx * distance, y: y + ny * distance },
+    { x: x - nx * distance, y: y - ny * distance },
+   ]),
+   { x, y: y - 220 },
+  ];
+  return candidates.find(point => actors.every(actor => {
+   const halfWidth = (actor.width ?? 150) / 2 + 29;
+   const halfHeight = (actor.height ?? 76) / 2 + 29;
+   return Math.abs(point.x - actor.position.x) > halfWidth ||
+    Math.abs(point.y - actor.position.y) > halfHeight;
+  })) ?? candidates[candidates.length - 1];
  };
  const moveOrder = (fromId: string, toId: string) => {
   if (fromId === toId) return;
@@ -718,7 +740,6 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerCancel={() => { resetMultiSelectionPointer(); waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       <EditorGroups groups={groups} selectedGroup={selectedGroup} tool={tool} onSelect={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); }}/>
-      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
       <EditorEdges actors={actors} steps={steps} showLines={showLines} selectedStep={selectedStep} tool={tool} onSelect={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); }}/>
       {wire && (() => {
        const from = actors.find(actor => actor.id === wire.from);
@@ -728,6 +749,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       {tool === 'multi' && marquee.current && marqueeEnd && <rect className="editor-selection-marquee" x={Math.min(marquee.current.start.x, marqueeEnd.x)} y={Math.min(marquee.current.start.y, marqueeEnd.y)} width={Math.abs(marqueeEnd.x - marquee.current.start.x)} height={Math.abs(marqueeEnd.y - marquee.current.start.y)} pointerEvents="none"/>}
 
        <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
+      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
      </g>
     </svg>
     <EditorContextMenu menu={contextMenu}
