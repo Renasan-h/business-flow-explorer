@@ -48,6 +48,23 @@ npm run dev
 | `npm run build` | TypeScriptの型チェックと本番ビルド |
 | `npm run preview` | ビルド済みアプリのプレビュー |
 
+## シナリオフォルダの設定（ローカルWeb版）
+
+`npm run dev` の初回起動時、プロジェクト直下に `setting.config` がなければ自動生成します。個人設定のためGit管理対象外です。チームで設定形式を共有する場合は `setting.config.example` を参照してください。
+
+```json
+{
+  "scenarioBaseDirectory": "C:/Users/user/Documents/work/flow/scenario"
+}
+```
+
+- `scenarioBaseDirectory` には絶対パス、またはプロジェクトルート基準の相対パスを指定できます。
+- 初期値は `./public/scenarios` です。設定変更後はViteを再起動してください。
+- 指定フォルダ配下の親シナリオ（`schemaVersion` と `metadata` を持つYAML）が一覧に表示されます。ファイルの追加・削除後はシナリオ欄の「↻ 更新」で再取得できます。
+- エディターのテンプレート読込では、設定フォルダ配下の断片YAMLを選択できます。サブシナリオの `file:` には親シナリオからの相対パスが保存されます。
+- `npm run dev` と `npm run preview` はローカルサーバーを通じて設定先を参照します。静的ファイルだけを別のWebサーバーへ配布する場合、任意のPC内フォルダにはアクセスできません。
+- ブラウザのファイル選択では任意フォルダの絶対パスを取得できないため、フォルダ変更は `setting.config` を編集して再起動してください。
+
 ## 使い方
 
 1. 左側の「シナリオ」から表示したい業務フローを選びます。
@@ -64,7 +81,7 @@ npm run dev
 
 ## 独自シナリオの追加
 
-シナリオは `public/scenarios/` 内のYAMLファイルで管理します。次の例を `public/scenarios/sample.yaml` として保存できます。
+シナリオは `setting.config` の `scenarioBaseDirectory` に指定したフォルダ内のYAMLファイルで管理します。初期値は `public/scenarios/` です。次の例を `public/scenarios/sample.yaml` として保存できます。
 
 ```yaml
 schemaVersion: "1.0"
@@ -96,16 +113,7 @@ steps:
         durationMs: 1500
 ```
 
-次に、`public/scenarios/index.json` にシナリオのパスを追加してください。
-
-```json
-[
-  "/scenarios/order-processing.yaml",
-  "/scenarios/expense-reimbursement.yaml",
-  "/scenarios/mvc-attendance-search.yaml",
-  "/scenarios/sample.yaml"
-]
-```
+開発サーバー起動中はシナリオ一覧の「↻ 更新」を押すと追加ファイルが反映されます。`index.json` の編集は不要です。
 
 画面に表示するシナリオ名は **`metadata.title`** から取得します。ファイル名を日本語にする必要はありません。
 
