@@ -101,7 +101,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
   Object.fromEntries(initial.actors.map((actor, index) => [actor.id, index + 1])));
 
- const drag = useRef<{ id: number; actorId: string | null; groupId?: string; resizeGroup?: boolean; initialMembers?: { id: string; x: number; y: number }[]; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
+ const drag = useRef<{ id: number; actorId: string | null; resizeActor?: boolean; groupId?: string; resizeGroup?: boolean; initialMembers?: { id: string; x: number; y: number }[]; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
  const activeActor = actors.find(actor => actor.id === selectedActor);
  // 初期表示をワールド中央に合わせる。既存ノード座標や保存データは変更しない。
  useEffect(() => {
@@ -532,6 +532,18 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (tool !== 'move') return;
+      const resizeActorId = target.closest('[data-node-resize]')?.getAttribute('data-node-resize');
+      const resizeActor = actors.find(actor => actor.id === resizeActorId);
+      if (resizeActor) {
+       setSelectedActor(resizeActor.id);
+       setSelectedStep(null); setSelectedGroup(null);
+       drag.current = { id: event.pointerId, actorId: resizeActor.id, resizeActor: true,
+        initialSize: { width: resizeActor.width ?? NODE_WIDTH, height: resizeActor.height ?? NODE_HEIGHT },
+        x: event.clientX, y: event.clientY, initial: { ...resizeActor.position }, offset };
+       event.currentTarget.setPointerCapture(event.pointerId);
+       event.preventDefault();
+       return;
+      }
       const resizeHandle = target.closest('[data-group-resize]');
       const groupId = (resizeHandle ?? target.closest('[data-group-id]'))?.getAttribute(resizeHandle ? 'data-group-resize' : 'data-group-id') ?? null;
       const group = groups.find(item => item.id === groupId);
@@ -617,6 +629,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
          return initial ? { ...actor, position: { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, initial.x + nextX - current.initial.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, initial.y + nextY - current.initial.y)) } } : actor;
         }));
        }
+      } else if (current.actorId && current.resizeActor) {
+       const size = current.initialSize;
+       if (!size) return;
+       changeActor(current.actorId, {
+        width: Math.max(100, Math.min(800, size.width + dx * 2)),
+        height: Math.max(60, Math.min(500, size.height + dy * 2)),
+       });
       } else if (current.actorId) {
        const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx));
        const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy));
