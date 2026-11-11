@@ -162,8 +162,10 @@ export default function FlowPreview({ actors, steps: allSteps, title, interfaces
        const active = edge.from === action?.from && edge.to === action?.to;
        if (!active && !allLines) return null;
        const route = edge.routing === 'orthogonal' && edge.waypoints?.length ? routeViaWaypoints(actors, edge.from, edge.to, edge.waypoints) : routeConnection(actors, edge.from, edge.to, edge.routing);
-       const reverseRoute = edge.bidirectional && edge.reverseFrom && edge.reverseTo
-        ? routeConnection(actors, edge.reverseFrom, edge.reverseTo, edge.routing) : [];
+       const reverseFrom = edge.reverseFrom ?? edge.to;
+       const reverseTo = edge.reverseTo ?? edge.from;
+       const reverseRoute = edge.bidirectional
+        ? routeConnection(actors, reverseFrom, reverseTo, edge.routing) : [];
        const bidirectional = edge.bidirectional || edges.some(other => other.from === edge.to && other.to === edge.from);
        const lane = bidirectional ? offsetRoute(route, -12) : route;
        const midpoint = pointOnRoute(lane, .5);
