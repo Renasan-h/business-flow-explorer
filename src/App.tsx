@@ -142,7 +142,7 @@ export default function App() {
    actors: [],
    steps: [],
   };
-  return <FlowEditor key="new-flow" initial={blank} onClose={() => setEditorMode('none')} />;
+  return <FlowEditor key={"new-flow-" + activeRoot} initial={blank} scenarioPath={"/scenarios/" + activeRoot + "/new-flow.yaml"} onClose={() => setEditorMode('none')} />;
  }
  if (editorMode === 'edit' && scenario) return <FlowEditor key={selected} initial={scenario} scenarioPath={selected} onClose={() => setEditorMode('none')} />;
  return <div className="app">
