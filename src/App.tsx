@@ -21,6 +21,7 @@ export default function App() {
  // none:通常再生、edit:既存編集、new:新規作成。編集内容は保存まで通常画面へ反映されない。
  const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
+ const [scenarioReload, setScenarioReload] = useState(0);
  // 狭い描画領域ではシナリオ一覧を左側のオーバーレイとして開く。
  const [scenarioMenuOpen, setScenarioMenuOpen] = useState(false);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
@@ -65,11 +66,11 @@ export default function App() {
     setPaths(paths);
     setScenarioTitles(Object.fromEntries(paths.map((path, index) => [path, scenarios[index].metadata.title])));
     setScenarioCategories(Object.fromEntries(paths.map((path, index) => [path, scenarios[index].metadata.category || '未分類'])));
-    setSelected(paths[0] || '');
+    setSelected(current => paths.includes(current) ? current : paths[0] || '');
    })
    .catch(error => { if (!cancelled) setError(String(error)); });
   return () => { cancelled = true; };
- }, []);
+ }, [scenarioReload]);
  useEffect(() => { if (!selected) return; setSelectedActorId(null); setSelectedInterfaceId(null); setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
  const [finished, setFinished] = useState(false);
@@ -145,6 +146,7 @@ export default function App() {
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
    <ScenarioSidebar open={scenarioMenuOpen} paths={paths} titles={scenarioTitles} categories={scenarioCategories} selected={selected}
+    onReload={() => setScenarioReload(value => value + 1)}
     onClose={() => setScenarioMenuOpen(false)}
     onSelect={path => { setSelected(path); setScenarioMenuOpen(false); }}
     onCreate={() => { setScenarioMenuOpen(false); setPlaying(false); setEditorMode('new'); }}/>
