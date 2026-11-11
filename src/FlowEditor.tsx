@@ -178,16 +178,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   let newId: string;
   do { newId = 'actor-' + crypto.randomUUID().slice(0, 8); } while (existingIds.has(newId));
   const number = nextNodeNumber.current++;
-  const offsetPosition = (value: number, limit: number) =>
-   value + 40 <= limit ? value + 40 : Math.max(0, value - 40);
   const copied: Actor = {
    ...original,
    id: newId,
    name: original.name + ' (コピー)',
-   position: {
-    x: offsetPosition(original.position.x, WIDTH - NODE_WIDTH / 2),
-    y: offsetPosition(original.position.y, HEIGHT - NODE_HEIGHT / 2),
-   },
+   position: clampNodePosition(original, {
+    x: original.position.x + (original.position.x + (original.width ?? NODE_WIDTH) / 2 + 40 <= WIDTH ? 40 : -40),
+    y: original.position.y + (original.position.y + (original.height ?? NODE_HEIGHT) / 2 + 40 <= HEIGHT ? 40 : -40),
+   }, { width: WIDTH, height: HEIGHT }),
    // tagsは配列なので、元ノードと参照を共有しない。
    ...(original.tags ? { tags: [...original.tags] } : {}),
   };
