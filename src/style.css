@@ -552,3 +552,11 @@ aside button.icon-close-button,
 @media (max-width:1000px){
  .app .scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center}
 }
+
+/* ノードのサイズ変更操作と任意の数値入力 */
+.editor-node-resize{cursor:nwse-resize}
+.editor-context-size{padding:6px 10px;color:var(--text)}
+.editor-context-size summary{cursor:pointer}
+.editor-context-size form{display:grid;gap:6px;padding-top:8px}
+.editor-context-size label{display:grid;gap:3px;font-size:12px}
+.editor-context-size input{width:100%;min-width:0;padding:5px;background:var(--page);color:var(--text);border:1px solid var(--panel-border);border-radius:4px}
