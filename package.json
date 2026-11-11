@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "predev": "node scripts/generate-scenario-manifest.mjs",
     "prebuild": "node scripts/generate-scenario-manifest.mjs"
   },
   "dependencies": {
