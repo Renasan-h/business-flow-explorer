@@ -65,7 +65,38 @@ function scenarioDirectoryPlugin(): Plugin {
    res.end(JSON.stringify(configured.map((directory, index) => ({ id: String(index), label: directory }))));
    return;
   }
-  const match = /^(\\d+)\\/(.*)$/.exec(path);
+  const match = new RegExp('^([0-9]+)/(.*)
+  if (!match || !roots[Number(match[1])]) { res.writeHead(404).end(); return; }
+  const root = roots[Number(match[1])];
+  path = match[2];
+  if (path === 'catalog.json' || path === 'manifest.json') {
+   const data = JSON.stringify(path === 'catalog.json' ? scenarioFiles(join(root, 'template'), true).map(item => '/scenarios/' + match[1] + '/template/' + item.slice('/scenarios/'.length)) : scenarioFiles(root).filter(item => !item.startsWith('/scenarios/template/')).map(item => '/scenarios/' + match[1] + '/' + item.slice('/scenarios/'.length)));
+   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+   res.end(req.method === 'HEAD' ? undefined : data);
+   return;
+  }
+  if (!/\.ya?ml$/i.test(path) || path.split('/').some(part => !part || part === '.' || part === '..' || part.startsWith('.')) || path.includes('\\')) {
+   res.writeHead(404).end(); return;
+  }
+  const full = resolve(root, path);
+  if (!full.startsWith(root + sep)) { res.writeHead(403).end(); return; }
+  try {
+   const actual = realpathSync(full);
+   if (!actual.startsWith(root + sep) || !/\.ya?ml$/i.test(extname(actual))) { res.writeHead(403).end(); return; }
+   const content = readFileSync(actual);
+   res.writeHead(200, { 'Content-Type': 'text/yaml; charset=utf-8', 'Cache-Control': 'no-store' });
+   res.end(req.method === 'HEAD' ? undefined : content);
+  } catch { res.writeHead(404).end(); }
+ };
+ return {
+  name: 'scenario-directory',
+  configureServer(server) { server.middlewares.use(handle); },
+  configurePreviewServer(server) { server.middlewares.use(handle); },
+ };
+}
+
+export default defineConfig({ plugins: [react(), scenarioDirectoryPlugin()] });
+).exec(path);
   if (!match || !roots[Number(match[1])]) { res.writeHead(404).end(); return; }
   const root = roots[Number(match[1])];
   path = match[2];
