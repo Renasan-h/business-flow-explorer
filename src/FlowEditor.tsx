@@ -27,6 +27,7 @@ import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
 import { insertWaypointBetweenNodes } from './editor/waypointInsertion';
+import { clampWaypoint, moveWaypoint, waypointMenuState } from './editor/waypointEditing';
 
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
@@ -589,13 +590,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       if (waypointDrag.current?.pointerId === event.pointerId) {
        const { stepId, index, direction } = waypointDrag.current;
-       const point = toWorld(event.clientX, event.clientY);
-       const position = { x: Math.max(0, Math.min(WIDTH, point.x)), y: Math.max(0, Math.min(HEIGHT, point.y)) };
-       setSteps(current => current.map(step => {
-        if (step.id !== stepId) return step;
-        if (direction === 'reverse') return { ...step, reverseWaypoints: (step.reverseWaypoints ?? []).map((waypoint, i) => i === index ? position : waypoint) };
-        return { ...step, waypoints: (step.waypoints ?? []).map((waypoint, i) => i === index ? position : waypoint) };
-       }));
+       const position = clampWaypoint(toWorld(event.clientX, event.clientY), { width: WIDTH, height: HEIGHT });
+       setSteps(current => current.map(step => step.id === stepId ? moveWaypoint(step, direction, index, position) : step));
        return;
       }
       if (orderDrag.current?.pointerId === event.pointerId) {
@@ -691,7 +687,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onDeleteStep={id => { deleteStep(id, true); setContextMenu(null); }}
      onAddWaypoint={addWaypoint}
      onRemoveWaypoints={removeWaypoints}
-     waypointDirections={{ reverse: Boolean(steps.find(step => step.id === contextMenu?.stepId)?.bidirectional), forwardCount: steps.find(step => step.id === contextMenu?.stepId)?.waypoints?.length ?? 0, reverseCount: steps.find(step => step.id === contextMenu?.stepId)?.reverseWaypoints?.length ?? 0 }}
+     waypointDirections={waypointMenuState(steps.find(step => step.id === contextMenu?.stepId))}
      onAddActor={() => { addActor(); setContextMenu(null); }}
      onResetView={() => { setZoom(1); setOffset({ x: 0, y: 0 }); setContextMenu(null); }}/>
    </EditorCanvas>
