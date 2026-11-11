@@ -6,6 +6,7 @@ import { listScenarios, loadScenario, playbackValidationError, type Scenario } f
 import Scene from './playback/PlaybackScene';
 import InterfaceDefinitionDrawer from './playback/InterfaceDefinitionDrawer';
 import ScenarioSidebar from './playback/ScenarioSidebar';
+import AppHeader from './playback/AppHeader';
 import PlaybackControls from './playback/PlaybackControls';
 import ActorDetailsDrawer from './playback/ActorDetailsDrawer';
 import type { Mode, Theme, PlaybackSpeed } from './playback/types';
@@ -146,7 +147,7 @@ export default function App() {
  }
  if (editorMode === 'edit' && scenario) return <FlowEditor key={selected} initial={scenario} scenarioPath={selected} onClose={() => setEditorMode('none')} />;
  return <div className="app">
-  <header><div className="header-brand"><strong>◈ Business Flow Explorer</strong><label className="header-directory"><span>表示中ディレクトリ</span><select aria-label="表示中ディレクトリ" title="シナリオのベースディレクトリを切り替え" value={activeRoot} onChange={event => { setActiveRoot(event.target.value); setScenario(null); setPaths([]); setSelected(''); setError(''); setPlaying(false); }} disabled={scenarioRoots.length === 0}>{scenarioRoots.map(root => <option key={root.id} value={root.id}>{root.label}</option>)}</select></label></div><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
+  <AppHeader roots={scenarioRoots} activeRoot={activeRoot} onRootChange={value => { setActiveRoot(value); setScenario(null); setPaths([]); setSelected(''); setError(''); setPlaying(false); }} theme={theme} onThemeChange={setTheme}/>
   <div className="layout">
    <ScenarioSidebar open={scenarioMenuOpen} paths={paths} titles={scenarioTitles} categories={scenarioCategories} selected={selected}
     onClose={() => setScenarioMenuOpen(false)}
