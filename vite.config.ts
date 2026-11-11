@@ -65,7 +65,7 @@ function scenarioDirectoryPlugin(): Plugin {
    res.end(JSON.stringify(configured.map((directory, index) => ({ id: String(index), label: directory }))));
    return;
   }
-  const match = new RegExp('^([0-9]+)/(.*)
+  const match = /^([0-9]+)\/(.*)$/.exec(path);
   if (!match || !roots[Number(match[1])]) { res.writeHead(404).end(); return; }
   const root = roots[Number(match[1])];
   path = match[2];
