@@ -25,7 +25,7 @@ export default function TemplateImportDialog({ path, error, onPathChange, onClos
    <button type="button" className="template-import-close icon-close-button" aria-label="閉じる" onClick={onClose}>×</button>
    <h2 id="template-import-title">テンプレートエクスプローラー</h2>
    <p className="hint">現在のベースディレクトリ / template {directory ? '/ ' + directory : ''}</p>
-   <div className="template-import-explorer" role="group" aria-label="テンプレートファイル一覧" style={{ minHeight: 180, maxHeight: 340, overflowY: 'auto' }}>
+   <div className="template-import-explorer" role="group" aria-label="テンプレートファイル一覧" style={{ minHeight: 180, maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 6, padding: 8, border: '1px solid var(--border, #888)', borderRadius: 8 }}>
     {directory && <button type="button" onClick={() => { setDirectory(segments.slice(0, -1).join('/')); onPathChange(''); }}>📁 ..（上のフォルダ）</button>}
     {folders.map(folder => <button type="button" key={folder} onClick={() => { setDirectory(directory ? directory + '/' + folder : folder); onPathChange(''); }}>📁 {folder}</button>)}
     {files.map(item => <button type="button" key={item.path} aria-pressed={path === item.path} className={path === item.path ? 'selected' : ''} onClick={() => onPathChange(item.path)}>📄 {item.label.split('/').pop()}</button>)}
