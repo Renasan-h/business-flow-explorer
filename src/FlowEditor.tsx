@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { parse, stringify } from 'yaml';
+import { parse } from 'yaml';
+import { serializeEditorScenario, validateTemplateReferences } from './editor/serializeEditorScenario';
 import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -765,4 +766,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
  </div>;
-}
+}   const data = { actors, steps, metadata, groups, interfaces, templateReferences };
+   const referenceError = validateTemplateReferences(data);
+   if (referenceError) { setMessage(referenceError); return false; }
+   const yaml = serializeEditorScenario(data);
+
