@@ -20,6 +20,9 @@ const actor = z.object({
  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
  documents: z.array(z.string().max(300)).max(30).optional(),
  position: z.object({ x: z.number(), y: z.number() }).optional(),
+ // ノードごとの表示サイズ。未指定の場合は標準サイズを使用する。
+ width: z.number().min(100).max(800).optional(),
+ height: z.number().min(60).max(500).optional(),
 });
 const action = z.object({
  type: z.literal('transfer'),
