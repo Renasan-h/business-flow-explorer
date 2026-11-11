@@ -22,6 +22,7 @@ import { resolveWaypointHandle } from './editor/resolveWaypointHandle';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
+import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -510,22 +511,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (tool === 'multi') {
-       const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id');
-       if (actorId) {
-        if (event.shiftKey) {
-         setSelectedActors(current => current.includes(actorId) ? current.filter(id => id !== actorId) : [...current, actorId]);
-         return;
-        }
-        const ids = selectedActors.includes(actorId) ? selectedActors : [actorId];
-        setSelectedActors(ids);
-        multiDrag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY,
-         initial: actors.filter(actor => ids.includes(actor.id)).map(actor => ({ id: actor.id, ...actor.position })) };
+       const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
+       const selection = resolveMultiSelectionStart(actorId, event.shiftKey, selectedActors, actors, toWorld(event.clientX, event.clientY));
+       setSelectedActors(selection.selectedActors);
+       // Shiftクリックは選択の反転のみ。ポインターをキャプチャしない。
+       if (selection.kind === 'toggle') return;
+       if (selection.kind === 'drag') {
+        multiDrag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, initial: selection.initial };
        } else {
-        marquee.current = { pointerId: event.pointerId, start: toWorld(event.clientX, event.clientY), additive: event.shiftKey };
-        setMarqueeEnd(toWorld(event.clientX, event.clientY));
-        if (!event.shiftKey) {
-         setSelectedActors([]);
-         // 複数選択モードでも空白領域は既存の単一選択を解除する。
+        marquee.current = { pointerId: event.pointerId, start: selection.start, additive: selection.additive };
+        setMarqueeEnd(selection.start);
+        if (selection.clearSingleSelection) {
          setSelectedActor(null);
          setSelectedStep(null);
          setSelectedGroup(null);
