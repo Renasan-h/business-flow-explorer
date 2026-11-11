@@ -23,6 +23,7 @@ import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
+import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -592,7 +593,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        // 全選択ノードの相対位置を維持したままキャンバス境界内に収める。
        const delta = boundedGroupDelta(active.initial, { x: dx, y: dy }, {
         width: WIDTH, height: HEIGHT, nodeWidth: NODE_WIDTH, nodeHeight: NODE_HEIGHT,
-       });
+       }, actors);
        setActors(current => moveSelectedActors(current, active.initial, delta));
        return;
       }
@@ -626,7 +627,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         const memberPositions = new Map(current.initialMembers.map(item => [item.id, item]));
         setActors(items => items.map(actor => {
          const initial = memberPositions.get(actor.id);
-         return initial ? { ...actor, position: { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, initial.x + nextX - current.initial.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, initial.y + nextY - current.initial.y)) } } : actor;
+         return initial ? { ...actor, position: clampNodePosition(actor, { x: initial.x + nextX - current.initial.x, y: initial.y + nextY - current.initial.y }, { width: WIDTH, height: HEIGHT }) } : actor;
         }));
        }
       } else if (current.actorId && current.resizeActor) {
@@ -637,9 +638,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
         height: Math.max(60, Math.min(500, size.height + dy * 2)),
        });
       } else if (current.actorId) {
-       const x = Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, current.initial.x + dx));
-       const y = Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, current.initial.y + dy));
-       changeActor(current.actorId, { position: { x, y } });
+       const actor = actors.find(item => item.id === current.actorId);
+       if (!actor) return;
+       const position = clampNodePosition(actor, { x: current.initial.x + dx, y: current.initial.y + dy }, { width: WIDTH, height: HEIGHT });
+       changeActor(current.actorId, { position });
       } else {
        setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
       }
@@ -667,9 +669,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (wirePointer.current === event.pointerId) {
        const point = toWorld(event.clientX, event.clientY);
        // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
-       const target = [...actors].reverse().find(actor =>
-        Math.abs(point.x - actor.position.x) <= NODE_WIDTH / 2 &&
-        Math.abs(point.y - actor.position.y) <= NODE_HEIGHT / 2);
+       const target = [...actors].reverse().find(actor => containsNodePoint(actor, point));
        if (wire && target) addConnection(wire.from, target.id);
        else if (wire) setMessage('接続先ノードの上でドロップしてください。');
        setWire(null);
