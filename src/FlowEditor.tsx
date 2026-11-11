@@ -109,7 +109,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (!canvas) return;
   canvas.scrollLeft = Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2);
   canvas.scrollTop = Math.max(0, (canvas.scrollHeight - canvas.clientHeight) / 2);
- }, []);
+ }, [preview]);
  const activeStep = steps.find(step => step.id === selectedStep);
 
  // ポインター座標を拡大率と移動量を考慮したワールド座標へ変換する。
