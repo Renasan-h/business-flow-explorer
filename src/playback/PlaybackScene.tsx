@@ -245,10 +245,8 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
     .fill(actor.color ? Number.parseInt(actor.color.slice(1), 16) : (active ? (theme === 'dark' ? 0x205a83 : 0xdbeafe) : colors.node))
     .stroke({ color: colors.border, width: active ? 3 : 1.5 });
    if (focus && !active) g.alpha = 0.38;
-   // ノードの矩形全体を選択可能にする。表示モードに依存しない。
-   g.eventMode = 'static';
-   g.cursor = 'pointer';
-   g.on('pointertap', () => selectActorRef.current(actor.id));
+   // 選択判定はDOMのpointerupで統一し、パン操作との競合を避ける。
+   g.eventMode = 'none';
    layer.addChild(g);
    // 表示アイコンはYAMLのiconを優先し、未指定ならtypeの標準アイコンを使う。
    // SVG画面と同じベクター定義をPixiJS Graphicsで描画する。
@@ -325,14 +323,27 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
   onPointerDown={event => {
    if (event.button !== 0) return;
    pointerRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY, pan: viewportRef.current.pan };
-   event.currentTarget.setPointerCapture(event.pointerId);
   }}
   onPointerMove={event => {
    const drag = pointerRef.current;
    if (!drag || drag.id !== event.pointerId) return;
-   viewportRef.current.onPan({x: drag.pan.x + event.clientX - drag.x, y: drag.pan.y + event.clientY - drag.y});
+   if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
+    viewportRef.current.onPan({x: drag.pan.x + event.clientX - drag.x, y: drag.pan.y + event.clientY - drag.y});
+   }
   }}
-  onPointerUp={event => { if (pointerRef.current?.id === event.pointerId) pointerRef.current = null; }}
+  onPointerUp={event => {
+   const drag = pointerRef.current;
+   pointerRef.current = null;
+   if (!drag || drag.id !== event.pointerId || Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) return;
+   const bounds = event.currentTarget.getBoundingClientRect();
+   const { zoom, pan } = viewportRef.current;
+   const x = (event.clientX - bounds.left - pan.x) / zoom;
+   const y = (event.clientY - bounds.top - pan.y) / zoom;
+   // ノード上のクリックだけを詳細パネルの表示へ渡す。
+   const actor = scenario.actors.find(item => Math.abs(item.position.x - x) <= NODE_WIDTH / 2 && Math.abs(item.position.y - y) <= NODE_HEIGHT / 2);
+   if (actor) selectActorRef.current(actor.id);
+  }}
   onPointerCancel={() => { pointerRef.current = null; }}
  />;
 }
