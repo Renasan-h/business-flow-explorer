@@ -280,33 +280,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setMessage('');
   const validationError = validateEditorScenario(actors, steps, groups);
   if (validationError) { setMessage(validationError); return false; }
-  // file参照は編集結果を参照先へ書き戻さない。変更を黙って破棄しないよう保存を止める。
-  for (const reference of templateReferences) {
-   const current = JSON.stringify({ actors: actors.filter(item => reference.actorIds.includes(item.id)), steps: steps.filter(item => reference.stepIds.includes(item.id)) });
-   if (current !== reference.original) { setMessage('参照テンプレートの内容が変更されています。変更を保持するには直接展開モードで再読込してください: ' + reference.file); return false; }
-  }
-  // アイコンはtypeから一意に決定するため、保存するYAMLには重複したiconを出力しない。
-  const normalizedActors = actors.map(({ icon: _icon, ...actor }) => actor);
-  // 片方向通信では復路フィールドをYAMLに一切出力しない。
- const normalizedSteps = steps.map(step => {
-  if (step.bidirectional) return step;
-  const { reverseFrom: _from, reverseTo: _to, reverseIf: _if, reversePayload: _payload, bidirectional: _both, ...oneWay } = step;
-  return oneWay;
- });
- // 参照モードで取り込んだ要素は重複定義せずfile参照で保存する。
- const referencedActorIds = new Set(templateReferences.flatMap(item => item.actorIds));
- const referencedStepIds = new Set(templateReferences.flatMap(item => item.stepIds));
- const yamlActors = normalizedActors.filter(item => !referencedActorIds.has(item.id));
- const yamlSteps: Array<Step | { file: string }> = [];
- const inserted = new Set<string>();
- for (const item of normalizedSteps) {
-  const reference = templateReferences.find(entry => entry.stepIds.includes(item.id));
-  if (!reference) { yamlSteps.push(item); continue; }
-  if (!inserted.has(reference.file)) { yamlSteps.push({ file: reference.file }); inserted.add(reference.file); }
- }
- for (const reference of templateReferences) if (!inserted.has(reference.file)) { yamlSteps.push({ file: reference.file }); inserted.add(reference.file); }
- const yaml = stringify({ schemaVersion: '1.0', metadata, groups, interfaces, actors: yamlActors, steps: yamlSteps }, { lineWidth: 0 });
-  // 既存編集では開いているシナリオのファイル名を優先する。新規作成だけmetadata.idを使用。
+  const data = { actors, steps, metadata, groups, interfaces, templateReferences };
+  const referenceError = validateTemplateReferences(data);
+  if (referenceError) { setMessage(referenceError); return false; }
+  const yaml = serializeEditorScenario(data);
+  // 既存編集では開いているシナリオのファイル名を優先する。
   const filename = editorScenarioFilename(scenarioPath, metadata.id);
   try {
    const picker = (window as Window & FilePicker).showSaveFilePicker;
@@ -766,8 +744,4 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   </div>
   {message && <p className="editor-message" role="status">{message}</p>}
  </div>;
-}   const data = { actors, steps, metadata, groups, interfaces, templateReferences };
-   const referenceError = validateTemplateReferences(data);
-   if (referenceError) { setMessage(referenceError); return false; }
-   const yaml = serializeEditorScenario(data);
-
+}
