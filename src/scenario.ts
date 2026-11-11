@@ -83,7 +83,7 @@ const scenarioSchema = fragmentSchema.extend({
 /** 編集画面で外部テンプレートの構造を検証する。参照の再帰展開はloadScenario側が担当する。 */
 export function parseTemplateYaml(text: string) {
  const parsed: unknown = parse(text);
- const data = fragmentSchema.parse(parsed);
+ const data = scenarioSchema.parse(parsed);
  return { actors: (data.actors ?? []).filter((entry): entry is z.infer<typeof actor> => !('file' in entry)), steps: (data.steps ?? []).filter((entry): entry is z.infer<typeof step> => !('file' in entry)), hasReferences: (data.actors ?? []).some(entry => 'file' in entry) || (data.steps ?? []).some(entry => 'file' in entry) || Boolean(data.actorFiles?.length) };
 }
 type Actor = z.infer<typeof actor>;
@@ -167,7 +167,7 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
  for (const entry of data.steps ?? []) {
   if ('file' in entry) {
    const fragment = await readFragments(new URL(entry.file, url).href, nextAncestors);
-   if (fragment.root) throw new Error('サブシナリオにmetadataは指定できません: ' + entry.file);
+   if (!fragment.root) throw new Error('サブシナリオにはschemaVersionとmetadataが必要です: ' + entry.file);
    fragment.actors.forEach(addActor);
    // ファイル境界の通信を明示した場合は、通常ステップとして挿入する。
    if (entry.handoff) {
@@ -190,7 +190,7 @@ async function readFragments(path: string, ancestors: Set<string>): Promise<{
 /** エディター用: ネストしたfile参照を安全に再帰展開して読み込む。 */
 export async function loadTemplateFragment(path: string): Promise<{ actors: Actor[]; steps: Step[] }> {
  const result = await readFragments(path, new Set());
- if (result.root) throw new Error('テンプレートはmetadataを持たない断片YAMLを指定してください');
+ if (!result.root) throw new Error('テンプレートにはschemaVersionとmetadataが必要です');
  return { actors: result.actors, steps: result.steps };
 }
 
