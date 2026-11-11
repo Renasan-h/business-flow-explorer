@@ -27,6 +27,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
+import { templateCatalogItems } from './editor/templateCatalog';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -326,16 +327,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    })
    .then(paths => {
     if (cancelled) return;
-    const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/' + rootId + '/new-flow.yaml', window.location.origin);
-    const items = paths.map(path => {
-     const url = new URL(path, window.location.origin);
-     const baseParts = base.pathname.split('/').slice(0, -1).filter(Boolean);
-     const targetParts = url.pathname.split('/').filter(Boolean);
-     while (baseParts.length && targetParts.length && baseParts[0] === targetParts[0]) {
-      baseParts.shift(); targetParts.shift();
-     }
-     return { path: [...baseParts.map(() => '..'), ...targetParts].join('/'), label: decodeURIComponent(url.pathname.split('/template/')[1] ?? url.pathname) };
-    });
+    const items = templateCatalogItems(paths, scenarioPath);
     setTemplateCatalog(items);
     setTemplateCatalogStatus(items.length ? '' : '現在のベースディレクトリのtemplateフォルダにYAMLがありません。');
    })
