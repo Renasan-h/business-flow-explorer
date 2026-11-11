@@ -1,9 +1,11 @@
 /** ノード矩形を避ける直交配線。ノード移動時にも同じ経路計算を使う。 */
-export type RouteNode = { id: string; position: { x: number; y: number } };
+export type RouteNode = { id: string; position: { x: number; y: number }; width?: number; height?: number };
 export type Point = { x: number; y: number };
 const HALF_W = 75;
 const HALF_H = 38;
 const GAP = 18;
+const halfWidth = (node: RouteNode) => (node.width ?? HALF_W * 2) / 2;
+const halfHeight = (node: RouteNode) => (node.height ?? HALF_H * 2) / 2;
 
 /** ノード外周を結ぶ経路を返す。標準は直線、明示設定時のみ障害物を避ける折れ線。 */
 export function routeConnection(nodes: RouteNode[], fromId: string, toId: string, mode: 'straight' | 'orthogonal' = 'straight'): Point[] {
@@ -20,11 +22,11 @@ export function routeConnection(nodes: RouteNode[], fromId: string, toId: string
   if (length === 0) return [];
   const ux = dx / length;
   const uy = dy / length;
-  const trim = (vx: number, vy: number) => Math.min(
-   Math.abs(vx) > 1e-8 ? HALF_W / Math.abs(vx) : Infinity,
-   Math.abs(vy) > 1e-8 ? HALF_H / Math.abs(vy) : Infinity);
-  const startTrim = trim(ux, uy);
-  const endTrim = trim(-ux, -uy);
+  const trim = (node: RouteNode) => Math.min(
+   Math.abs(ux) > 1e-8 ? halfWidth(node) / Math.abs(ux) : Infinity,
+   Math.abs(uy) > 1e-8 ? halfHeight(node) / Math.abs(uy) : Infinity);
+  const startTrim = trim(from);
+  const endTrim = trim(to);
   return [
    { x: a.x + ux * Math.min(startTrim, length / 2), y: a.y + uy * Math.min(startTrim, length / 2) },
    { x: b.x - ux * Math.min(endTrim, length / 2), y: b.y - uy * Math.min(endTrim, length / 2) },
@@ -32,17 +34,17 @@ export function routeConnection(nodes: RouteNode[], fromId: string, toId: string
  }
  const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
  const sign = horizontal ? (b.x >= a.x ? 1 : -1) : (b.y >= a.y ? 1 : -1);
- const start = horizontal ? { x: a.x + sign * HALF_W, y: a.y } : { x: a.x, y: a.y + sign * HALF_H };
- const end = horizontal ? { x: b.x - sign * HALF_W, y: b.y } : { x: b.x, y: b.y - sign * HALF_H };
+ const start = horizontal ? { x: a.x + sign * halfWidth(from), y: a.y } : { x: a.x, y: a.y + sign * halfHeight(from) };
+ const end = horizontal ? { x: b.x - sign * halfWidth(to), y: b.y } : { x: b.x, y: b.y - sign * halfHeight(to) };
  const outerStart = horizontal ? { x: start.x + sign * GAP, y: start.y } : { x: start.x, y: start.y + sign * GAP };
  const outerEnd = horizontal ? { x: end.x - sign * GAP, y: end.y } : { x: end.x, y: end.y - sign * GAP };
  const obstacles = nodes.filter(node => node.id !== fromId && node.id !== toId).map(node => ({
-  left: node.position.x - HALF_W - GAP, right: node.position.x + HALF_W + GAP,
-  top: node.position.y - HALF_H - GAP, bottom: node.position.y + HALF_H + GAP,
+  left: node.position.x - halfWidth(node) - GAP, right: node.position.x + halfWidth(node) + GAP,
+  top: node.position.y - halfHeight(node) - GAP, bottom: node.position.y + halfHeight(node) + GAP,
  }));
  // 全ノードの外周を格子点にし、矩形を横切る線分を候補から除外する。
- const xs = [...new Set([outerStart.x, outerEnd.x, ...nodes.flatMap(n => [n.position.x - HALF_W - GAP, n.position.x + HALF_W + GAP])])].sort((x, y) => x - y);
- const ys = [...new Set([outerStart.y, outerEnd.y, ...nodes.flatMap(n => [n.position.y - HALF_H - GAP, n.position.y + HALF_H + GAP])])].sort((x, y) => x - y);
+ const xs = [...new Set([outerStart.x, outerEnd.x, ...nodes.flatMap(n => [n.position.x - halfWidth(n) - GAP, n.position.x + halfWidth(n) + GAP])])].sort((x, y) => x - y);
+ const ys = [...new Set([outerStart.y, outerEnd.y, ...nodes.flatMap(n => [n.position.y - halfHeight(n) - GAP, n.position.y + halfHeight(n) + GAP])])].sort((x, y) => x - y);
  const width = xs.length;
  const height = ys.length;
  const valid = (x: number, y: number) => obstacles.every(o => !(x > o.left && x < o.right && y > o.top && y < o.bottom));
