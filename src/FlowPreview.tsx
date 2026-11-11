@@ -43,11 +43,16 @@ export default function FlowPreview({ actors, steps: allSteps, title, interfaces
  const bounds = useMemo(() => {
   const xs = visibleActors.map(actor => actor.position.x);
   const ys = visibleActors.map(actor => actor.position.y);
-  const minX = Math.min(0, ...xs) - W;
-  const minY = Math.min(0, ...ys) - H;
-  const maxX = Math.max(1100, ...xs) + W;
-  const maxY = Math.max(650, ...ys) + H;
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  // 原点からの固定余白ではなく、実際のノード配置に合わせて初期表示する。
+  if (!visibleActors.length) return { x: 0, y: 0, w: 1100, h: 650 };
+  const padding = 120;
+  const minX = Math.min(...xs) - W / 2 - padding;
+  const minY = Math.min(...ys) - H / 2 - padding;
+  const maxX = Math.max(...xs) + W / 2 + padding;
+  const maxY = Math.max(...ys) + H / 2 + padding;
+  const width = Math.max(550, maxX - minX);
+  const height = Math.max(380, maxY - minY);
+  return { x: (minX + maxX - width) / 2, y: (minY + maxY - height) / 2, w: width, h: height };
  }, [visibleActors]);
  // 同じ送受信ノード間の接続は重複描画しない。
  // Ctrl+ホイール時はSVG内のマウス位置を固定して拡縮する。
