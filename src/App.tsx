@@ -22,6 +22,8 @@ export default function App() {
  const [editorMode, setEditorMode] = useState<'none' | 'edit' | 'new'>('none');
  const [paths, setPaths] = useState<string[]>([]);
  const [scenarioReload, setScenarioReload] = useState(0);
+ const [scenarioRoots, setScenarioRoots] = useState<{ id: string; label: string }[]>([]);
+ const [activeRoot, setActiveRoot] = useState('0');
  // 狭い描画領域ではシナリオ一覧を左側のオーバーレイとして開く。
  const [scenarioMenuOpen, setScenarioMenuOpen] = useState(false);
  const [scenarioTitles, setScenarioTitles] = useState<Record<string, string>>({});
@@ -59,8 +61,9 @@ export default function App() {
  // シナリオ一覧の表示名はファイル名ではなく、各YAMLの必須項目metadata.titleから取得する。
  useEffect(() => {
   let cancelled = false;
-  listScenarios()
-   .then(async paths => {
+  Promise.all([fetch('/scenario-roots.json').then(response => { if (!response.ok) throw new Error('ベースディレクトリの取得に失敗しました'); return response.json() as Promise<{ id: string; label: string }[]>; }), listScenarios(activeRoot)])
+   .then(async ([roots, paths]) => {
+    setScenarioRoots(roots);
     const scenarios = await Promise.all(paths.map(path => loadScenario(path)));
     if (cancelled) return;
     setPaths(paths);
@@ -70,7 +73,7 @@ export default function App() {
    })
    .catch(error => { if (!cancelled) setError(String(error)); });
   return () => { cancelled = true; };
- }, [scenarioReload]);
+ }, [scenarioReload, activeRoot]);
  useEffect(() => { if (!selected) return; setSelectedActorId(null); setSelectedInterfaceId(null); setPlaying(false); setFinished(false); setStep(0); setBranchChoices({}); loadScenario(selected).then(s => { setScenario(s); setError(''); }).catch(e => setError(String(e))); }, [selected]);
  // 最終ステップの完了時は停止し、再生ボタンを押すまで先頭へ戻さない。
  const [finished, setFinished] = useState(false);
@@ -146,7 +149,7 @@ export default function App() {
   <header><strong>◈ Business Flow Explorer</strong><div className="header-actions"><span>Scenario-driven visualization</span><div className="theme-switch" role="group" aria-label="配色テーマ"><button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>☀ ライト</button><button type="button" className={theme === 'dark' ? 'selected' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>☾ ダーク</button></div></div></header>
   <div className="layout">
    <ScenarioSidebar open={scenarioMenuOpen} paths={paths} titles={scenarioTitles} categories={scenarioCategories} selected={selected}
-    onReload={() => setScenarioReload(value => value + 1)}
+    roots={scenarioRoots} activeRoot={activeRoot} onRootChange={value => { setActiveRoot(value); setScenario(null); setPaths([]); setSelected(''); }}
     onClose={() => setScenarioMenuOpen(false)}
     onSelect={path => { setSelected(path); setScenarioMenuOpen(false); }}
     onCreate={() => { setScenarioMenuOpen(false); setPlaying(false); setEditorMode('new'); }}/>
