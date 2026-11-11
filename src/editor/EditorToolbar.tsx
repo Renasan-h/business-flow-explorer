@@ -40,8 +40,8 @@ export default function EditorToolbar({ tool, setTool, source, setSource, actors
    <button onClick={() => setZoom(z => Math.min(2.5, +(z * 1.2).toFixed(2)))}>＋</button>
    <button onClick={() => { setZoom(1); resetView(); }}>表示リセット</button>
    <label><input type="checkbox" checked={showLines} onChange={event => setShowLines(event.target.checked)}/> 通信線表示</label>
-   <button type="button" className={orderMode ? 'selected' : ''} aria-pressed={orderMode} onClick={() => { setOrderMode(value => !value); setOrderSource(null); }}>再生順序変更モード</button>
-   {orderMode && <span className="viewport-hint">番号をドラッグして移動先の番号で離すか、番号を2つクリックして並べ替えます。</span>}
+   <button type="button" className={orderMode ? 'selected' : ''} aria-pressed={orderMode} onClick={() => { setOrderMode(value => !value); setOrderSource(null); }}>再生順を並べ替え</button>
+   {orderMode && <span className="viewport-hint">通信線の上にある番号をドラッグして、挿入したい位置の番号に重ねて離してください。番号を2回クリックしても移動できます。右側の「再生順」一覧からも並べ替えられます。</span>}
    {source && <span>接続元: {source} → 接続先を選択</span>}
   </div>
  </>;
