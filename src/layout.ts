@@ -137,5 +137,5 @@ export function layoutActors<T extends Node>(scenario: Workflow & { actors: T[] 
    if (!improved) break;
   }
  }
- return actors.map((actor, index) => ({ ...actor, position: bestPositions[index] }));
+ return actors.map((actor, index) => ({ ...actor, position: bestPositions[index] })) as (T & { position: Point })[];
 }
