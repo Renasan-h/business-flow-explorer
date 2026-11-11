@@ -216,8 +216,8 @@ export async function loadScenario(path: string): Promise<Scenario> {
  return { ...merged, actors: layoutActors(merged) };
 }
 
-export async function listScenarios(): Promise<string[]> {
- const response = await fetch('/scenarios/manifest.json', { cache: 'no-store' });
+export async function listScenarios(rootId = '0'): Promise<string[]> {
+ const response = await fetch('/scenarios/' + encodeURIComponent(rootId) + '/manifest.json', { cache: 'no-store' });
  if (!response.ok) throw new Error('Scenario index load failed');
  return z.array(z.string()).parse(await response.json());
 }
