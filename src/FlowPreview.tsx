@@ -41,15 +41,13 @@ export default function FlowPreview({ actors, steps: allSteps, title, interfaces
  const hasReverse = Boolean(step?.bidirectional) || Boolean(action && steps.some(item => item.actions.some(other => other.from === action.to && other.to === action.from)));
  const activeRoute = action ? offsetRoute(step?.routing === 'orthogonal' && step.waypoints?.length && !returning ? routeViaWaypoints(actors, action.from, action.to, step.waypoints) : routeConnection(actors, returning ? (step?.reverseFrom ?? action.to) : action.from, returning ? (step?.reverseTo ?? action.from) : action.to, step?.routing ?? 'straight'), hasReverse ? -12 : 0) : [];
  const bounds = useMemo(() => {
-  const xs = visibleActors.map(actor => actor.position.x);
-  const ys = visibleActors.map(actor => actor.position.y);
   // 原点からの固定余白ではなく、実際のノード配置に合わせて初期表示する。
   if (!visibleActors.length) return { x: 0, y: 0, w: 1100, h: 650 };
   const padding = 120;
-  const minX = Math.min(...xs) - W / 2 - padding;
-  const minY = Math.min(...ys) - H / 2 - padding;
-  const maxX = Math.max(...xs) + W / 2 + padding;
-  const maxY = Math.max(...ys) + H / 2 + padding;
+  const minX = Math.min(...visibleActors.map(actor => actor.position.x - (actor.width ?? W) / 2)) - padding;
+  const minY = Math.min(...visibleActors.map(actor => actor.position.y - (actor.height ?? H) / 2)) - padding;
+  const maxX = Math.max(...visibleActors.map(actor => actor.position.x + (actor.width ?? W) / 2)) + padding;
+  const maxY = Math.max(...visibleActors.map(actor => actor.position.y + (actor.height ?? H) / 2)) + padding;
   const width = Math.max(550, maxX - minX);
   const height = Math.max(380, maxY - minY);
   return { x: (minX + maxX - width) / 2, y: (minY + maxY - height) / 2, w: width, h: height };
@@ -181,7 +179,7 @@ export default function FlowPreview({ actors, steps: allSteps, title, interfaces
       {visibleActors.map(actor => {
        const active = actor.id === action?.from || actor.id === action?.to;
        return <g key={actor.id} opacity={active || allLines || !action ? 1 : .35}>
-        <rect x={actor.position.x - W / 2} y={actor.position.y - H / 2} width={W} height={H} rx="12"
+        <rect x={actor.position.x - (actor.width ?? W) / 2} y={actor.position.y - (actor.height ?? H) / 2} width={actor.width ?? W} height={actor.height ?? H} rx="12"
          fill={actor.color ?? (active ? '#205a83' : '#20314a')} stroke={active ? '#22d3ee' : '#7398c9'} strokeWidth={active ? 3 : 1.5}/>
         <NodeIcon type={actor.type} x={actor.position.x} y={actor.position.y - 9} size={30} color="#f0f6ff"/>
         <text x={actor.position.x} y={actor.position.y + 19} fill="#f0f6ff" textAnchor="middle" fontSize="12">{actor.name.length > 13 ? actor.name.slice(0, 12) + '…' : actor.name}</text>
