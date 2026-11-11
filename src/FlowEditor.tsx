@@ -220,8 +220,6 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setSteps(current => current.filter(step => step.id !== id));
   setSelectedStep(current => current === id ? null : current);
   setSelectedGroup(null);
-  setDraggedStep(current => current === id ? null : current);
-  setDropTarget(current => current === id ? null : current);
   setMessage('再生ステップを削除しました。');
  };
  /** 逆方向の接続が既にあれば既存通信を双方向へ切り替え、重複登録しない。 */
