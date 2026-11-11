@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { Scenario } from '../scenario';
 import { NODE_TYPES } from '../nodeCatalog';
 import { NodeIcon } from '../NodeIcon';
@@ -14,12 +15,18 @@ export default function ActorSettings({ activeActor, actors, nodeNumber, changeA
  duplicateActor: (id: string) => void;
  deleteActor: (id: string) => void;
 }) {
+ const [documentsDraft, setDocumentsDraft] = useState((activeActor.documents ?? []).join(', '));
+ useEffect(() => { setDocumentsDraft((activeActor.documents ?? []).join(', ')); }, [activeActor.id, activeActor.documents]);
+ const commitDocuments = () => {
+  const documents = documentsDraft.split(',').map(value => value.trim()).filter(Boolean);
+  if (JSON.stringify(documents) !== JSON.stringify(activeActor.documents ?? [])) changeActor(activeActor.id, { documents });
+ };
  return <>
 <details className="editor-section" key={`actor-${activeActor.id}`} open><summary>ノード設定（No. {nodeNumber}）</summary>
      <label>Actor ID<input value={activeActor.id} onChange={e => renameActor(activeActor.id, e.target.value)}/></label>
      <label>表示名<input value={activeActor.name} onChange={e => changeActor(activeActor.id, { name: e.target.value })}/></label>
      <label className="editor-color-field"><span>ノード色</span><input type="color" aria-label="ノード色を選択" value={activeActor.color ?? '#20314a'} onChange={e => changeActor(activeActor.id, { color: e.target.value })}/><span className="editor-color-value">{activeActor.color ?? '#20314a'}</span></label>
-     <label>関連資料（カンマ区切り）<input value={(activeActor.documents ?? []).join(', ')} onChange={e => changeActor(activeActor.id, { documents: e.target.value.split(',').map(value => value.trim()).filter(Boolean) })} placeholder="設計書A, IF資料A"/></label>
+     <label>関連資料（カンマ区切り）<input value={documentsDraft} onChange={e => setDocumentsDraft(e.target.value)} onBlur={commitDocuments} placeholder="設計書A, IF資料A"/></label>
      {/* 種類を選ぶだけで対応するアイコンが決まる。アイコンの個別設定は不要。 */}
      <div className="editor-icon-field">
       <span>ノードの種類</span>
