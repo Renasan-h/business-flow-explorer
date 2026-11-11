@@ -56,6 +56,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [templatePath, setTemplatePath] = useState('');
  const [templateFile, setTemplateFile] = useState<File | null>(null);
  const [templateImportOpen, setTemplateImportOpen] = useState(false);
+ const [templateCatalog, setTemplateCatalog] = useState<{ path: string; label: string }[]>([]);
  const [templateError, setTemplateError] = useState<string | null>(null);
  const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[]; original: string }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
@@ -332,6 +333,30 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
+ useEffect(() => {
+  if (!templateImportOpen) return;
+  let cancelled = false;
+  fetch('/scenarios/catalog.json', { cache: 'no-store' })
+   .then(response => {
+    if (!response.ok) throw new Error('参照候補を取得できません');
+    return response.json() as Promise<string[]>;
+   })
+   .then(paths => {
+    if (cancelled) return;
+    const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
+    setTemplateCatalog(paths.filter(path => path !== scenarioPath).map(path => {
+     const url = new URL(path, window.location.origin);
+     const baseParts = base.pathname.split('/').slice(0, -1).filter(Boolean);
+     const targetParts = url.pathname.split('/').filter(Boolean);
+     while (baseParts.length && targetParts.length && baseParts[0] === targetParts[0]) {
+      baseParts.shift(); targetParts.shift();
+     }
+     return { path: [...baseParts.map(() => '..'), ...targetParts].join('/'), label: decodeURIComponent(url.pathname.replace(/^\\/scenarios\\//, '')) };
+    }));
+   })
+   .catch(() => { if (!cancelled) setTemplateCatalog([]); });
+  return () => { cancelled = true; };
+ }, [templateImportOpen, scenarioPath]);
  const importTemplate = async (mode: 'inline' | 'reference') => {
   setTemplateError(null);
   try {
@@ -465,7 +490,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  }}>
   <div className="editor-header"><div><div className="editor-title-line"><h2>{isNew ? '新規フロー作成' : 'フローエディター'}</h2>{scenarioPath && <span className="editor-target-path">編集対象: {scenarioPath}</span>}</div><p>{isNew ? 'ノードを2件以上追加し、通信線を1件以上作成してからYAMLを保存してください。' : 'ノードをドラッグして配置し、右端の＋から別のノードへドラッグして通信線を作成できます。'}</p></div><div className="editor-header-actions"><button onClick={requestExit}>再生画面へ戻る</button><button onClick={() => setPreview(true)}>▶ プレビュー</button><button className="selected" onClick={() => void save()}>YAMLを保存…</button></div></div>
   <EditorToolbar tool={tool} setTool={setTool} source={source} setSource={setSource} actors={actors} selectedActors={selectedActors} setSelectedActors={setSelectedActors} clearSelection={() => { setSelectedActor(null); setSelectedStep(null); setSelectedGroup(null); }} addActor={addActor} addGroup={addGroup} addInterface={addInterface} openTemplate={() => { setTemplateImportOpen(true); setTemplateError(null); }} zoom={zoom} setZoom={setZoom} resetView={() => { setOffset({ x: 0, y: 0 }); const canvas = canvasRef.current; if (canvas) { canvas.scrollLeft = (canvas.scrollWidth - canvas.clientWidth) / 2; canvas.scrollTop = (canvas.scrollHeight - canvas.clientHeight) / 2; } }} showLines={showLines} setShowLines={setShowLines} orderMode={orderMode} setOrderMode={setOrderMode} setOrderSource={setOrderSource}/>
-  {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)}/>}
+  {templateImportOpen && <TemplateImportDialog path={templatePath} file={templateFile} error={templateError} onPathChange={setTemplatePath} onFileChange={setTemplateFile} onClose={() => setTemplateImportOpen(false)} onImport={mode => void importTemplate(mode)} catalog={templateCatalog}/>}
   {interfacePanel && <InterfaceDefinitionDialog interfaceId={interfacePanel} interfaces={interfaces} setInterfaces={setInterfaces} onClose={() => setInterfacePanel(null)} onImportFields={importInterfaceFields}/>}
   <div className={`editor-layout${inspectorCollapsed ? " inspector-collapsed" : ""}${orderCollapsed ? " order-collapsed" : ""}`}>
    <EditorCanvas canvasRef={canvasRef} onContextMenu={event => {
