@@ -633,9 +633,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       } else if (current.actorId && current.resizeActor) {
        const size = current.initialSize;
        if (!size) return;
+       // 中心座標を固定するため、キャンバス端を超えないサイズに制限する。
+       const maxWidth = Math.min(800, current.initial.x * 2, (WIDTH - current.initial.x) * 2);
+       const maxHeight = Math.min(500, current.initial.y * 2, (HEIGHT - current.initial.y) * 2);
        changeActor(current.actorId, {
-        width: Math.max(100, Math.min(800, size.width + dx * 2)),
-        height: Math.max(60, Math.min(500, size.height + dy * 2)),
+        width: Math.max(100, Math.min(maxWidth, size.width + dx * 2)),
+        height: Math.max(60, Math.min(maxHeight, size.height + dy * 2)),
        });
       } else if (current.actorId) {
        const actor = actors.find(item => item.id === current.actorId);
