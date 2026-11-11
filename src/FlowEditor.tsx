@@ -24,6 +24,7 @@ import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRect
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
+import { routeConnection, routeViaWaypoints, offsetRoute, pointOnRoute } from './connectionRouting';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
