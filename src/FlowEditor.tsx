@@ -25,6 +25,7 @@ import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointer
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
+import { reorderSteps } from './editor/reorderSteps';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -473,18 +474,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [orderCursor, setOrderCursor] = useState<{ x: number; y: number } | null>(null);
  const orderPoint = (step: Step) => playbackOrderPoint(step, actors, steps);
  const orderRadius = (step: Step) => playbackOrderRadius(step, actors);
- const moveOrder = (fromId: string, toId: string) => {
-  if (fromId === toId) return;
-  setSteps(current => {
-   const next = [...current];
-   const from = next.findIndex(step => step.id === fromId);
-   const to = next.findIndex(step => step.id === toId);
-   if (from < 0 || to < 0) return current;
-   const [step] = next.splice(from, 1);
-   next.splice(to, 0, step);
-   return next.map((step, index) => ({ ...step, order: index + 1 }));
-  });
- };
+ const moveOrder = (fromId: string, toId: string) => setSteps(current => reorderSteps(current, fromId, toId));
  const chooseOrder = (id: string) => {
   if (!orderSource) { setOrderSource(id); return; }
   if (orderSource !== id) moveOrder(orderSource, id);
