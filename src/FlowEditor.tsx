@@ -339,7 +339,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   let cancelled = false;
   setTemplateCatalog([]);
   setTemplateCatalogStatus('templateフォルダを読み込み中…');
-  const rootId = /^\\/scenarios\\/(\\d+)\\//.exec(scenarioPath ?? '')?.[1] ?? '0';
+  const rootId = (scenarioPath ?? '').split('/')[2] || '0';
   fetch('/scenarios/' + rootId + '/catalog.json', { cache: 'no-store' })
    .then(response => {
     if (!response.ok) throw new Error('テンプレート一覧の取得に失敗しました');
