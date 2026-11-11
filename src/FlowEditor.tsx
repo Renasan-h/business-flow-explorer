@@ -24,7 +24,7 @@ import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRect
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
-import { routeConnection, routeViaWaypoints, offsetRoute, pointOnRoute } from './connectionRouting';
+import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -471,35 +471,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [orderSource, setOrderSource] = useState<string | null>(null);
  const orderDrag = useRef<{ pointerId: number; source: string; x: number; y: number; moved: boolean } | null>(null);
  const [orderCursor, setOrderCursor] = useState<{ x: number; y: number } | null>(null);
- const orderPoint = (step: Step) => {
-  const action = step.actions[0];
-  if (!action) return null;
-  const from = actors.find(actor => actor.id === action.from);
-  const to = actors.find(actor => actor.id === action.to);
-  if (!from || !to) return null;
-  // 通信線と同じルーティングを使用し、折れ線でも経路長の中心に配置する。
-  const points = step.routing === 'orthogonal' && step.waypoints?.length
-   ? routeViaWaypoints(actors, action.from, action.to, step.waypoints)
-   : routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
-  const bidirectional = Boolean(step.bidirectional) || steps.some(other => other.actions.some(otherAction =>
-   otherAction.from === action.to && otherAction.to === action.from));
-  const route = bidirectional ? offsetRoute(points, -12) : points;
-  return pointOnRoute(route, 0.5);
- };
- const orderRadius = (step: Step) => {
-  const action = step.actions[0];
-  if (!action) return 16;
-  const from = actors.find(actor => actor.id === action.from);
-  const to = actors.find(actor => actor.id === action.to);
-  if (!from || !to) return 16;
-  const points = step.routing === 'orthogonal' && step.waypoints?.length
-   ? routeViaWaypoints(actors, action.from, action.to, step.waypoints)
-   : routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
-  const length = points.slice(1).reduce((total, point, index) =>
-   total + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);
-  // 通信線が短いほどコンパクトに、長いほど少し大きくする。
-  return Math.max(12, Math.min(21, Math.round(length / 18)));
- };
+ const orderPoint = (step: Step) => playbackOrderPoint(step, actors, steps);
+ const orderRadius = (step: Step) => playbackOrderRadius(step, actors);
  const moveOrder = (fromId: string, toId: string) => {
   if (fromId === toId) return;
   setSteps(current => {
