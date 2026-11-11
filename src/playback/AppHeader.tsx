@@ -8,10 +8,11 @@ type AppHeaderProps = {
  onRootChange: (rootId: string) => void;
  theme: Theme;
  onThemeChange: (theme: Theme) => void;
+ onReload: () => void;
 };
 
 /** アプリ共通ヘッダー。選択状態の管理は親コンポーネントに委譲する。 */
-export default function AppHeader({ roots, activeRoot, onRootChange, theme, onThemeChange }: AppHeaderProps) {
+export default function AppHeader({ roots, activeRoot, onRootChange, theme, onThemeChange, onReload }: AppHeaderProps) {
  return <header>
   <div className="header-brand">
    <strong>◈ Business Flow Explorer</strong>
@@ -23,6 +24,7 @@ export default function AppHeader({ roots, activeRoot, onRootChange, theme, onTh
    </label>
   </div>
   <div className="header-actions">
+   <button type="button" className="header-reload-button" onClick={onReload} title="シナリオ一覧と選択中のフローを再読み込み">↻ 再読み込み</button>
    <span>Scenario-driven visualization</span>
    <div className="theme-switch" role="group" aria-label="配色テーマ">
     <button type="button" className={theme === 'light' ? 'selected' : ''} aria-pressed={theme === 'light'} onClick={() => onThemeChange('light')}>☀ ライト</button>
