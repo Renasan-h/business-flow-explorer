@@ -472,31 +472,32 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [orderCursor, setOrderCursor] = useState<{ x: number; y: number } | null>(null);
  const orderPoint = (step: Step) => {
   const action = step.actions[0];
-  const from = actors.find(actor => actor.id === action?.from);
-  const to = actors.find(actor => actor.id === action?.to);
+  if (!action) return null;
+  const from = actors.find(actor => actor.id === action.from);
+  const to = actors.find(actor => actor.id === action.to);
   if (!from || !to) return null;
-  const x = (from.position.x + to.position.x) / 2;
-  const y = (from.position.y + to.position.y) / 2;
-  // マーカー半径と余白を考慮し、ノードに重ならない位置を選ぶ。
-  const dx = to.position.x - from.position.x;
-  const dy = to.position.y - from.position.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const nx = -dy / length;
-  const ny = dx / length;
-  const candidates = [
-   { x, y: y - 55 },
-   ...[55, 85, 115, 150, 200].flatMap(distance => [
-    { x: x + nx * distance, y: y + ny * distance },
-    { x: x - nx * distance, y: y - ny * distance },
-   ]),
-   { x, y: y - 220 },
-  ];
-  return candidates.find(point => actors.every(actor => {
-   const halfWidth = (actor.width ?? 150) / 2 + 29;
-   const halfHeight = (actor.height ?? 76) / 2 + 29;
-   return Math.abs(point.x - actor.position.x) > halfWidth ||
-    Math.abs(point.y - actor.position.y) > halfHeight;
-  })) ?? candidates[candidates.length - 1];
+  // 通信線と同じルーティングを使用し、折れ線でも経路長の中心に配置する。
+  const points = step.routing === 'orthogonal' && step.waypoints?.length
+   ? routeViaWaypoints(actors, action.from, action.to, step.waypoints)
+   : routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
+  const bidirectional = Boolean(step.bidirectional) || steps.some(other => other.actions.some(otherAction =>
+   otherAction.from === action.to && otherAction.to === action.from));
+  const route = bidirectional ? offsetRoute(points, -12) : points;
+  return pointOnRoute(route, 0.5);
+ };
+ const orderRadius = (step: Step) => {
+  const action = step.actions[0];
+  if (!action) return 16;
+  const from = actors.find(actor => actor.id === action.from);
+  const to = actors.find(actor => actor.id === action.to);
+  if (!from || !to) return 16;
+  const points = step.routing === 'orthogonal' && step.waypoints?.length
+   ? routeViaWaypoints(actors, action.from, action.to, step.waypoints)
+   : routeConnection(actors, action.from, action.to, step.routing ?? 'straight');
+  const length = points.slice(1).reduce((total, point, index) =>
+   total + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);
+  // 通信線が短いほどコンパクトに、長いほど少し大きくする。
+  return Math.max(12, Math.min(21, Math.round(length / 18)));
  };
  const moveOrder = (fromId: string, toId: string) => {
   if (fromId === toId) return;
@@ -749,7 +750,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       {tool === 'multi' && marquee.current && marqueeEnd && <rect className="editor-selection-marquee" x={Math.min(marquee.current.start.x, marqueeEnd.x)} y={Math.min(marquee.current.start.y, marqueeEnd.y)} width={Math.abs(marqueeEnd.x - marquee.current.start.x)} height={Math.abs(marqueeEnd.y - marquee.current.start.y)} pointerEvents="none"/>}
 
        <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
-      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
+      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} orderRadius={orderRadius} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
      </g>
     </svg>
     <EditorContextMenu menu={contextMenu}
