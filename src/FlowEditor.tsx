@@ -364,14 +364,14 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    // 直接読込は選択ファイルの内容を利用し、参照読込は公開ディレクトリ内のパスが必須。
    const path = templatePath.trim();
    if (!templateFile && !path) throw new Error('YAMLファイルを選択するか、ファイルパスを指定してください');
-   if (mode === 'reference' && !path) throw new Error('サブシナリオ参照には /scenarios/ 内の相対パスが必要です。ファイルダイアログからはパスを取得できません');
+   if (mode === 'reference' && !path) throw new Error('サブシナリオ参照は「登録済みYAMLから選択」で指定してください。');
    let content: string;
    let sourceUrl: string | null = null;
    if (mode === 'inline' && templateFile) {
     if (!/\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
     content = await templateFile.text();
    } else {
-    if (!/^[a-zA-Z0-9_./-]+\.ya?ml$/.test(path) || path.split('/').includes('..')) throw new Error('scenarios内の相対YAMLパスを指定してください');
+    if (!/^[^?#\\\\]+\.ya?ml$/i.test(path) || path.startsWith('/') || path.split('/').includes('') || path.split('/').includes('.')) throw new Error('シナリオルート内の相対YAMLパスを指定してください');
     const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
     const url = new URL(path, base);
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
@@ -385,7 +385,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    // ディレクトリ情報をブラウザから取得できないため、参照付きなら公開パスを指定する。
    if (parsedFragment.hasReferences && !sourceUrl) throw new Error('参照付きYAMLは公開ディレクトリの相対パスから読み込んでください');
    const fragment = parsedFragment.hasReferences ? await loadTemplateFragment(sourceUrl!) : parsedFragment;
-   if (mode === 'reference' && templateReferences.some(item => item.file === templatePath)) throw new Error('同じ参照テンプレートは複数回読み込めません');
+   if (mode === 'reference' && templateReferences.some(item => item.file === path)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const actorIds = new Set(actors.map(item => item.id));
    const stepIds = new Set(steps.map(item => item.id));
    // 参照モードは元ファイルのIDを変えられないため衝突時に停止する。
