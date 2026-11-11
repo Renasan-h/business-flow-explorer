@@ -1,7 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { parse } from 'yaml';
 
 type Settings = { scenarioBaseDirectory: string };
@@ -47,8 +47,9 @@ function scenarioFiles(root: string): string[] {
 function scenarioDirectoryPlugin(): Plugin {
  const settings = readSettings();
  const configured = settings.scenarioBaseDirectory;
- const root = realpathSync(isAbsolute(configured) ? configured : resolve(process.cwd(), configured));
- if (!existsSync(root)) throw new Error('シナリオディレクトリが存在しません: ' + configured);
+ const requestedRoot = isAbsolute(configured) ? configured : resolve(process.cwd(), configured);
+ if (!existsSync(requestedRoot)) throw new Error('シナリオディレクトリが存在しません: ' + configured);
+ const root = realpathSync(requestedRoot);
  const handle = (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse, next: () => void) => {
   const pathname = (req.url ?? '').split('?')[0];
   if (!pathname.startsWith('/scenarios/')) return next();
