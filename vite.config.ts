@@ -31,7 +31,7 @@ function scenarioFiles(root: string, includeFragments = false): string[] {
    else if (entry.isFile() && /\.ya?ml$/i.test(entry.name)) {
     try {
      const data = parse(readFileSync(path, 'utf8'));
-     if (includeFragments || (data?.schemaVersion === '1.0' && data?.metadata)) {
+     if (includeFragments ? !(data?.schemaVersion === '1.0' && data?.metadata) : (data?.schemaVersion === '1.0' && data?.metadata)) {
       found.push('/scenarios/' + relative(root, path).split(sep).map(encodeURIComponent).join('/'));
      }
     } catch (error) {
