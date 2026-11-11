@@ -694,6 +694,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
     </svg>
     <EditorContextMenu menu={contextMenu}
      onEditActor={id => { setSelectedActor(id); setSelectedStep(null); setSelectedGroup(null); setContextMenu(null); }}
+     actorSize={{ width: actors.find(actor => actor.id === contextMenu?.actorId)?.width ?? NODE_WIDTH, height: actors.find(actor => actor.id === contextMenu?.actorId)?.height ?? NODE_HEIGHT }}
+     onResizeActor={(id, width, height) => { changeActor(id, { width, height }); setContextMenu(null); }}
      onDuplicateActor={id => { duplicateActor(id); setContextMenu(null); }}
      onDeleteActor={id => { deleteActor(id, true); setContextMenu(null); }}
      onEditGroup={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); setContextMenu(null); }}
