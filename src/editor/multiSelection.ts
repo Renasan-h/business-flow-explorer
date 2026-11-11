@@ -20,10 +20,10 @@ export function actorsInSelection(
  actors: Actor[], rect: SelectionRectangle, nodeWidth: number, nodeHeight: number,
 ): string[] {
  return actors.filter(actor =>
-  actor.position.x + nodeWidth / 2 >= rect.left &&
-  actor.position.x - nodeWidth / 2 <= rect.right &&
-  actor.position.y + nodeHeight / 2 >= rect.top &&
-  actor.position.y - nodeHeight / 2 <= rect.bottom
+  actor.position.x + (actor.width ?? nodeWidth) / 2 >= rect.left &&
+  actor.position.x - (actor.width ?? nodeWidth) / 2 <= rect.right &&
+  actor.position.y + (actor.height ?? nodeHeight) / 2 >= rect.top &&
+  actor.position.y - (actor.height ?? nodeHeight) / 2 <= rect.bottom
  ).map(actor => actor.id);
 }
 
