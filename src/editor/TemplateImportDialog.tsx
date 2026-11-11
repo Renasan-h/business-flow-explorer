@@ -20,11 +20,11 @@ export default function TemplateImportDialog({ path, file, error, onPathChange, 
      <label id="template-import-title" className="template-import-title">テンプレートの読み込み</label>
      <div className="template-import-file">
       <input aria-label="テンプレートの相対パス" value={path} onChange={e => onPathChange(e.target.value)} placeholder="参照元からの相対パス（例: ../sub/auth.yaml）"/>
-      <input ref={templateFileRef} type="file" accept=".yaml,.yml" className="template-import-hidden" aria-label="ローカルYAMLを選択" onChange={event => onFileChange(event.target.files?.[0] ?? null)}/>
+      <input ref={templateFileRef} type="file" accept=".yaml,.yml" className="template-import-hidden" aria-label="ローカルYAMLを選択" onChange={event => { onFileChange(event.target.files?.[0] ?? null); if (event.target.files?.[0]) onPathChange(""); }}/>
       <button type="button" className="template-import-browse" onClick={() => templateFileRef.current?.click()}>ファイルを選択…</button>
      </div>
      {catalog.length > 0 && <label className="template-import-catalog">登録済みYAMLから選択
-      <select aria-label="参照するYAMLを選択" value="" onChange={event => { if (event.target.value) { onPathChange(event.target.value); onFileChange(null); } }}>
+      <select aria-label="参照するYAMLを選択" value={catalog.some(item => item.path === path) ? path : ""} onChange={event => { if (event.target.value) { onPathChange(event.target.value); onFileChange(null); if (templateFileRef.current) templateFileRef.current.value = ""; } }}>
        <option value="">選択してください</option>
        {catalog.map(item => <option key={item.path} value={item.path}>{item.label}</option>)}
       </select>
