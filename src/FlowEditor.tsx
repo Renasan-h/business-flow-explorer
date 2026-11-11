@@ -351,7 +351,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      while (baseParts.length && targetParts.length && baseParts[0] === targetParts[0]) {
       baseParts.shift(); targetParts.shift();
      }
-     return { path: [...baseParts.map(() => '..'), ...targetParts].join('/'), label: decodeURIComponent(url.pathname.replace(/^\\/scenarios\\//, '')) };
+     return { path: [...baseParts.map(() => '..'), ...targetParts].join('/'), label: decodeURIComponent(url.pathname.slice('/scenarios/'.length)) };
     }));
    })
    .catch(() => { if (!cancelled) setTemplateCatalog([]); });
