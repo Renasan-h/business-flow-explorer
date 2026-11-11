@@ -275,7 +275,7 @@ export default function Scene({ scenario, step, mode, theme, playing, speed, foc
     else if (command[0] === 'rect') glyph.roundRect(command[1], command[2], command[3], command[4], 1.5);
     else if (command[0] === 'circle') glyph.circle(command[1], command[2], command[3]);
     else {
-     const coords = command.slice(1);
+     const coords = command.slice(1) as number[];
      glyph.moveTo(coords[0], coords[1]);
      for (let i = 2; i < coords.length; i += 2) glyph.lineTo(coords[i], coords[i + 1]);
     }
