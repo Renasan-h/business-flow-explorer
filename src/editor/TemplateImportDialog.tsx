@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 /** テンプレート読込モーダル。入力と読込実行は親が所有する。 */
-export default function TemplateImportDialog({ path, file, error, onPathChange, onFileChange, onClose, onImport }: {
+export default function TemplateImportDialog({ path, file, error, onPathChange, onFileChange, onClose, onImport, catalog = [] }: {
  path: string;
  file: File | null;
  error: string | null;
@@ -9,6 +9,7 @@ export default function TemplateImportDialog({ path, file, error, onPathChange, 
  onFileChange: (file: File | null) => void;
  onClose: () => void;
  onImport: (mode: 'inline' | 'reference') => void;
+ catalog?: { path: string; label: string }[];
 }) {
  const templateFileRef = useRef<HTMLInputElement>(null);
  return <>
@@ -18,12 +19,19 @@ export default function TemplateImportDialog({ path, file, error, onPathChange, 
     <div className="template-import-source">
      <label id="template-import-title" className="template-import-title">テンプレートの読み込み</label>
      <div className="template-import-file">
-      <input aria-label="テンプレートの相対パス" value={path} onChange={e => onPathChange(e.target.value)} placeholder="scenarios内の相対パス（例: fragments/common.yaml）"/>
+      <input aria-label="テンプレートの相対パス" value={path} onChange={e => onPathChange(e.target.value)} placeholder="参照元からの相対パス（例: ../sub/auth.yaml）"/>
       <input ref={templateFileRef} type="file" accept=".yaml,.yml" className="template-import-hidden" aria-label="ローカルYAMLを選択" onChange={event => onFileChange(event.target.files?.[0] ?? null)}/>
       <button type="button" className="template-import-browse" onClick={() => templateFileRef.current?.click()}>ファイルを選択…</button>
      </div>
+     {catalog.length > 0 && <label className="template-import-catalog">登録済みYAMLから選択
+      <select aria-label="参照するYAMLを選択" value="" onChange={event => { if (event.target.value) { onPathChange(event.target.value); onFileChange(null); } }}>
+       <option value="">選択してください</option>
+       {catalog.map(item => <option key={item.path} value={item.path}>{item.label}</option>)}
+      </select>
+     </label>}
      {file && <span className="template-import-selected" title={file.name}>{file.name}<button type="button" aria-label="選択ファイルを解除" onClick={() => { onFileChange(null); if (templateFileRef.current) templateFileRef.current.value = ''; }}>×</button></span>}
     </div>
+    <p className="hint">直接読込はローカルファイルを利用できます。サブシナリオ参照は設定済みフォルダ内のYAMLを選択してください。</p>
     <div className="template-import-actions">
      <button type="button" onClick={() => onImport('inline')}>直接読み込む</button>
      <button type="button" onClick={() => onImport('reference')}>サブシナリオとして読み込む</button>
