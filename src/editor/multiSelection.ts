@@ -1,4 +1,5 @@
 import type { Scenario } from '../scenario';
+import { nodeSize } from './nodeGeometry';
 
 type Actor = Scenario['actors'][number];
 export type EditorPoint = { x: number; y: number };
@@ -31,12 +32,15 @@ export function actorsInSelection(
 export function boundedGroupDelta(
  initial: DragOrigin[], delta: EditorPoint,
  bounds: { width: number; height: number; nodeWidth: number; nodeHeight: number },
+ actors?: Actor[],
 ): EditorPoint {
  if (!initial.length) return { x: 0, y: 0 };
- const minX = Math.max(...initial.map(item => bounds.nodeWidth / 2 - item.x));
- const maxX = Math.min(...initial.map(item => bounds.width - bounds.nodeWidth / 2 - item.x));
- const minY = Math.max(...initial.map(item => bounds.nodeHeight / 2 - item.y));
- const maxY = Math.min(...initial.map(item => bounds.height - bounds.nodeHeight / 2 - item.y));
+ const sizes = new Map(actors?.map(actor => [actor.id, nodeSize(actor)]));
+ const sizeOf = (id: string) => sizes.get(id) ?? { width: bounds.nodeWidth, height: bounds.nodeHeight };
+ const minX = Math.max(...initial.map(item => sizeOf(item.id).width / 2 - item.x));
+ const maxX = Math.min(...initial.map(item => bounds.width - sizeOf(item.id).width / 2 - item.x));
+ const minY = Math.max(...initial.map(item => sizeOf(item.id).height / 2 - item.y));
+ const maxY = Math.min(...initial.map(item => bounds.height - sizeOf(item.id).height / 2 - item.y));
  return { x: Math.max(minX, Math.min(maxX, delta.x)), y: Math.max(minY, Math.min(maxY, delta.y)) };
 }
 
