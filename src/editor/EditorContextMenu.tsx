@@ -7,9 +7,11 @@ export type EditorContextMenuState = {
  groupId: string | null;
 };
 
-export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor, onDeleteActor, onEditGroup, onDeleteGroup, onEditStep, onDeleteStep, onAddWaypoint, onRemoveWaypoints, onAddActor, onResetView, waypointDirections }: {
+export default function EditorContextMenu({ menu, onEditActor, onResizeActor, actorSize, onDuplicateActor, onDeleteActor, onEditGroup, onDeleteGroup, onEditStep, onDeleteStep, onAddWaypoint, onRemoveWaypoints, onAddActor, onResetView, waypointDirections }: {
  menu: EditorContextMenuState | null;
  onEditActor: (id: string) => void;
+ onResizeActor: (id: string, width: number, height: number) => void;
+ actorSize: { width: number; height: number };
  onDuplicateActor: (id: string) => void;
  onDeleteActor: (id: string) => void;
  onEditGroup: (id: string) => void;
@@ -26,6 +28,19 @@ export default function EditorContextMenu({ menu, onEditActor, onDuplicateActor,
  return <div className="editor-context-menu" role="menu" style={{ left: menu.x, top: menu.y }} onPointerDown={event => event.stopPropagation()}>
   {menu.actorId ? <>
    <button type="button" role="menuitem" onClick={() => onEditActor(menu.actorId!)}>ノードを編集</button>
+   <details className="editor-context-size"><summary>サイズを数値指定…</summary>
+    <form onSubmit={event => {
+     event.preventDefault();
+     const data = new FormData(event.currentTarget);
+     const width = Number(data.get('width'));
+     const height = Number(data.get('height'));
+     if (Number.isFinite(width) && Number.isFinite(height) && width >= 100 && width <= 800 && height >= 60 && height <= 500) onResizeActor(menu.actorId!, width, height);
+    }}>
+     <label>幅 <input name="width" type="number" min="100" max="800" defaultValue={actorSize.width} required/></label>
+     <label>高さ <input name="height" type="number" min="60" max="500" defaultValue={actorSize.height} required/></label>
+     <button type="submit">サイズを適用</button>
+    </form>
+   </details>
    <button type="button" role="menuitem" onClick={() => onDuplicateActor(menu.actorId!)}>ノードを複製</button>
    <button type="button" role="menuitem" className="danger" onClick={() => onDeleteActor(menu.actorId!)}>ノードを削除</button>
   </> : menu.groupId ? <>
