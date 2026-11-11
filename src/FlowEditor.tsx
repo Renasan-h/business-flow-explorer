@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { parse } from 'yaml';
 import { serializeEditorScenario, validateTemplateReferences } from './editor/serializeEditorScenario';
-import { loadTemplateFragment, parseTemplateYaml, type Scenario } from './scenario';
+import type { Scenario } from './scenario';
+import { loadEditorTemplate } from './editor/loadEditorTemplate';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
 import PlaybackOrderPanel from './editor/PlaybackOrderPanel';
@@ -346,31 +347,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const importTemplate = async (mode: 'inline' | 'reference') => {
   setTemplateError(null);
   try {
-   // ファイルダイアログはブラウザの安全制約により絶対パスを公開しない。
-   // 直接読込は選択ファイルの内容を利用し、参照読込は公開ディレクトリ内のパスが必須。
    const path = templatePath.trim();
-   if (!templateFile && !path) throw new Error('YAMLファイルを選択するか、ファイルパスを指定してください');
-   if (mode === 'reference' && !path) throw new Error('templateフォルダ内のYAMLを選択してください。');
-   let content: string;
-   let sourceUrl: string | null = null;
-   if (mode === 'inline' && templateFile) {
-    if (!/\.ya?ml$/i.test(templateFile.name) || templateFile.size > 2_000_000) throw new Error('2MB以下のYAMLファイルを選択してください');
-    content = await templateFile.text();
-   } else {
-    if (!/^[^?#\\\\]+\.ya?ml$/i.test(path) || path.startsWith('/') || path.split('/').includes('') || path.split('/').includes('.')) throw new Error('シナリオルート内の相対YAMLパスを指定してください');
-    const base = scenarioPath ? new URL(scenarioPath, window.location.origin) : new URL('/scenarios/new-flow.yaml', window.location.origin);
-    const url = new URL(path, base);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith('/scenarios/')) throw new Error('scenarios外のファイルは読み込めません');
-    const response = await fetch(url.pathname);
-    if (!response.ok) throw new Error('テンプレートを取得できません: ' + response.status);
-    content = await response.text();
-    sourceUrl = url.href;
-   }
-   const parsedFragment = parseTemplateYaml(content);
-   // 相対参照は読み込み元URLを基準に再帰解決する。ローカルファイルは
-   // ディレクトリ情報をブラウザから取得できないため、参照付きなら公開パスを指定する。
-   if (parsedFragment.hasReferences && !sourceUrl) throw new Error('参照付きYAMLは公開ディレクトリの相対パスから読み込んでください');
-   const fragment = parsedFragment.hasReferences ? await loadTemplateFragment(sourceUrl!) : parsedFragment;
+   const fragment = await loadEditorTemplate(mode, path, templateFile, scenarioPath);
    if (mode === 'reference' && templateReferences.some(item => item.file === path)) throw new Error('同じ参照テンプレートは複数回読み込めません');
    const { newActors, newSteps, renamed } = prepareTemplateImport(fragment, mode, actors, steps);
    setActors(current => [...current, ...newActors]);
