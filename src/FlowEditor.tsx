@@ -230,33 +230,39 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
  /** ポインター終了時に各操作の確定処理と一時状態の解除を行う。 */
  const handleCanvasPointerUp = (event: PointerEvent<SVGSVGElement>) => {
+  const selection = finishMultiSelectionPointer(event.pointerId);
+  if (selection) {
+   const end = toWorld(event.clientX, event.clientY);
+   setSelectedActors(current => completeMarqueeSelection(
+    actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT,
+   ));
+  }
 
-      const selection = finishMultiSelectionPointer(event.pointerId);
-      if (selection) {
-       const end = toWorld(event.clientX, event.clientY);
-       setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
-      }
-      finishWaypoint(event.pointerId);
-      if (isOrderPointer(event.pointerId)) {
-       const dragOrder = finishOrder(event.pointerId);
-       if (dragOrder) {
-       const point = toWorld(event.clientX, event.clientY);
-       const action = playbackOrderDropAction(steps, point, dragOrder.source, dragOrder.moved, orderPoint);
-       if (action?.kind === 'reorder') { moveOrder(action.from, action.to); setOrderSource(null); }
-       else if (action?.kind === 'choose') chooseOrder(action.source);
-       }
-       setOrderCursor(null);
-      }
-      if (isWirePointer(event.pointerId)) {
-       const point = toWorld(event.clientX, event.clientY);
-       // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
-       const targetId = connectionDropTarget(actors, point);
-       if (wire && targetId) addConnection(wire.from, targetId);
-       else if (wire) setMessage('接続先ノードの上でドロップしてください。');
-       clearWirePreview();
-       finishWire(event.pointerId);
-      }
-      finishEditorDrag(event.pointerId);
+  finishWaypoint(event.pointerId);
+
+  // 再生順操作の終了結果が取得できた場合のみ並び替え・選択を確定する。
+  const dragOrder = finishOrder(event.pointerId);
+  if (dragOrder) {
+   const point = toWorld(event.clientX, event.clientY);
+   const action = playbackOrderDropAction(steps, point, dragOrder.source, dragOrder.moved, orderPoint);
+   if (action?.kind === 'reorder') {
+    moveOrder(action.from, action.to);
+    setOrderSource(null);
+   } else if (action?.kind === 'choose') {
+    chooseOrder(action.source);
+   }
+   setOrderCursor(null);
+  }
+
+  // SVGがポインターをキャプチャしているため、接続先は座標で判定する。
+  if (finishWire(event.pointerId)) {
+   const targetId = connectionDropTarget(actors, toWorld(event.clientX, event.clientY));
+   if (wire && targetId) addConnection(wire.from, targetId);
+   else if (wire) setMessage('接続先ノードの上でドロップしてください。');
+   clearWirePreview();
+  }
+
+  finishEditorDrag(event.pointerId);
  };
 
  /** SVG上の移動操作を優先順位に従って処理する。 */
