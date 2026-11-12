@@ -66,3 +66,15 @@ export function completeMarqueeSelection(
  const matches = actorsInSelection(actors, selectionRectangle(start, end), nodeWidth, nodeHeight);
  return additive ? [...new Set([...currentIds, ...matches])] : matches;
 }
+
+/** ドラッグ開始時と現在のワールド座標から、境界内の複数ノード移動結果を求める。 */
+export function dragSelectedActors(
+ actors: Actor[],
+ initial: DragOrigin[],
+ start: EditorPoint,
+ end: EditorPoint,
+ bounds: { width: number; height: number; nodeWidth: number; nodeHeight: number },
+): Actor[] {
+ const delta = boundedGroupDelta(initial, { x: end.x - start.x, y: end.y - start.y }, bounds, actors);
+ return moveSelectedActors(actors, initial, delta);
+}
