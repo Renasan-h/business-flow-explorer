@@ -28,6 +28,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 
 import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
+import { clampNodePosition } from './editor/nodeGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
 import { useEditorInteractionPointers } from './editor/useEditorInteractionPointers';
