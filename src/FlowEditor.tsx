@@ -22,7 +22,7 @@ import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorC
 import { resolveEditorSelection } from './editor/selection';
 import { resolvePointerStartTarget } from './editor/pointerStartTargets';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
-import { boundedGroupDelta, completeMarqueeSelection, moveSelectedActors } from './editor/multiSelection';
+import { completeMarqueeSelection, dragSelectedActors } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 
@@ -523,13 +523,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const active = multiDrag.current;
        const start = toWorld(active.x, active.y);
        const end = toWorld(event.clientX, event.clientY);
-       const dx = end.x - start.x;
-       const dy = end.y - start.y;
-       // 全選択ノードの相対位置を維持したままキャンバス境界内に収める。
-       const delta = boundedGroupDelta(active.initial, { x: dx, y: dy }, {
+       // 複数ノードの相対位置とキャンバス境界を維持する。
+       setActors(current => dragSelectedActors(current, active.initial, start, end, {
         width: WIDTH, height: HEIGHT, nodeWidth: NODE_WIDTH, nodeHeight: NODE_HEIGHT,
-       }, actors);
-       setActors(current => moveSelectedActors(current, active.initial, delta));
+       }));
        return;
       }
       if (waypointDrag.current?.pointerId === event.pointerId) {
