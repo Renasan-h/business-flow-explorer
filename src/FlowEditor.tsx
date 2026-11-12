@@ -34,7 +34,7 @@ import { useEditorInteractionPointers } from './editor/useEditorInteractionPoint
 import { useConnectionWirePreview } from './editor/useConnectionWirePreview';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
-import { templateCatalogItems } from './editor/templateCatalog';
+import { loadTemplateCatalog } from './editor/loadTemplateCatalog';
 import { prepareTemplateImport } from './editor/prepareTemplateImport';
 import { writeEditorYaml } from './editor/writeEditorYaml';
 import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
@@ -494,15 +494,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   let cancelled = false;
   setTemplateCatalog([]);
   setTemplateCatalogStatus('templateフォルダを読み込み中…');
-  const rootId = (scenarioPath ?? '').split('/')[2] || '0';
-  fetch('/scenarios/' + rootId + '/catalog.json', { cache: 'no-store' })
-   .then(response => {
-    if (!response.ok) throw new Error('テンプレート一覧の取得に失敗しました');
-    return response.json() as Promise<string[]>;
-   })
-   .then(paths => {
+  loadTemplateCatalog(scenarioPath)
+   .then(items => {
     if (cancelled) return;
-    const items = templateCatalogItems(paths, scenarioPath);
     setTemplateCatalog(items);
     setTemplateCatalogStatus(items.length ? '' : '現在のベースディレクトリのtemplateフォルダにYAMLがありません。');
    })
