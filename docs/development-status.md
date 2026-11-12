@@ -30,8 +30,8 @@
 | --- | --- |
 | Vitest単体/DOMテスト | CI成功履歴あり |
 | TypeScript型チェック・Viteビルド | CI成功履歴あり |
-| Playwright通常再生・編集 | 初回CIで2シナリオ成功 |
-| Playwright YAMLダウンロード | 初回CIで1シナリオ失敗。原因調査が必要 |
+| Playwright通常再生・編集 | CI成功 |
+| Playwright YAMLダウンロード | File System Access APIのテスト条件を修正後、CI成功 |
 | 実ポインタードラッグ・リサイズ | 自動E2E未整備 |
 | 実画面のぼやけ・拡大時表示 | 目視と画像比較の検証が必要 |
 | 保存ファイルを再配置した完全E2E | 未整備 |
@@ -41,7 +41,7 @@
 ## 4. 今後の計画
 
 ### 優先度A：テスト基盤の安定化
-1. PlaywrightのYAMLダウンロードテスト失敗を調査・修正し、全件成功を確認する。
+1. ~~PlaywrightのYAMLダウンロードテスト失敗を調査・修正し、全件成功を確認する。~~ 完了（[成功したCI](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43279235957)）。
 2. ロックファイルをリポジトリで管理し、CIの依存関係再現性を高める。
 3. 単体・DOM・E2Eで共通のテスト用シナリオを整理する。
 
