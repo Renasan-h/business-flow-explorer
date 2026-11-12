@@ -26,6 +26,7 @@ import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRect
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
+import { movedGroupOrigin, moveGroupMembers, resizedNodeSize } from './editor/dragGeometry';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
@@ -559,27 +560,16 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (!delta) return;
       const { x: dx, y: dy } = delta;
       if (current.groupId) {
-       const nextX = Math.max(0, current.initial.x + dx);
-       const nextY = Math.max(0, current.initial.y + dy);
-       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy) } : { ...item, x: nextX, y: nextY } : item));
-       // 領域移動時は所属ノードだけをドラッグ開始時の座標から同量移動する。
+       const next = movedGroupOrigin(current.initial, { x: dx, y: dy });
+       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy) } : { ...item, ...next } : item));
+       // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
        if (!current.resizeGroup && current.initialMembers?.length) {
-        const memberPositions = new Map(current.initialMembers.map(item => [item.id, item]));
-        setActors(items => items.map(actor => {
-         const initial = memberPositions.get(actor.id);
-         return initial ? { ...actor, position: clampNodePosition(actor, { x: initial.x + nextX - current.initial.x, y: initial.y + nextY - current.initial.y }, { width: WIDTH, height: HEIGHT }) } : actor;
-        }));
+        setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, next, { width: WIDTH, height: HEIGHT }));
        }
       } else if (current.actorId && current.resizeActor) {
        const size = current.initialSize;
        if (!size) return;
-       // 中心座標を固定するため、キャンバス端を超えないサイズに制限する。
-       const maxWidth = Math.min(800, current.initial.x * 2, (WIDTH - current.initial.x) * 2);
-       const maxHeight = Math.min(500, current.initial.y * 2, (HEIGHT - current.initial.y) * 2);
-       changeActor(current.actorId, {
-        width: Math.max(100, Math.min(maxWidth, size.width + dx * 2)),
-        height: Math.max(60, Math.min(maxHeight, size.height + dy * 2)),
-       });
+       changeActor(current.actorId, resizedNodeSize(current.initial, size, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT }));
       } else if (current.actorId) {
        const actor = actors.find(item => item.id === current.actorId);
        if (!actor) return;
