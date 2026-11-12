@@ -80,6 +80,11 @@ test('編集画面: 複数選択・ノード追加・プレビュー往復', asy
 test('YAML保存: ダウンロード内容を検証する', async ({ page }) => {
  await openFixture(page);
  await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ // ChromiumはFile System Access APIに対応するため、ダウンロード経路を明示的に検証する。
+ // ブラウザ依存の保存先選択ダイアログを開かず、非対応環境のフォールバックを再現する。
+ await page.evaluate(() => {
+  Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
+ });
  const downloadPromise = page.waitForEvent('download');
  await page.getByRole('button', { name: 'YAMLを保存…' }).click();
  const download = await downloadPromise;
