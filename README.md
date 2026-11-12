@@ -349,7 +349,7 @@ npm run test:e2e
 
 E2Eはテスト用のYAMLをHTTPレスポンスとして差し替えるため、既存のユーザーシナリオを変更しません。テスト失敗時はCIにトレースとスクリーンショットを保存します。
 
-**検証状況**：Vitest・型チェック・ViteビルドはCI成功を確認済みです。一方、Playwrightは初回実行で3シナリオ中1件（YAMLダウンロード検証）が失敗した履歴があります。**E2E全件成功は未確認**であり、原因の調査と修正が残っています。ドラッグ・リサイズ・表示のぼやけなど、実描画を伴う操作の自動検証も今後の課題です。最新状況は [GitHub Actions](https://github.com/Renasan-h/business-flow-explorer/actions) で確認してください。
+**検証状況**：Vitest・型チェック・Viteビルドに加え、Playwrightの3シナリオすべてでCI成功を確認しました（[成功した実行](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43279235957)）。初回はChromiumのFile System Access APIが原因でダウンロードテストが失敗しましたが、テスト時のAPI切替で解消しました。ドラッグ・リサイズ・表示のぼやけなど、実描画を伴う操作の自動検証も今後の課題です。最新状況は [GitHub Actions](https://github.com/Renasan-h/business-flow-explorer/actions) で確認してください。
 
 詳しい手順とテストの追加方針は [テスト・CIガイド](docs/testing-guide.md)、構成と残作業は [開発状況・ロードマップ](docs/development-status.md) を参照してください。
 
