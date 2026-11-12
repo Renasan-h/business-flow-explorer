@@ -20,6 +20,19 @@ export function moveWaypoint(step: Step, direction: WaypointDirection, index: nu
  return { ...step, [key]: waypoints.map((point, currentIndex) => currentIndex === index ? position : point) };
 }
 
+/** ドラッグ対象の経由点だけを移動し、キャンバス外への移動を防ぐ。 */
+export function moveDraggedWaypoint(
+ steps: Step[],
+ target: { stepId: string; index: number; direction: WaypointDirection },
+ point: Point,
+ bounds: { width: number; height: number },
+): Step[] {
+ const position = clampWaypoint(point, bounds);
+ return steps.map(step => step.id === target.stepId
+  ? moveWaypoint(step, target.direction, target.index, position)
+  : step);
+}
+
 /** メニューで表示する方向別の経由点数を取得する。 */
 export function waypointMenuState(step: Step | undefined): { reverse: boolean; forwardCount: number; reverseCount: number } {
  return {
