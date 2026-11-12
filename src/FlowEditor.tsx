@@ -129,6 +129,36 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const svg = svgRef.current;
   return svg ? screenToWorldPoint(svg, x, y, offset, zoom) ?? { x: 0, y: 0 } : { x: 0, y: 0 };
  };
+ /** ポインター終了時に各操作の確定処理と一時状態の解除を行う。 */
+ const handleCanvasPointerUp = (event: PointerEvent<SVGSVGElement>) => {
+
+      const selection = finishMultiSelectionPointer(event.pointerId);
+      if (selection) {
+       const end = toWorld(event.clientX, event.clientY);
+       setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
+      }
+      if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
+      if (orderDrag.current?.pointerId === event.pointerId) {
+       const dragOrder = orderDrag.current;
+       const point = toWorld(event.clientX, event.clientY);
+       const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
+       if (dragOrder.moved && destinationId) { moveOrder(dragOrder.source, destinationId); setOrderSource(null); }
+       else if (!dragOrder.moved) chooseOrder(dragOrder.source);
+       orderDrag.current = null;
+       setOrderCursor(null);
+      }
+      if (wirePointer.current === event.pointerId) {
+       const point = toWorld(event.clientX, event.clientY);
+       // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
+       const target = findConnectionDropTarget(actors, point);
+       if (wire && target) addConnection(wire.from, target.id);
+       else if (wire) setMessage('接続先ノードの上でドロップしてください。');
+       setWire(null);
+       wirePointer.current = null;
+      }
+      if (drag.current?.id === event.pointerId) drag.current = null;
+ };
+
  /** SVG上の移動操作を優先順位に従って処理する。 */
  const handleCanvasPointerMove = (event: PointerEvent<SVGSVGElement>) => {
 
@@ -579,33 +609,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
      onPointerMove={handleCanvasPointerMove}
-     onPointerUp={event => {
-      const selection = finishMultiSelectionPointer(event.pointerId);
-      if (selection) {
-       const end = toWorld(event.clientX, event.clientY);
-       setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
-      }
-      if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
-      if (orderDrag.current?.pointerId === event.pointerId) {
-       const dragOrder = orderDrag.current;
-       const point = toWorld(event.clientX, event.clientY);
-       const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
-       if (dragOrder.moved && destinationId) { moveOrder(dragOrder.source, destinationId); setOrderSource(null); }
-       else if (!dragOrder.moved) chooseOrder(dragOrder.source);
-       orderDrag.current = null;
-       setOrderCursor(null);
-      }
-      if (wirePointer.current === event.pointerId) {
-       const point = toWorld(event.clientX, event.clientY);
-       // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
-       const target = findConnectionDropTarget(actors, point);
-       if (wire && target) addConnection(wire.from, target.id);
-       else if (wire) setMessage('接続先ノードの上でドロップしてください。');
-       setWire(null);
-       wirePointer.current = null;
-      }
-      if (drag.current?.id === event.pointerId) drag.current = null;
-     }}
+     onPointerUp={handleCanvasPointerUp}
      onPointerCancel={() => { resetMultiSelectionPointer(); waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       <EditorGroups groups={groups} selectedGroup={selectedGroup} tool={tool} onSelect={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); }}/>
