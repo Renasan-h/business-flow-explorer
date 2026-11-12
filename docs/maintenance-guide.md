@@ -1,117 +1,141 @@
 # 開発・保守ガイド（新人エンジニア向け）
 
-この資料は「どのファイルを変更すればよいか」「データがどこから来てどこへ流れるか」を理解するための入口です。最初に `src/scenario.ts` の型、次に `src/App.tsx` の画面切替、最後に編集・描画処理を読むと追いやすくなります。
+更新日：2026-11-13
 
-## 1. 画面とファイルの役割
+Business Flow Explorer の**現在のリファクタリング後の構成**を把握するためのガイドです。画面の大部分はReactコンポーネントへ分割され、編集ロジックも `src/editor/` の純粋関数・専用フックへ移動しています。
 
-| ファイル | 主な責務 | 変更するとき |
-| --- | --- | --- |
-| `src/App.tsx` | シナリオ選択、再生状態、PixiJSによる通常再生画面、編集画面への遷移 | 通常再生の操作や画面切替を変更するとき |
-| `src/FlowEditor.tsx` | ノード・通信の追加/編集/削除、ドラッグ、再生順の並び替え、YAML保存 | 編集操作や入力項目を変更するとき |
-| `src/FlowPreview.tsx` | 保存前データのSVG表示、再生確認、ステップ一覧 | プレビューの表示・操作を変更するとき |
-| `src/scenario.ts` | YAMLのZod検証、外部ファイルの再帰展開、Scenario型 | YAMLの項目や読み込み規則を変更するとき |
-| `src/connectionRouting.ts` | 直線/折れ線の座標計算、送受信2レーン、パケット位置 | エディターとプレビューの配線を変更するとき |
-| `src/layout.ts` | 座標未指定ノードの自動配置 | ノードの初期配置を変更するとき |
-| `src/style.css` | 各画面の見た目、レスポンシブ対応 | ボタン・パネル・表示崩れを修正するとき |
-
-**注意:** 通常再生画面はPixiJS、エディターとプレビューはSVGで描画しています。現時点では描画方式が共通化されていないため、配線仕様を変える場合は両方を確認してください。
-
-## 2. データの流れ
+## 1. 全体像と読み進める順序
 
 ```text
-public/scenarios/index.json
-  ↓ シナリオの一覧
-public/scenarios/*.yaml
-  ↓ scenario.ts: 読込 → Zod検証 → ファイル参照展開 → 自動配置
-Scenario { metadata, actors[], steps[] }
-  ├─ App.tsx → PixiJSのScene → 通常再生
-  └─ FlowEditor.tsx → actors/stepsをコピーして編集
-       ├─ FlowPreview.tsx → 保存前データを再生確認
-       └─ YAML保存 → ユーザーの端末に出力
+設定されたシナリオルート（setting.config / デフォルト public/scenarios）
+   ↓ Viteサーバー：scenario-roots.json / scenarios/<root>/manifest.json
+src/scenario.ts：YAML読込 → Zod検証 → actorFiles / steps.file参照展開 → 自動配置
+   ↓ Scenario { metadata, actors, steps, groups?, interfaces? }
+src/App.tsx：ルート・シナリオ選択、分岐、再生状態、編集画面との切替
+   ├─ src/playback/：通常再生（PixiJS）と詳細ドロワー・コントロール
+   └─ src/FlowEditor.tsx：編集データのコピー・状態と操作の調停
+        ├─ src/editor/：SVGエディターの表示と操作、保存・テンプレート処理
+        ├─ src/FlowPreview.tsx：保存前データのSVGプレビュー
+        └─ prepareEditorYamlSave → writeEditorYaml → ローカル保存／ダウンロード
 ```
 
-編集画面での変更は通常再生画面のScenarioを直接更新しません。YAML保存もブラウザからのファイル出力であり、GitHubや`index.json`への自動登録ではありません。
+推奨順序は `scenario.ts`（型・入力検証）→ `App.tsx` → `playback/` → `FlowEditor.tsx` → `editor/` です。最初から `FlowEditor.tsx` 全体を読むより、目的のヘルパーから辿る方が追いやすくなります。
 
-## 3. 主なデータ
+## 2. 画面とコンポーネントの責務
 
-- **Actor（ノード）**: `id`（参照キー）、`name`（表示名）、`type`（種類）、`position`（座標）。
-- **Step（再生ステップ）**: `id`、`title`、`description`、`actions`、`routing`（任意）。
-- **Action（通信）**: `from`、`to` はActorのID、`payload` は通信内容、`durationMs` は再生時間。
-- **再生順**: `steps`配列の順番がそのまま再生順です。並び替えでは配列を変更します。
-- **配線形状**: `routing`未指定は直線、`orthogonal`は折れ線。エディターとプレビューは同じ経路計算を使います。
+| 対象 | 主な責務 | 変更の入口 |
+| --- | --- | --- |
+| `src/App.tsx` | 通常再生の状態、表示モード、分岐、編集への遷移 | 再生開始・停止、シナリオ切替 |
+| `src/playback/PlaybackScene.tsx` | PixiJS描画・アニメーション、ノード選択、パン・ズーム、描画領域リサイズ | 通常再生の線・文字・描画サイズ |
+| `src/playback/PlaybackControls.tsx` | 再生、前後ステップ、速度、ズーム操作 | 操作バー |
+| `src/playback/ScenarioSidebar.tsx`・`CategoryTree.tsx` | カテゴリ階層とシナリオ一覧 | 一覧・モバイルドロワー |
+| `src/playback/AppHeader.tsx` | シナリオルート切替、再読込、テーマ | ヘッダー |
+| `src/playback/ActorDetailsDrawer.tsx`・`InterfaceDefinitionDrawer.tsx` | ノード情報・IF定義の参照 | 右側の詳細表示 |
+| `src/FlowEditor.tsx` | 編集データの所有、各イベント・保存処理を呼び出す調整役 | 編集操作のつなぎ込み |
+| `src/editor/EditorCanvas.tsx` | SVGをスクロール可能な描画領域に配置 | キャンバスの表示範囲 |
+| `src/editor/EditorNodes.tsx`・`EditorEdges.tsx`・`EditorGroups.tsx` | ノード・通信線・領域のSVG描画 | 表示と操作ハンドル |
+| `src/editor/EditorToolbar.tsx`・`EditorContextMenu.tsx` | 編集ツールバー・右クリック操作 | コマンドの表示 |
+| `src/editor/EditorPanel.tsx`・`PlaybackOrderPanel.tsx` | 右側ペインと再生順一覧 | 最小化・順序変更 |
+| `src/editor/ActorSettings.tsx`・`StepSettings.tsx`・`GroupSettings.tsx`・`ScenarioSettings.tsx` | データごとの設定フォーム | 入力項目 |
+| `src/editor/InterfaceDefinitionDialog.tsx`・`TemplateImportDialog.tsx` | IF定義編集・テンプレートのファイル選択 | ダイアログ |
+| `src/FlowPreview.tsx` | 編集中データのSVG再生、前後移動、速度・表示切替 | 保存前プレビュー |
+| `src/style.css` | レイアウト・レスポンシブ・UI装飾 | 見た目や文字のぼやけ |
 
-## 4. よくある変更の追い方
+通常再生はPixiJS、エディターとプレビューはSVGです。**同じフローを別の描画実装で表示する**ため、ノードや配線の仕様変更時は両方を確認してください。
 
-### 接続線を追加するとき
+## 3. 編集処理の責務分離
 
-1. `FlowEditor.tsx` の接続ハンドル操作で送信元と送信先を決定します。
-2. `addConnection` が新しい通信Stepを`steps`へ追加します。
-3. `connectionRouting.ts` がノード外周間の経路を求め、`offsetRoute`で送受信2レーンを作ります。
-4. `FlowPreview.tsx` は同じ編集データを受け取り、経路に沿ってパケットを移動します。
+`FlowEditor.tsx` は `actors`・`steps`・`metadata`・`groups`・`interfaces`・`templateReferences` を保持します。選択、ドラッグ、ズーム、モーダル、ペイン状態などは**保存対象ではないUI状態**です。
 
-### ステップを並び替え・削除するとき
+| 機能 | 主なファイル |
+| --- | --- |
+| SVG画面座標 → ワールド座標、ドラッグ差分 | `editor/coordinates.ts` |
+| 開始操作の判定、ドロップ先判定 | `editor/pointerStartTargets.ts`、`pointerDropTargets.ts`、`pointerDropActions.ts` |
+| 単一ノード・領域の移動とサイズ変更 | `editor/dragGeometry.ts`、`dragStartState.ts`、`useEditorDragPointerState.ts` |
+| 複数選択・範囲選択・一括移動 | `editor/multiSelection.ts`、`multiSelectionPointerStart.ts`、`useMultiSelectionPointerState.ts` |
+| 接続開始・双方向切替 | `editor/decideConnection.ts`、`connectionDirection.ts`、`useConnectionWirePreview.ts` |
+| 折れ線の経由点追加・移動 | `editor/waypointInsertion.ts`、`waypointEditing.ts` |
+| 再生順マーカー・順序更新 | `editor/playbackOrderGeometry.ts`、`PlaybackOrderMarkers.tsx`、`reorderSteps.ts` |
+| ノード複製・削除時の参照整理 | `editor/duplicateEditorActor.ts`、`removeActorReferences.ts` |
+| テンプレートの取得・直接展開・参照読込 | `editor/loadTemplateCatalog.ts`、`loadEditorTemplate.ts`、`prepareTemplateImport.ts`、`prepareEditorTemplateImport.ts`、`templateReferenceRegistration.ts` |
+| IF定義ファイルの読み込み | `editor/readInterfaceFields.ts` |
+| 保存前検証・YAML変換・ファイル出力 | `editor/validateEditorScenario.ts`、`serializeEditorScenario.ts`、`prepareEditorYamlSave.ts`、`writeEditorYaml.ts` |
 
-`FlowEditor.tsx` の`setSteps`で配列を更新します。削除は`deleteStep`を経由させ、選択中IDなどの表示状態も整理します。プレビューからの削除は親の`onDeleteStep`を呼び出します。
+### ポインターイベントを調べるとき
 
-### YAMLの項目を追加するとき
+1. `FlowEditor.tsx` の `handleCanvasPointerDown` から開始対象を確認し、`resolvePointerStartTarget` の判定を見る。
+2. `handleCanvasPointerMove` ではマルチ選択、経由点、再生順、通信線、ノード・領域移動を優先順位で分ける。
+3. `handleCanvasPointerUp` でドラッグや接続の結果を確定し、関連する一時状態を終了する。
+4. キャンセル時は `handleCanvasPointerCancel` で一時状態を破棄する。
 
-1. `scenario.ts` のZodスキーマと型に項目を追加します。
-2. エディターの入力欄・保存内容を更新します。
-3. プレビューと通常再生画面の両方で必要な表示を更新します。
-4. 既存のYAMLが読み込めるかを確認します。互換性が必要な項目は原則optionalにします。
+SVGの `setPointerCapture` により、ドラッグ中のイベントターゲットがSVGへ変わることがあります。接続先はイベントターゲットだけでなく、**終了位置をワールド座標へ変換して判定**します。画面の拡大率・スクロール・CSSサイズを含む操作はPlaywrightで検証してください。
 
-## 5. ReactとPixiJSの役割
+## 4. シナリオとYAMLの流れ
 
-Reactの`useState`は、選択中のノード、再生ステップ、再生/停止など画面の状態を保持します。更新には`setState`を使用し、配列やオブジェクトを直接変更しません。
+`src/scenario.ts` がZodでYAMLを検証します。スキーマには `metadata`、`actors`、`steps` のほか、`groups`、`interfaces`、双方向通信、分岐、IF参照、経由点などが含まれます。
 
-通常再生の`Scene`では、PixiJSのTickerが毎フレーム実行されます。Reactの再描画ごとにTickerを作り直さないよう、`useRef`に最新の再生状態を同期しています。パケットの現在位置は経過時間と通信時間から計算します。
+シナリオ参照は `steps: - file: ...`、共通ノード参照は `actorFiles` で定義します。参照解決ではファイルパスの越境・循環参照・重複IDなどに注意します。再生順は **steps配列の順序** で決まり、分岐先は `src/branchPlayback.ts` で絞り込みます。
 
-SVGの編集画面では、マウスの画面座標とノードのワールド座標が異なります。ドラッグ操作ではズームとパンを考慮した座標変換が必要です。ノードを選択できない場合は、SVGのpointer captureによるイベントの再ターゲットにも注意してください。
+編集内容の保存経路は次の順番です。
 
-## 6. 変更時の確認項目
-
-- ノードを追加・移動・削除しても通信線と選択状態が破綻しないか
-- 接続線が標準で直線、任意設定で折れ線になるか
-- 送信/受信の2本線が編集・プレビュー・通常再生で意図どおりか
-- 再生ステップの並び替え・削除後も番号とプレビュー再生順が一致するか
-- 編集画面・プレビューから元の画面へ戻れるか
-- 保存したYAMLが再度読み込めるか
-- `npm run build` が成功するか（現時点ではこの資料作成に伴うビルドは未実施）
-
-## 7. 現在の制約と改善候補
-
-- 通常再生画面（PixiJS）と編集・プレビュー（SVG）の描画実装は別々です。表示仕様を共通化する設計改善の余地があります。
-- プレビューは各ステップの先頭Actionのみをアニメーションします。
-- 直線は途中の別ノードを自動迂回しません。折れ線は手動で選択します。
-- YAML保存はファイル出力のみです。シナリオ一覧への自動反映はありません。
-- このガイドとコメントは処理の理解を助けるものであり、ビルドやブラウザの動作検証の代わりにはなりません。
-
-## 8. ノードの汎用属性とアイコン
-
-`src/nodeCatalog.ts`にノード種別をまとめています。表示アイコンは種類から自動決定されるため、個別のアイコン選択は不要です。
-
-ノードのYAML例:
-
-```yaml
-- id: api-gateway
-  name: API Gateway
-  type: api
-  description: 外部リクエストの認証とルーティング
-  environment: production
-  endpoint: https://api.example.com
-  instanceName: gateway-01
-  ip: 192.0.2.10
-  tags: [認証, 外部公開]
-  position: { x: 300, y: 200 }
+```text
+FlowEditor.save()
+  → prepareEditorYamlSave（データ整合性と参照テンプレート検証）
+  → serializeEditorScenario（YAML生成。片方向通信の不要な復路項目を除去）
+  → writeEditorYaml（File System Access APIまたはダウンロード）
 ```
 
-`description`、`environment`、`endpoint`、`tags`、`instanceName`、`ip`は任意項目です。既存YAMLに`icon`が残っていても読み込み可能ですが、表示には`type`の標準アイコンを使用し、編集後の保存時には`icon`を出力しません。
+- ブラウザから保存しても元のシナリオファイルやGitHubは自動更新されません。
+- `setting.config` のベースディレクトリ内に保存したYAMLを配置し、画面の「再読み込み」を押して反映します。フォルダ設定を変えた場合はサーバー再起動が必要です。
+- テンプレートの「直接読込」は衝突したIDを採番し参照を付け替えます。「サブシナリオ参照」は元のIDを維持するため衝突を拒否し、参照部分を変更したまま保存する操作を禁止します。
+- エディターは保存前に検証を実施し、エラー時はメッセージを表示して保存を中止します。
 
-新しい種類を増やす場合は`nodeCatalog.ts`を、対応する線画を追加する場合は`nodeIconShapes.ts`を編集してください。YAMLの検証は`scenario.ts`、編集UIは`FlowEditor.tsx`、表示は`App.tsx`と`FlowPreview.tsx`で共通の`nodeGlyph`を利用します。
+## 5. よくある変更の進め方
 
+**新しいActor/Step項目を追加するとき：** `scenario.ts` のZodスキーマと型→ `ActorSettings.tsx`／`StepSettings.tsx` → シリアライズ → 通常再生・プレビュー → テストの順に整合性を確認します。既存YAMLと互換性が必要な任意項目は原則optionalにしてください。
 
-## 最新の開発状況とテスト（2026-11-13）
+**接続線・経由点を変更するとき：** `EditorEdges.tsx`、`connectionRouting.ts`、`FlowPreview.tsx`、`PlaybackScene.tsx` の違いを意識し、往路・復路の表示と保存形式を確認します。
 
-現在の実装状況・未検証項目・優先順位は [開発状況・ロードマップ](development-status.md) を参照してください。Vitest・Playwrightの実行方法、CI構成、テスト追加ルールは [テスト・CIガイド](testing-guide.md) にまとめています。
+**ノードや領域のドラッグを変更するとき：** `pointerStartTargets.ts`、`coordinates.ts`、`dragGeometry.ts`、`FlowEditor.tsx` を確認します。多重選択・接続ハンドル・リサイズハンドルの当たり判定を含めて検証します。
 
-実画面の画像は [画面キャプチャ一覧](screenshot-checklist.md) に従って更新してください。本書の過去の「ビルド未実施」等の記述は当時の記録です。最新のCI実行状況はGitHub Actionsで確認してください。
+**シナリオ一覧を変更するとき：** `App.tsx`、`ScenarioSidebar.tsx`、`CategoryTree.tsx`、ローカルサーバーのシナリオ一覧生成を確認します。古い `index.json` 前提で実装を戻さないでください。
+
+## 6. 自動テストとCI
+
+```bash
+npm install
+npm test                     # Vitest + jsdom
+npm run build                # tsc --noEmit + Vite
+npx playwright install chromium
+npm run test:e2e             # Playwright Chromium
+```
+
+- `src/__tests__/`：編集・再生ロジック、YAML往復、IF定義、描画補助、DOMをテスト。
+- `e2e/businessFlow.spec.ts`：通常再生、編集画面遷移、プレビュー、保存、ポインター操作をChromiumで確認。
+- `.github/workflows/ci.yml`：push・Pull Request時にVitest/ビルドとPlaywrightを別ジョブで実行。
+- `.github/workflows/validate.yml`：Vitestとビルドの追加検証。
+- Playwright失敗時は `playwright-results` の証跡（スクリーンショット・トレース）を参照。
+
+2026-11-13時点、[CI実行 43284008816](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43284008816) は **型チェック・Vitest・Viteビルド成功、Playwrightのノードドラッグ検証1件が失敗（5件成功）**。開始位置のヒットテストを追加して再検証中です。**修正後のE2E全件成功は未確認**です。
+
+詳細は [テスト・CIガイド](testing-guide.md) を参照してください。
+
+## 7. 既知の制約・残課題
+
+- 通常再生のPixiJSと編集／プレビューのSVGは描画方式が異なり、線形状や表示の完全一致を保証しません。
+- 1ステップ複数アクションのうち、主に先頭アクションが描画・再生対象です。
+- 通常再生画面の文字の鮮明さ、リサイズ時の描画領域、複数ノードの実ドラッグなどは継続検証が必要です。
+- YAML保存はファイル出力であり、配信元の自動更新・GitHubへの反映は行いません。
+- パス制約、参照テンプレートの整合性、CIの安定性を継続して検証します。
+
+## 8. 画面資料
+
+![通常再生画面の既存画像](images/technical.png)
+
+![編集画面の既存画像](images/editor.png)
+
+![プレビューの既存画像](images/preview.png)
+
+> これらは現行UIへの一致を再確認していない既存画像です。新しい画像の撮影対象と差し替え位置は [画面キャプチャ一覧](screenshot-checklist.md) を参照してください。
+
+最新の実装・残作業は [開発状況・ロードマップ](development-status.md) にまとめています。
