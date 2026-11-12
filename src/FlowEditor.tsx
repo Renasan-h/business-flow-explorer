@@ -27,7 +27,7 @@ import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointer
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition } from './editor/nodeGeometry';
 import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
-import { movedGroupOrigin, moveGroupMembers, resizedNodeSize } from './editor/dragGeometry';
+import { movedGroupOrigin, moveGroupMembers, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
@@ -555,7 +555,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       const { x: dx, y: dy } = delta;
       if (current.groupId) {
        const next = movedGroupOrigin(current.initial, { x: dx, y: dy });
-       setGroups(items => items.map(item => item.id === current.groupId ? current.resizeGroup ? { ...item, width: Math.max(200, (current.initialSize?.width ?? item.width) + dx), height: Math.max(120, (current.initialSize?.height ?? item.height) + dy) } : { ...item, ...next } : item));
+       setGroups(items => items.map(item => {
+         if (item.id !== current.groupId) return item;
+         return current.resizeGroup
+          ? { ...item, ...resizedGroupSize(current.initialSize ?? item, { x: dx, y: dy }) }
+          : { ...item, ...next };
+        }));
        // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
        if (!current.resizeGroup && current.initialMembers?.length) {
         setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, next, { width: WIDTH, height: HEIGHT }));
