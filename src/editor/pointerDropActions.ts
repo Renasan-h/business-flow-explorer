@@ -16,7 +16,7 @@ export function playbackOrderDropAction(
  point: Point,
  source: string,
  moved: boolean,
- orderPoint: (step: Step, index: number) => Point,
+ orderPoint: (step: Step) => Point | null,
 ): { kind: 'reorder'; from: string; to: string } | { kind: 'choose'; source: string } | null {
  if (!moved) return { kind: 'choose', source };
  const destination = findPlaybackOrderDropTarget(steps, point, orderPoint);
