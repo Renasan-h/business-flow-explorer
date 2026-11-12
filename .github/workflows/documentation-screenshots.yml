@@ -1,0 +1,53 @@
+name: Update documentation screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/documentation.spec.ts'
+      - '.github/workflows/documentation-screenshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: documentation-screenshots
+  cancel-in-progress: false
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Capture actual application screens
+        run: npx playwright test e2e/documentation.spec.ts --workers=1
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-screenshots
+          path: docs/images/*current.png
+          if-no-files-found: error
+      - name: Commit generated screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images/overview.png docs/images/editor-current.png docs/images/editor-multiselect.png docs/images/preview-current.png
+          if git diff --cached --quiet; then
+            echo "Screenshots are unchanged."
+          else
+            git commit -m "[BusinessFlowExplorer]Playwright撮影画像を更新 [skip ci]"
+            git push origin HEAD:main
+          fi
