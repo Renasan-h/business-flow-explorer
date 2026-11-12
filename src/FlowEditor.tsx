@@ -477,9 +477,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   // 保存ダイアログ表示中の状態変化に左右されないよう、保存対象を固定する。
   const snapshotAtSave = snapshot();
   setMessage('');
-  const prepared = prepareEditorYamlSave({ actors, steps, metadata, groups, interfaces, templateReferences }, scenarioPath);
-  if (!prepared.ok) { setMessage(prepared.error); return false; }
   try {
+   // 検証・シリアライズ中の例外も保存エラーとして扱う。
+   const prepared = prepareEditorYamlSave({ actors, steps, metadata, groups, interfaces, templateReferences }, scenarioPath);
+   if (!prepared.ok) {
+    setMessage(prepared.error);
+    return false;
+   }
    const result = await writeEditorYaml(prepared.filename, prepared.yaml);
    setMessage(result === 'saved'
     ? 'YAMLを保存しました。Web上の元シナリオは自動更新されません。'
