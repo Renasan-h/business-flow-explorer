@@ -25,9 +25,9 @@ import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { boundedGroupDelta, completeMarqueeSelection, moveSelectedActors } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
-import { clampNodePosition } from './editor/nodeGeometry';
+
 import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
-import { movedGroupOrigin, moveGroupMembers, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
+import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
@@ -572,7 +572,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       } else if (current.actorId) {
        const actor = actors.find(item => item.id === current.actorId);
        if (!actor) return;
-       const position = clampNodePosition(actor, { x: current.initial.x + dx, y: current.initial.y + dy }, { width: WIDTH, height: HEIGHT });
+       const position = movedNodePosition(actor, current.initial, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT });
        changeActor(current.actorId, { position });
       } else {
        setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
