@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { readInterfaceFields } from './editor/readInterfaceFields';
+import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImport';
 import type { Scenario } from './scenario';
-import { loadEditorTemplate } from './editor/loadEditorTemplate';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
 import PlaybackOrderPanel from './editor/PlaybackOrderPanel';
@@ -35,8 +35,6 @@ import { useConnectionWirePreview } from './editor/useConnectionWirePreview';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { loadTemplateCatalog } from './editor/loadTemplateCatalog';
-import { prepareTemplateImport } from './editor/prepareTemplateImport';
-import { assertTemplateReferenceAvailable, createTemplateReference } from './editor/templateReferenceRegistration';
 import { writeEditorYaml } from './editor/writeEditorYaml';
 import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -515,15 +513,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const importTemplate = async (mode: 'inline' | 'reference') => {
   setTemplateError(null);
   try {
-   const path = templatePath.trim();
-   const fragment = await loadEditorTemplate(mode, path, templateFile, scenarioPath);
-   if (mode === 'reference') assertTemplateReferenceAvailable(path, templateReferences);
-   const { newActors, newSteps, renamed } = prepareTemplateImport(fragment, mode, actors, steps);
+   const prepared = await prepareEditorTemplateImport(mode, templatePath, templateFile, scenarioPath, actors, steps, templateReferences);
+   const { newActors, newSteps } = prepared;
    setActors(current => [...current, ...newActors]);
    setSteps(current => [...current, ...newSteps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (mode === 'reference') setTemplateReferences(current => [...current, createTemplateReference(path, newActors, newSteps)]);
-   setMessage(mode === 'reference' ? 'サブシナリオ参照を追加しました。' : '直接読み込みが完了しました。' + (renamed ? ' 重複IDを' + renamed + '件変更しました。' : ''));
+   if (prepared.reference) setTemplateReferences(current => [...current, prepared.reference!]);
+   setMessage(prepared.message);
    closeTemplateImport();
   } catch (error) { setTemplateError(error instanceof Error ? error.message : String(error)); }
  };
