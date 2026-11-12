@@ -430,6 +430,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setSteps(current => removeActorConnections(current, id));
   setGroups(current => removeActorFromGroups(current, id));
   setSelectedActor(current => current === id ? null : current);
+  // 複数選択に削除済みノードを残さず、後続の一括移動対象から除外する。
+  setSelectedActors(current => current.filter(actorId => actorId !== id));
   setSelectedStep(null);
   setSource(current => current === id ? null : current);
   clearWirePreview();
