@@ -134,7 +134,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const handleCanvasPointerCancel = () => {
   resetMultiSelectionPointer();
   waypointDrag.current = null;
-  drag.current = null;
+  resetEditorDrag();
   wirePointer.current = null;
   setWire(null);
   orderDrag.current = null;
