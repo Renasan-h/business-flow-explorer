@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { readInterfaceFields } from './editor/readInterfaceFields';
 import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImport';
 import { importedNodeNumbers } from './editor/importedNodeNumbers';
+import { withConnectionDirection } from './editor/connectionDirection';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -322,12 +323,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
  // 双方向に切り替えた時点で復路の既定値を確定し、片方向に戻したら復路設定を消す。
- const changeDirection = (id: string, both: boolean) => setSteps(current => current.map(step => {
-  if (step.id !== id) return step;
-  if (!both) { const { reverseFrom: _from, reverseTo: _to, reverseIf: _if, reversePayload: _payload, bidirectional: _both, ...oneWay } = step; return oneWay; }
-  const action = step.actions[0];
-  return { ...step, bidirectional: true, reverseFrom: step.reverseFrom || action?.to || '', reverseTo: step.reverseTo || action?.from || '' };
- }));
+ const changeDirection = (id: string, both: boolean) => setSteps(current =>
+  current.map(step => step.id === id ? withConnectionDirection(step, both) : step)
+ );
  /** 接続元・接続先ノードの中点に経由点を追加する。 */
  const addWaypoint = (id: string, direction: 'forward' | 'reverse') => {
   const step = steps.find(item => item.id === id);
