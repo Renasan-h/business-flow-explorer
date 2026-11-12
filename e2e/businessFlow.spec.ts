@@ -98,3 +98,47 @@ test('YAML保存: ダウンロード内容を検証する', async ({ page }) => 
  expect(text).toContain('Web');
  await expect(page.getByRole('status')).toContainText('ダウンロードしました');
 });
+
+
+test('編集画面: ノードを実際にドラッグして位置を変更する', async ({ page }) => {
+ await openFixture(page);
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ const node = page.locator('[data-actor-id="web"]');
+ const rect = node.locator('rect').first();
+ const initialX = Number(await rect.getAttribute('x'));
+ const initialY = Number(await rect.getAttribute('y'));
+ const bounds = await rect.boundingBox();
+ expect(bounds).not.toBeNull();
+ if (!bounds) return;
+ const startX = bounds.x + bounds.width / 2;
+ const startY = bounds.y + bounds.height / 2;
+ await page.mouse.move(startX, startY);
+ await page.mouse.down();
+ await page.mouse.move(startX + 85, startY + 40, { steps: 8 });
+ await page.mouse.up();
+ await expect.poll(async () => Number(await rect.getAttribute('x'))).toBeGreaterThan(initialX + 1);
+ await expect.poll(async () => Number(await rect.getAttribute('y'))).toBeGreaterThan(initialY + 1);
+ // ドラッグ後も通信線はノードIDを保持し、編集画面で操作できる。
+ await expect(page.locator('[data-step-id="request"]')).toHaveCount(1);
+});
+
+test('編集画面: ノードの選択後にリサイズハンドルで幅を変更する', async ({ page }) => {
+ await openFixture(page);
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ const node = page.locator('[data-actor-id="web"]');
+ const rect = node.locator('rect').first();
+ await rect.click({ position: { x: 40, y: 40 } });
+ const handle = node.locator('[data-node-resize="web"]');
+ await expect(handle).toBeVisible();
+ const initialWidth = Number(await rect.getAttribute('width'));
+ const bounds = await handle.boundingBox();
+ expect(bounds).not.toBeNull();
+ if (!bounds) return;
+ const x = bounds.x + bounds.width / 2;
+ const y = bounds.y + bounds.height / 2;
+ await page.mouse.move(x, y);
+ await page.mouse.down();
+ await page.mouse.move(x + 65, y + 25, { steps: 8 });
+ await page.mouse.up();
+ await expect.poll(async () => Number(await rect.getAttribute('width'))).toBeGreaterThan(initialWidth);
+});
