@@ -29,6 +29,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
+import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
@@ -113,7 +114,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [nodeNumbers, setNodeNumbers] = useState<Record<string, number>>(() =>
   Object.fromEntries(initial.actors.map((actor, index) => [actor.id, index + 1])));
 
- const drag = useRef<{ id: number; actorId: string | null; resizeActor?: boolean; groupId?: string; resizeGroup?: boolean; initialMembers?: { id: string; x: number; y: number }[]; initialSize?: { width: number; height: number }; x: number; y: number; initial: { x: number; y: number }; offset: { x: number; y: number } } | null>(null);
+ const { drag, start: startEditorDrag, finish: finishEditorDrag, reset: resetEditorDrag } = useEditorDragPointerState();
  const activeActor = actors.find(actor => actor.id === selectedActor);
  // 初期表示をワールド中央に合わせる。既存ノード座標や保存データは変更しない。
  useEffect(() => {
@@ -186,7 +187,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (resizeActor) {
        setSelectedActor(resizeActor.id);
        setSelectedStep(null); setSelectedGroup(null);
-       drag.current = nodeResizeStart(resizeActor, event.pointerId, { x: event.clientX, y: event.clientY }, offset, { width: NODE_WIDTH, height: NODE_HEIGHT });
+       startEditorDrag(nodeResizeStart(resizeActor, event.pointerId, { x: event.clientX, y: event.clientY }, offset, { width: NODE_WIDTH, height: NODE_HEIGHT }));
        event.currentTarget.setPointerCapture(event.pointerId);
        event.preventDefault();
        return;
@@ -198,7 +199,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setSelectedGroup(group.id);
        setSelectedActor(null);
        setSelectedStep(null);
-       drag.current = groupDragStart(group, actors, Boolean(resizeHandle), event.pointerId, { x: event.clientX, y: event.clientY }, offset);
+       startEditorDrag(groupDragStart(group, actors, Boolean(resizeHandle), event.pointerId, { x: event.clientX, y: event.clientY }, offset));
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
@@ -222,7 +223,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setSelectedActors([]);
       }
       const actor = actors.find(item => item.id === actorId);
-      drag.current = { id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset };
+      startEditorDrag({ id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset });
       event.currentTarget.setPointerCapture(event.pointerId);
  };
 
@@ -253,7 +254,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setWire(null);
        wirePointer.current = null;
       }
-      if (drag.current?.id === event.pointerId) drag.current = null;
+      finishEditorDrag(event.pointerId);
  };
 
  /** SVG上の移動操作を優先順位に従って処理する。 */
