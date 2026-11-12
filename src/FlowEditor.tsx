@@ -22,7 +22,7 @@ import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorC
 import { resolveEditorSelection } from './editor/selection';
 import { resolvePointerStartTarget } from './editor/pointerStartTargets';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
-import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
+import { boundedGroupDelta, completeMarqueeSelection, moveSelectedActors } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 import { clampNodePosition } from './editor/nodeGeometry';
@@ -583,8 +583,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (marquee.current?.pointerId === event.pointerId) {
        const selection = marquee.current;
        const end = toWorld(event.clientX, event.clientY);
-       const matches = actorsInSelection(actors, selectionRectangle(selection.start, end), NODE_WIDTH, NODE_HEIGHT);
-       setSelectedActors(current => selection.additive ? [...new Set([...current, ...matches])] : matches);
+       setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
        marquee.current = null;
        setMarqueeEnd(null);
       }
