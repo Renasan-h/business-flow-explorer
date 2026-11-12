@@ -3,6 +3,7 @@ import { readInterfaceFields } from './editor/readInterfaceFields';
 import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImport';
 import { importedNodeNumbers } from './editor/importedNodeNumbers';
 import { withConnectionDirection } from './editor/connectionDirection';
+import { decideConnection } from './editor/decideConnection';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -420,40 +421,19 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  };
  /** 逆方向の接続が既にあれば既存通信を双方向へ切り替え、重複登録しない。 */
  const addConnection = (from: string, to: string) => {
-  if (from === to) { setMessage('同じノード同士は接続できません。'); return; }
-  const reverse = steps.find(step => step.actions.length === 1 &&
-   step.actions[0].from === to && step.actions[0].to === from);
-  if (reverse) {
-   changeStep(reverse.id, { bidirectional: true, reverseFrom: from, reverseTo: to });
-   setSelectedStep(reverse.id);
-   setSelectedActor(null);
-   setSelectedGroup(null);
-   setSource(null);
-   setTool('move');
-   setMessage('既存の接続を双方向に変更しました。');
-   return;
+  const decision = decideConnection(from, to, actors, steps, 'connection-' + crypto.randomUUID().slice(0, 8));
+  if (decision.kind === 'invalid') { setMessage(decision.message); return; }
+  if (decision.kind === 'reverse') {
+   changeStep(decision.stepId, { bidirectional: true, reverseFrom: from, reverseTo: to });
+  } else if (decision.kind === 'create') {
+   setSteps(current => [...current, decision.step]);
   }
-  const existing = steps.find(step => step.actions.length === 1 &&
-   step.actions[0].from === from && step.actions[0].to === to);
-  if (existing) {
-   setSelectedStep(existing.id);
-   setSelectedActor(null);
-   setSelectedGroup(null);
-   setSource(null);
-   setTool('move');
-   setMessage('この接続は登録済みです。通信設定から双方向に変更できます。');
-   return;
-  }
-  const id = 'connection-' + crypto.randomUUID().slice(0, 8);
-  const fromActor = actors.find(actor => actor.id === from);
-  const branchLabel = fromActor?.type === 'decision' ? '条件を入力' : undefined;
-  setSteps(current => [...current, { id, title: '新しい通信', description: '', ...(branchLabel ? { branchLabel } : {}), actions: [{ type: 'transfer', from, to, payload: '通信内容', durationMs: 1200 }] }]);
-  setSelectedStep(id);
+  setSelectedStep(decision.kind === 'create' ? decision.step.id : decision.stepId);
   setSelectedActor(null);
   setSelectedGroup(null);
   setSource(null);
   setTool('move');
-  setMessage('通信線を追加しました。');
+  setMessage(decision.message);
  };
  const clickActor = (id: string) => {
   setContextMenu(null);
