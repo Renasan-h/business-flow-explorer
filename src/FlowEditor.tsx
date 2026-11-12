@@ -30,6 +30,7 @@ import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
+import { useEditorInteractionPointers } from './editor/useEditorInteractionPointers';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
@@ -82,9 +83,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [source, setSource] = useState<string | null>(null);
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
- const wirePointer = useRef<number | null>(null);
- // 経由点ドラッグはノード・キャンバスのドラッグとは排他的に処理する。
- const waypointDrag = useRef<{ pointerId: number; stepId: string; index: number; direction: 'forward' | 'reverse' } | null>(null);
+ // 接続線・経由点・再生順の一時状態は専用フックで管理する。
+ const { wirePointer, waypointDrag, orderDrag, reset: resetInteractionPointers } = useEditorInteractionPointers();
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -133,11 +133,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  /** キャンセル時はすべての一時的なドラッグ状態を破棄する。 */
  const handleCanvasPointerCancel = () => {
   resetMultiSelectionPointer();
-  waypointDrag.current = null;
+  resetInteractionPointers();
   resetEditorDrag();
-  wirePointer.current = null;
   setWire(null);
-  orderDrag.current = null;
   setOrderCursor(null);
  };
 
@@ -583,7 +581,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // 順序編集モード中だけ再生順序線と番号を表示する。
  const [orderMode, setOrderMode] = useState(false);
  const [orderSource, setOrderSource] = useState<string | null>(null);
- const orderDrag = useRef<{ pointerId: number; source: string; x: number; y: number; moved: boolean } | null>(null);
+
  const [orderCursor, setOrderCursor] = useState<{ x: number; y: number } | null>(null);
  const orderPoint = (step: Step) => playbackOrderPoint(step, actors, steps);
  const orderRadius = (step: Step) => playbackOrderRadius(step, actors);
