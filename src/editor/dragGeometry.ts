@@ -44,3 +44,8 @@ export function resizedGroupSize(initial: Size, delta: Point): Size {
   height: Math.max(120, initial.height + delta.y),
  };
 }
+
+/** 単一ノードをドラッグ開始位置から移動し、描画範囲に収める。 */
+export function movedNodePosition(actor: Actor, initial: Point, delta: Point, bounds: Size): Point {
+ return clampNodePosition(actor, { x: initial.x + delta.x, y: initial.y + delta.y }, bounds);
+}
