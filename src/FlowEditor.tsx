@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { parse } from 'yaml';
 import { serializeEditorScenario, validateTemplateReferences } from './editor/serializeEditorScenario';
 import type { Scenario } from './scenario';
@@ -130,7 +130,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   return svg ? screenToWorldPoint(svg, x, y, offset, zoom) ?? { x: 0, y: 0 } : { x: 0, y: 0 };
  };
  /** SVG上の移動操作を優先順位に従って処理する。 */
- const handleCanvasPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+ const handleCanvasPointerMove = (event: PointerEvent<SVGSVGElement>) => {
 
       if (marquee.current?.pointerId === event.pointerId) {
        setMarqueeEnd(toWorld(event.clientX, event.clientY));
