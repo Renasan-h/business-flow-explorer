@@ -14,5 +14,5 @@ export function resolvePointerStartTarget(target: Element) {
  const resizeHandle = target.closest('[data-group-resize]');
  const groupId = (resizeHandle ?? target.closest('[data-group-id]'))?.getAttribute(resizeHandle ? 'data-group-resize' : 'data-group-id') ?? null;
  const selection = resolveEditorSelection(target);
- return { kind: 'selection' as const, resizeActorId, groupId, resizeGroup: Boolean(resizeHandle), ...selection };
+ return { kind: 'selection' as const, ...selection, resizeActorId, groupId, resizeGroup: Boolean(resizeHandle) };
 }
