@@ -84,7 +84,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  // 接続線・経由点・再生順の一時状態は専用フックで管理する。
- const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder: moveOrderPointer, isWirePointer, reset: resetInteractionPointers } = useEditorInteractionPointers();
+ const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder: moveOrderPointer, isWirePointer, activeWaypoint, isOrderPointer, reset: resetInteractionPointers } = useEditorInteractionPointers();
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -234,7 +234,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
       }
       finishWaypoint(event.pointerId);
-      if (orderDrag.current?.pointerId === event.pointerId) {
+      if (isOrderPointer(event.pointerId)) {
        const dragOrder = finishOrder(event.pointerId)!;
        const point = toWorld(event.clientX, event.clientY);
        const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
@@ -271,13 +271,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        }));
        return;
       }
-      if (waypointDrag.current?.pointerId === event.pointerId) {
-       const target = waypointDrag.current;
+      if (activeWaypoint(event.pointerId)) {
+       const target = activeWaypoint(event.pointerId)!;
        const point = toWorld(event.clientX, event.clientY);
        setSteps(current => moveDraggedWaypoint(current, target, point, { width: WIDTH, height: HEIGHT }));
        return;
       }
-      if (orderDrag.current?.pointerId === event.pointerId) {
+      if (isOrderPointer(event.pointerId)) {
        if (moveOrderPointer(event.pointerId, event.clientX, event.clientY)) {
         setOrderCursor(toWorld(event.clientX, event.clientY));
        }
