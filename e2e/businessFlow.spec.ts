@@ -143,3 +143,30 @@ test('編集画面: ノードの選択後にリサイズハンドルで幅を変
  await page.mouse.up();
  await expect.poll(async () => Number(await rect.getAttribute('width'))).toBeGreaterThan(initialWidth);
 });
+
+
+test('編集画面: 領域コンテナのリサイズと通信線表示切替', async ({ page }) => {
+ await openFixture(page);
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ await page.getByRole('button', { name: '＋ 領域追加' }).click();
+ const group = page.locator('.editor-group').first();
+ await expect(group).toBeVisible();
+ const rect = group.locator('rect').first();
+ const initialWidth = Number(await rect.getAttribute('width'));
+ const resize = group.locator('[data-group-resize]');
+ const bounds = await resize.boundingBox();
+ expect(bounds).not.toBeNull();
+ if (!bounds) return;
+ const x = bounds.x + bounds.width / 2;
+ const y = bounds.y + bounds.height / 2;
+ await page.mouse.move(x, y);
+ await page.mouse.down();
+ await page.mouse.move(x + 80, y + 30, { steps: 8 });
+ await page.mouse.up();
+ await expect.poll(async () => Number(await rect.getAttribute('width'))).toBeGreaterThan(initialWidth);
+ await expect(page.locator('[data-step-id="request"]')).toHaveCount(1);
+ await page.getByRole('checkbox', { name: '通信線表示' }).uncheck();
+ await expect(page.locator('[data-step-id="request"]')).toHaveCount(0);
+ await page.getByRole('checkbox', { name: '通信線表示' }).check();
+ await expect(page.locator('[data-step-id="request"]')).toHaveCount(1);
+});
