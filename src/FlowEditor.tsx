@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { readInterfaceFields } from './editor/readInterfaceFields';
 import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImport';
+import { importedNodeNumbers } from './editor/importedNodeNumbers';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -517,8 +518,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    const { newActors, newSteps } = prepared;
    setActors(current => [...current, ...newActors]);
    setSteps(current => [...current, ...newSteps]);
-   setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (prepared.reference) setTemplateReferences(current => [...current, prepared.reference!]);
+   // 採番カウンターの更新をReactのstate更新関数の外で確定する。
+   const firstNumber = nextNodeNumber.current;
+   nextNodeNumber.current += newActors.length;
+   setNodeNumbers(current => importedNodeNumbers(current, newActors.map(item => item.id), firstNumber));
+   const reference = prepared.reference;
+   if (reference) setTemplateReferences(current => [...current, reference]);
    setMessage(prepared.message);
    closeTemplateImport();
   } catch (error) { setTemplateError(error instanceof Error ? error.message : String(error)); }
