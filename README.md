@@ -7,10 +7,21 @@
 
 ## 画面イメージ
 
-![Technical モードの再生画面](docs/images/technical.png)
-![Illustration モードの再生画面](docs/images/illustration.png)
-![フローエディター](docs/images/editor.png)
-![編集内容のプレビュー](docs/images/preview.png)
+以下はPlaywright + Chromiumで、ドキュメント専用の固定シナリオを実際に表示して撮影した画像です。
+
+### 通常再生
+![注文処理・在庫確認フローの通常再生画面](docs/images/overview.png)
+
+### フローエディター
+![ノード・通信線と設定パネルの編集画面](docs/images/editor-current.png)
+
+### 複数ノード選択
+![複数ノード選択モードで全ノードを選択した画面](docs/images/editor-multiselect.png)
+
+### 編集プレビュー
+![編集内容のプレビュー画面](docs/images/preview-current.png)
+
+従来の表示例（Technical / Illustration）は [旧画像一覧](docs/screenshot-checklist.md) を参照してください。
 
 ## 主な機能
 
@@ -49,6 +60,7 @@ npm run dev
 | `npm run preview` | ビルド済みアプリのプレビュー |
 | `npm test` | Vitestによるロジック・DOM回帰テスト |
 | `npm run test:e2e` | PlaywrightによるChromium実ブラウザテスト |
+| `npm run screenshots` | PlaywrightでREADME・docs用の画像4枚を再生成 |
 
 ## シナリオフォルダの設定（ローカルWeb版）
 
