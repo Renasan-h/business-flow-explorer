@@ -39,6 +39,7 @@ import { templateCatalogItems } from './editor/templateCatalog';
 import { prepareTemplateImport } from './editor/prepareTemplateImport';
 import { validateEditorScenario } from './editor/validateEditorScenario';
 import { editorScenarioFilename } from './editor/editorScenarioFilename';
+import { writeEditorYaml } from './editor/writeEditorYaml';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
 import { insertWaypointBetweenNodes } from './editor/waypointInsertion';
@@ -47,7 +48,6 @@ import { moveDraggedWaypoint, waypointMenuState } from './editor/waypointEditing
 type Actor = Scenario['actors'][number];
 type Step = Scenario['steps'][number];
 type Tool = 'move' | 'connect' | 'multi';
-type FilePicker = { showSaveFilePicker?: (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<{ createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }> }> };
 
 // ワールドを広げ、キャンバスのスクロールで横10ノード以上を配置可能にする。
 const WIDTH = 3600;
@@ -484,23 +484,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   // 既存編集では開いているシナリオのファイル名を優先する。
   const filename = editorScenarioFilename(scenarioPath, metadata.id);
   try {
-   const picker = (window as Window & FilePicker).showSaveFilePicker;
-   if (picker) {
-    const handle = await picker({ suggestedName: filename, types: [{ description: 'YAML scenario', accept: { 'application/x-yaml': ['.yaml', '.yml'] } }] });
-    const writable = await handle.createWritable();
-    await writable.write(yaml);
-    await writable.close();
-    setMessage('YAMLを保存しました。Web上の元シナリオは自動更新されません。');
-   } else {
-    // 保存ダイアログ非対応ブラウザでは通常のダウンロードを利用する。
-    const url = URL.createObjectURL(new Blob([yaml], { type: 'application/x-yaml' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setMessage('YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
-   }
+   const result = await writeEditorYaml(filename, yaml);
+   setMessage(result === 'saved'
+    ? 'YAMLを保存しました。Web上の元シナリオは自動更新されません。'
+    : 'YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
    savedSnapshot.current = snapshotAtSave;
    return true;
   } catch (error) {
