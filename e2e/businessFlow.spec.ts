@@ -107,11 +107,12 @@ test('編集画面: ノードを実際にドラッグして位置を変更する
  const rect = node.locator('rect').first();
  const initialX = Number(await rect.getAttribute('x'));
  const initialY = Number(await rect.getAttribute('y'));
+ // 大型SVGはスクロール領域に収められているため、事前に操作対象を表示範囲内へ移す。
+ await rect.scrollIntoViewIfNeeded();
  const bounds = await rect.boundingBox();
  expect(bounds).not.toBeNull();
  if (!bounds) return;
- // 中央のアイコン・テキストではなくノード背景を掴む。
- // 実際のヒットテスト結果を確認する。SVGの前面の線・ハンドルを誤って掴まない。
+ // SVGの装飾や通信線に重ならない、ノード本体の背景座標を使用する。
  const candidates = [
   { x: bounds.x + 35, y: bounds.y + 55 },
   { x: bounds.x + 55, y: bounds.y + 60 },
@@ -122,7 +123,7 @@ test('編集画面: ノードを実際にドラッグして位置を変更する
   const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-actor-id]')?.getAttribute('data-actor-id'), candidate);
   if (hit === 'web') { dragStart = candidate; break; }
  }
- expect(dragStart, 'ノード上でドラッグを開始できる位置が必要です').toBeDefined();
+ expect(dragStart, 'スクロール後にノード上で操作できる位置が必要です').toBeDefined();
  if (!dragStart) return;
  await page.mouse.move(dragStart.x, dragStart.y);
  await page.mouse.down();
