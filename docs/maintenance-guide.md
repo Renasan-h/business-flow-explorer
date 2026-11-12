@@ -128,14 +128,36 @@ npm run test:e2e             # Playwright Chromium
 - YAML保存はファイル出力であり、配信元の自動更新・GitHubへの反映は行いません。
 - パス制約、参照テンプレートの整合性、CIの安定性を継続して検証します。
 
-## 8. 画面資料
+## 8. 画面資料（Playwrightによる実画面撮影）
 
-![通常再生画面の既存画像](images/technical.png)
+画像は `e2e/documentation.spec.ts` の固定YAMLシナリオをChromiumで表示し、画面遷移・操作後に撮影したものです。実際の利用者データは使用しません。
 
-![編集画面の既存画像](images/editor.png)
+### 通常再生画面
 
-![プレビューの既存画像](images/preview.png)
+![注文処理・在庫確認フローの通常再生画面](images/overview.png)
 
-> これらは現行UIへの一致を再確認していない既存画像です。新しい画像の撮影対象と差し替え位置は [画面キャプチャ一覧](screenshot-checklist.md) を参照してください。
+### 編集画面
+
+![SVGキャンバスと設定・再生順パネル](images/editor-current.png)
+
+### 複数ノード選択
+
+![複数ノードを選択した編集画面](images/editor-multiselect.png)
+
+### 編集プレビュー
+
+![編集内容のプレビュー](images/preview-current.png)
+
+### 画像の再生成と更新
+
+```bash
+npm install
+npx playwright install chromium
+npm run screenshots
+```
+
+撮影先は `docs/images/` です。画像を更新した場合は内容を目視確認してからコミットしてください。GitHub Actionsの [Update documentation screenshots](../.github/workflows/documentation-screenshots.yml) は撮影テスト・Artifact保存・画像の自動コミットを行います。画面変更後にActionsの `Run workflow` から手動再生成できます。
+
+旧画像は比較用に残しています。新しい画像の追加候補は [画面キャプチャ一覧](screenshot-checklist.md) を参照してください。
 
 最新の実装・残作業は [開発状況・ロードマップ](development-status.md) にまとめています。
