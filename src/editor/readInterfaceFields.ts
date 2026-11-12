@@ -1,7 +1,7 @@
 import { parse } from 'yaml';
 import type { Scenario } from '../scenario';
 
-type InterfaceField = NonNullable<Scenario['interfaces']>[number]['fields'][number];
+type InterfaceField = NonNullable<NonNullable<Scenario['interfaces']>[number]['fields']>[number];
 
 /** IF項目定義ファイルの拡張子・容量・内容を検証して読み込む。 */
 export async function readInterfaceFields(file: File): Promise<InterfaceField[]> {
