@@ -31,5 +31,8 @@ jobs:
             npm install --no-audit --no-fund
           fi
 
+      - name: Automated regression tests
+        run: npm test
+
       - name: Typecheck and build
         run: npm run build
