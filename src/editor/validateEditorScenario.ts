@@ -13,7 +13,9 @@ export function validateEditorScenario(actors: Actor[], steps: Step[], groups: G
  }
  if (new Set(steps.map(step => step.id)).size !== steps.length ||
   steps.some(step => !step.id.trim() ||
-   step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || action.durationMs <= 0) ||
+   // YAMLスキーマは通信アクションを最低1件要求する。空配列は保存前に検出する。
+   step.actions.length === 0 ||
+   step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || !Number.isFinite(action.durationMs) || action.durationMs <= 0) ||
    (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) {
   return '通信のID・参照先・所要時間を確認してください。';
  }
