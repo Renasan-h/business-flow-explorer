@@ -84,7 +84,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  // 接続線・経由点・再生順の一時状態は専用フックで管理する。
- const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, reset: resetInteractionPointers } = useEditorInteractionPointers();
+ const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder: moveOrderPointer, isWirePointer, reset: resetInteractionPointers } = useEditorInteractionPointers();
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -242,7 +242,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        else if (!dragOrder.moved) chooseOrder(dragOrder.source);
        setOrderCursor(null);
       }
-      if (wirePointer.current === event.pointerId) {
+      if (isWirePointer(event.pointerId)) {
        const point = toWorld(event.clientX, event.clientY);
        // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
        const target = findConnectionDropTarget(actors, point);
@@ -278,12 +278,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (orderDrag.current?.pointerId === event.pointerId) {
-       const active = orderDrag.current;
-       if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5) active.moved = true;
-       if (active.moved) setOrderCursor(toWorld(event.clientX, event.clientY));
+       if (moveOrderPointer(event.pointerId, event.clientX, event.clientY)) {
+        setOrderCursor(toWorld(event.clientX, event.clientY));
+       }
        return;
       }
-      if (wirePointer.current === event.pointerId) {
+      if (isWirePointer(event.pointerId)) {
        setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
        return;
       }
