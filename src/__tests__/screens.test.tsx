@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import FlowPreview from '../FlowPreview';
 import FlowEditor from '../FlowEditor';
@@ -22,7 +22,7 @@ const scenario: Scenario = {
 };
 let root: Root | undefined;
 let host: HTMLDivElement | undefined;
-async function mount(node: React.ReactNode) {
+async function mount(node: ReactNode) {
  host = document.createElement('div');
  document.body.append(host);
  root = createRoot(host);
