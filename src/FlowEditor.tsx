@@ -20,7 +20,7 @@ import EditorEdges from './editor/EditorEdges';
 import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
-import { resolveWaypointHandle } from './editor/resolveWaypointHandle';
+import { resolvePointerStartTarget } from './editor/pointerStartTargets';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
@@ -433,8 +433,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerDown={event => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      if (target.closest('[data-waypoint-index]')) {
-       const waypoint = resolveWaypointHandle(target);
+      const pointerTarget = resolvePointerStartTarget(target);
+      if (pointerTarget.kind === 'waypoint') {
+       const waypoint = pointerTarget.waypoint;
        if (waypoint) {
         waypointDrag.current = { pointerId: event.pointerId, ...waypoint };
         setSelectedStep(waypoint.stepId); setSelectedActor(null); setSelectedGroup(null);
@@ -442,9 +443,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        }
        return;
       }
-      const handle = target.closest('[data-connection-handle]');
-      if (handle && tool !== 'multi') {
-       const from = handle.getAttribute('data-connection-handle');
+      if (pointerTarget.kind === 'connection' && tool !== 'multi') {
+       const from = pointerTarget.from;
        if (!from) return;
        wirePointer.current = event.pointerId;
        setWire({ from, ...toWorld(event.clientX, event.clientY) });
@@ -475,7 +475,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (tool !== 'move') return;
-      const resizeActorId = target.closest('[data-node-resize]')?.getAttribute('data-node-resize');
+      const resizeActorId = pointerTarget.kind === 'selection' ? pointerTarget.resizeActorId : null;
       const resizeActor = actors.find(actor => actor.id === resizeActorId);
       if (resizeActor) {
        setSelectedActor(resizeActor.id);
@@ -487,8 +487,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        event.preventDefault();
        return;
       }
-      const resizeHandle = target.closest('[data-group-resize]');
-      const groupId = (resizeHandle ?? target.closest('[data-group-id]'))?.getAttribute(resizeHandle ? 'data-group-resize' : 'data-group-id') ?? null;
+      const resizeHandle = pointerTarget.kind === 'selection' && pointerTarget.resizeGroup;
+      const groupId = pointerTarget.kind === 'selection' ? pointerTarget.groupId : null;
       const group = groups.find(item => item.id === groupId);
       if (group) {
        setSelectedGroup(group.id);
@@ -498,7 +498,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
-      const { actorId, stepId } = resolveEditorSelection(target);
+      const { actorId, stepId } = pointerTarget.kind === 'selection' ? pointerTarget : resolveEditorSelection(target);
       // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
       if (actorId) {
        setSelectedActor(actorId);
