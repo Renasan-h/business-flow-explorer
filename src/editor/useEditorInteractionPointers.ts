@@ -54,6 +54,17 @@ export function useEditorInteractionPointers() {
   return active;
  };
 
+ /** 移動距離がしきい値を超えたら再生順ドラッグを確定状態にする。 */
+ const moveOrder = (pointerId: number, x: number, y: number): boolean | null => {
+  const active = orderDrag.current;
+  if (!active || active.pointerId !== pointerId) return null;
+  if (Math.hypot(x - active.x, y - active.y) > 5) active.moved = true;
+  return active.moved;
+ };
+
+ /** 接続線のドラッグ中かを判定する。 */
+ const isWirePointer = (pointerId: number): boolean => wirePointer.current === pointerId;
+
  /** キャンセル時に通信・経由点・再生順のドラッグ状態を解除する。 */
  const reset = () => {
   wirePointer.current = null;
@@ -61,5 +72,5 @@ export function useEditorInteractionPointers() {
   orderDrag.current = null;
  };
 
- return { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, reset };
+ return { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder, isWirePointer, reset };
 }
