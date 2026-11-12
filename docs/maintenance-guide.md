@@ -116,7 +116,7 @@ npm run test:e2e             # Playwright Chromium
 - `.github/workflows/validate.yml`：Vitestとビルドの追加検証。
 - Playwright失敗時は `playwright-results` の証跡（スクリーンショット・トレース）を参照。
 
-2026-11-13時点、[CI実行 43284008816](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43284008816) は **型チェック・Vitest・Viteビルド成功、Playwrightのノードドラッグ検証1件が失敗（5件成功）**。開始位置のヒットテストを追加して再検証中です。**修正後のE2E全件成功は未確認**です。
+2026-11-13時点、[CI実行 43284008816](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43284008816) では **型チェック・Vitest・Viteビルド成功、Playwrightのノードドラッグ検証1件が失敗（5件成功）**。原因はスクロール型SVGキャンバスで操作対象が表示領域外だったことです。テストで対象を表示領域へスクロールしてからドラッグするよう修正し、[CI実行 43289270584](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43289270584) で **Vitest・TypeScript・Vite・Playwright全ジョブの成功を確認**しました。
 
 詳細は [テスト・CIガイド](testing-guide.md) を参照してください。
 
