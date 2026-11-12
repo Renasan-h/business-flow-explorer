@@ -25,7 +25,8 @@ import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { actorsInSelection, boundedGroupDelta, moveSelectedActors, selectionRectangle } from './editor/multiSelection';
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
-import { clampNodePosition, containsNodePoint } from './editor/nodeGeometry';
+import { clampNodePosition } from './editor/nodeGeometry';
+import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
 import { movedGroupOrigin, moveGroupMembers, resizedNodeSize } from './editor/dragGeometry';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
@@ -593,8 +594,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (orderDrag.current?.pointerId === event.pointerId) {
        const dragOrder = orderDrag.current;
        const point = toWorld(event.clientX, event.clientY);
-       const destination = steps.map(step => ({ id: step.id, point: orderPoint(step) })).find(item => item.point && Math.hypot(item.point.x - point.x, item.point.y - point.y) < 32);
-       if (dragOrder.moved && destination) { moveOrder(dragOrder.source, destination.id); setOrderSource(null); }
+       const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
+       if (dragOrder.moved && destinationId) { moveOrder(dragOrder.source, destinationId); setOrderSource(null); }
        else if (!dragOrder.moved) chooseOrder(dragOrder.source);
        orderDrag.current = null;
        setOrderCursor(null);
@@ -602,7 +603,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (wirePointer.current === event.pointerId) {
        const point = toWorld(event.clientX, event.clientY);
        // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
-       const target = [...actors].reverse().find(actor => containsNodePoint(actor, point));
+       const target = findConnectionDropTarget(actors, point);
        if (wire && target) addConnection(wire.from, target.id);
        else if (wire) setMessage('接続先ノードの上でドロップしてください。');
        setWire(null);
