@@ -26,7 +26,7 @@ import { completeMarqueeSelection, dragSelectedActors } from './editor/multiSele
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 
-import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
+import { connectionDropTarget, playbackOrderDropAction } from './editor/pointerDropActions';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { clampNodePosition } from './editor/nodeGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
@@ -239,16 +239,16 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (isOrderPointer(event.pointerId)) {
        const dragOrder = finishOrder(event.pointerId)!;
        const point = toWorld(event.clientX, event.clientY);
-       const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
-       if (dragOrder.moved && destinationId) { moveOrder(dragOrder.source, destinationId); setOrderSource(null); }
-       else if (!dragOrder.moved) chooseOrder(dragOrder.source);
+       const action = playbackOrderDropAction(steps, point, dragOrder.source, dragOrder.moved, orderPoint);
+       if (action?.kind === 'reorder') { moveOrder(action.from, action.to); setOrderSource(null); }
+       else if (action?.kind === 'choose') chooseOrder(action.source);
        setOrderCursor(null);
       }
       if (isWirePointer(event.pointerId)) {
        const point = toWorld(event.clientX, event.clientY);
        // キャプチャ後のevent.targetはSVGのため、接続先はワールド座標で判定する。
-       const target = findConnectionDropTarget(actors, point);
-       if (wire && target) addConnection(wire.from, target.id);
+       const targetId = connectionDropTarget(actors, point);
+       if (wire && targetId) addConnection(wire.from, targetId);
        else if (wire) setMessage('接続先ノードの上でドロップしてください。');
        clearWirePreview();
        finishWire(event.pointerId);
