@@ -36,3 +36,11 @@ export function resizedNodeSize(initial: Point, size: Size, delta: Point, bounds
   height: Math.max(60, Math.min(maxHeight, size.height + delta.y * 2)),
  };
 }
+
+/** 領域リサイズ時の最小サイズを適用する。 */
+export function resizedGroupSize(initial: Size, delta: Point): Size {
+ return {
+  width: Math.max(200, initial.width + delta.x),
+  height: Math.max(120, initial.height + delta.y),
+ };
+}
