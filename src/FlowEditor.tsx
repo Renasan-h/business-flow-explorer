@@ -28,6 +28,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 import { clampNodePosition } from './editor/nodeGeometry';
 import { findConnectionDropTarget, findPlaybackOrderDropTarget } from './editor/pointerDropTargets';
 import { movedGroupOrigin, moveGroupMembers, resizedNodeSize } from './editor/dragGeometry';
+import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
@@ -480,9 +481,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (resizeActor) {
        setSelectedActor(resizeActor.id);
        setSelectedStep(null); setSelectedGroup(null);
-       drag.current = { id: event.pointerId, actorId: resizeActor.id, resizeActor: true,
-        initialSize: { width: resizeActor.width ?? NODE_WIDTH, height: resizeActor.height ?? NODE_HEIGHT },
-        x: event.clientX, y: event.clientY, initial: { ...resizeActor.position }, offset };
+       drag.current = nodeResizeStart(resizeActor, event.pointerId, { x: event.clientX, y: event.clientY }, offset, { width: NODE_WIDTH, height: NODE_HEIGHT });
        event.currentTarget.setPointerCapture(event.pointerId);
        event.preventDefault();
        return;
@@ -494,7 +493,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        setSelectedGroup(group.id);
        setSelectedActor(null);
        setSelectedStep(null);
-       drag.current = { id: event.pointerId, actorId: null, groupId: group.id, resizeGroup: Boolean(resizeHandle), initialMembers: actors.filter(actor => group.memberIds?.includes(actor.id)).map(actor => ({ id: actor.id, ...actor.position })), initialSize: { width: group.width, height: group.height }, x: event.clientX, y: event.clientY, initial: { x: group.x, y: group.y }, offset };
+       drag.current = groupDragStart(group, actors, Boolean(resizeHandle), event.pointerId, { x: event.clientX, y: event.clientY }, offset);
        event.currentTarget.setPointerCapture(event.pointerId);
        return;
       }
