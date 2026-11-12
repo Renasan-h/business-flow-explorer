@@ -47,6 +47,8 @@ npm run dev
 | `npm run dev` | 開発サーバーの起動 |
 | `npm run build` | TypeScriptの型チェックと本番ビルド |
 | `npm run preview` | ビルド済みアプリのプレビュー |
+| `npm test` | Vitestによるロジック・DOM回帰テスト |
+| `npm run test:e2e` | PlaywrightによるChromium実ブラウザテスト |
 
 ## シナリオフォルダの設定（ローカルWeb版）
 
@@ -302,7 +304,7 @@ actors:
 - 「再生画面へ戻る」で未保存変更がある場合は、保存するか破棄するかを確認します。
 - 「YAMLを保存…」は対応ブラウザでは保存ダイアログを開き、任意のローカル保存先を指定できます。非対応ブラウザではダウンロードに切り替わります。
 - 出力は単一のYAMLファイルです。読み込み時に展開したサブシナリオ・Actor参照は保存時にインライン化されます。元の分割ファイルやGitHubリポジトリは変更されません。
-- 保存したYAMLをアプリのシナリオ一覧に追加する場合は、`public/scenarios/` への配置と `public/scenarios/index.json` の更新が必要です。
+- 保存したYAMLをアプリのシナリオ一覧に追加する場合は、設定したシナリオベースディレクトリへ配置し、画面の「↻ 再読み込み」を押してください。配信元ファイルへの自動上書きは行いません。
 
 
 ### 新規フロー作成
@@ -315,7 +317,7 @@ actors:
 
 ### 接続線の自動経路調整
 
-フローエディターとプレビューでは、接続線をノード外枠から描画し、他のノードを避ける直交経路を探索します。ノード移動時には経路を再計算し、プレビューの通信パケットも同じ経路に沿って移動します。接続線同士の交差回避や経由点の手動編集は未対応です。
+フローエディターとプレビューでは、接続線をノード外枠から描画し、他のノードを避ける直交経路を探索します。ノード移動時には経路を再計算し、プレビューの通信パケットも同じ経路に沿って移動します。接続線同士の交差を完全に回避する保証はありません。折れ線の経由点は編集画面で追加・ドラッグ移動・削除できます。
 
 ### 接続線の形状切替
 
@@ -324,3 +326,33 @@ actors:
 ## 開発・保守担当者向け
 
 初めてコードを読む場合は、[開発・保守ガイド](docs/maintenance-guide.md)を参照してください。ファイルの役割、シナリオのデータフロー、編集・プレビュー・再生の関係、変更時の確認項目を説明しています。
+
+
+## 自動テストとCI（2026-11-13時点）
+
+ロジック・DOMテストは **Vitest + jsdom**、実ブラウザの操作テストは **Playwright + Chromium** を使用します。GitHub Actionsの `.github/workflows/ci.yml` はpush・Pull Requestで実行し、単体/DOMテストとTypeScript/Viteビルド、Playwright E2Eを別ジョブで検証します。
+
+```bash
+npm install
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+- `src/__tests__/editorPlayback.test.ts`：編集・再生ロジック
+- `src/__tests__/editorFeatures.test.ts`：経由点、複製、領域、テンプレート取込
+- `src/__tests__/fileAndSelection.test.ts`：IF定義、選択判定、ファイル保存
+- `src/__tests__/yamlRoundtrip.test.ts`：YAML保存→読込と不正値検証
+- `src/__tests__/screens.test.tsx`：編集・プレビューのDOM操作
+- `e2e/businessFlow.spec.ts`：通常再生、編集、プレビュー往復、YAMLダウンロード
+
+E2Eはテスト用のYAMLをHTTPレスポンスとして差し替えるため、既存のユーザーシナリオを変更しません。テスト失敗時はCIにトレースとスクリーンショットを保存します。
+
+**検証状況**：Vitest・型チェック・ViteビルドはCI成功を確認済みです。一方、Playwrightは初回実行で3シナリオ中1件（YAMLダウンロード検証）が失敗した履歴があります。**E2E全件成功は未確認**であり、原因の調査と修正が残っています。ドラッグ・リサイズ・表示のぼやけなど、実描画を伴う操作の自動検証も今後の課題です。最新状況は [GitHub Actions](https://github.com/Renasan-h/business-flow-explorer/actions) で確認してください。
+
+詳しい手順とテストの追加方針は [テスト・CIガイド](docs/testing-guide.md)、構成と残作業は [開発状況・ロードマップ](docs/development-status.md) を参照してください。
+
+## 画面資料と画像差し替え
+
+既存の画像は `docs/images/technical.png`、`illustration.png`、`editor.png`、`preview.png` を参照してください。**現行UIと差異がある可能性があるため、最新の実画面キャプチャへの差し替えが必要です。** 差し替え対象の画面・撮影条件・配置先は [画面キャプチャ一覧](docs/screenshot-checklist.md) にまとめています。
