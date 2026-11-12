@@ -32,6 +32,7 @@ import { clampNodePosition } from './editor/nodeGeometry';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
 import { useEditorInteractionPointers } from './editor/useEditorInteractionPointers';
+import { useConnectionWirePreview } from './editor/useConnectionWirePreview';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
@@ -83,7 +84,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const { marquee, marqueeEnd, setMarqueeEnd, multiDrag, start: startMultiSelectionPointer, finish: finishMultiSelectionPointer, reset: resetMultiSelectionPointer } = useMultiSelectionPointerState();
  const [source, setSource] = useState<string | null>(null);
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
- const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
+ const { wire, start: startWirePreview, move: moveWirePreview, clear: clearWirePreview } = useConnectionWirePreview();
  // 接続線・経由点・再生順の一時状態は専用フックで管理する。
  const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder: moveOrderPointer, isWirePointer, activeWaypoint, isOrderPointer, reset: resetInteractionPointers } = useEditorInteractionPointers();
  const [zoom, setZoom] = useState(1);
@@ -136,7 +137,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   resetMultiSelectionPointer();
   resetInteractionPointers();
   resetEditorDrag();
-  setWire(null);
+  clearWirePreview();
   setOrderCursor(null);
  };
 
@@ -159,7 +160,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const from = pointerTarget.from;
        if (!from) return;
        startWire(event.pointerId);
-       setWire({ from, ...toWorld(event.clientX, event.clientY) });
+       startWirePreview(from, toWorld(event.clientX, event.clientY));
        setSource(null);
        event.currentTarget.setPointerCapture(event.pointerId);
        event.preventDefault();
@@ -249,7 +250,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const target = findConnectionDropTarget(actors, point);
        if (wire && target) addConnection(wire.from, target.id);
        else if (wire) setMessage('接続先ノードの上でドロップしてください。');
-       setWire(null);
+       clearWirePreview();
        finishWire(event.pointerId);
       }
       finishEditorDrag(event.pointerId);
@@ -285,7 +286,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        return;
       }
       if (isWirePointer(event.pointerId)) {
-       setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
+       moveWirePreview(toWorld(event.clientX, event.clientY));
        return;
       }
       const current = drag.current;
@@ -408,7 +409,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setSelectedActor(current => current === id ? null : current);
   setSelectedStep(null);
   setSource(current => current === id ? null : current);
-  setWire(null);
+  clearWirePreview();
   setContextMenu(null);
   setMessage('ノードと関連する通信を削除しました。');
  };
