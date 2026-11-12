@@ -4,7 +4,7 @@ type Actor = Scenario['actors'][number];
 type Group = NonNullable<Scenario['groups']>[number];
 type Point = { x: number; y: number };
 
-type DragStart = {
+export type DragStart = {
  id: number;
  actorId: string | null;
  resizeActor?: boolean;
