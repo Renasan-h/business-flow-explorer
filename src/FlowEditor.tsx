@@ -144,88 +144,101 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
  /** SVG上の操作開始時に対象と操作モードを判定する。 */
  const handleCanvasPointerDown = (event: PointerEvent<SVGSVGElement>) => {
+  if (event.button !== 0) return;
 
-      if (event.button !== 0) return;
-      const target = event.target as Element;
-      const pointerTarget = resolvePointerStartTarget(target);
-      if (pointerTarget.kind === 'waypoint') {
-       const waypoint = pointerTarget.waypoint;
-       if (waypoint) {
-        startWaypoint(event.pointerId, waypoint);
-        setSelectedStep(waypoint.stepId); setSelectedActor(null); setSelectedGroup(null);
-        event.currentTarget.setPointerCapture(event.pointerId);
-       }
-       return;
-      }
-      if (pointerTarget.kind === 'connection' && tool !== 'multi') {
-       const from = pointerTarget.from;
-       if (!from) return;
-       startWire(event.pointerId);
-       startWirePreview(from, toWorld(event.clientX, event.clientY));
-       setSource(null);
-       event.currentTarget.setPointerCapture(event.pointerId);
-       event.preventDefault();
-       return;
-      }
-      if (tool === 'multi') {
-       const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
-       const selection = resolveMultiSelectionStart(actorId, event.shiftKey, selectedActors, actors, toWorld(event.clientX, event.clientY));
-       setSelectedActors(selection.selectedActors);
-       // Shiftクリックは選択の反転のみ。ポインターをキャプチャしない。
-      if (!startMultiSelectionPointer(selection, event.pointerId, event.clientX, event.clientY)) return;
-      if (selection.kind === 'marquee' && selection.clearSingleSelection) {
-       setSelectedActor(null);
-       setSelectedStep(null);
-       setSelectedGroup(null);
-      }
-      event.currentTarget.setPointerCapture(event.pointerId);
-       event.preventDefault();
-       return;
-      }
-      if (tool !== 'move') return;
-      const resizeActorId = pointerTarget.kind === 'selection' ? pointerTarget.resizeActorId : null;
-      const resizeActor = actors.find(actor => actor.id === resizeActorId);
-      if (resizeActor) {
-       setSelectedActor(resizeActor.id);
-       setSelectedStep(null); setSelectedGroup(null);
-       startEditorDrag(nodeResizeStart(resizeActor, event.pointerId, { x: event.clientX, y: event.clientY }, offset, { width: NODE_WIDTH, height: NODE_HEIGHT }));
-       event.currentTarget.setPointerCapture(event.pointerId);
-       event.preventDefault();
-       return;
-      }
-      const resizeHandle = pointerTarget.kind === 'selection' && pointerTarget.resizeGroup;
-      const groupId = pointerTarget.kind === 'selection' ? pointerTarget.groupId : null;
-      const group = groups.find(item => item.id === groupId);
-      if (group) {
-       setSelectedGroup(group.id);
-       setSelectedActor(null);
-       setSelectedStep(null);
-       startEditorDrag(groupDragStart(group, actors, Boolean(resizeHandle), event.pointerId, { x: event.clientX, y: event.clientY }, offset));
-       event.currentTarget.setPointerCapture(event.pointerId);
-       return;
-      }
-      const { actorId, stepId } = pointerTarget.kind === 'selection' ? pointerTarget : resolveEditorSelection(target);
-      // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
-      if (actorId) {
-       setSelectedActor(actorId);
-       setSelectedStep(null);
-       setSelectedGroup(null);
-      } else {
-       if (stepId) {
-        setSelectedStep(stepId);
-        setSelectedActor(null);
-        setSelectedGroup(null);
-        return;
-       }
-       // 空白のクリックはすべての選択状態を解除する。
-       setSelectedActor(null);
-       setSelectedStep(null);
-       setSelectedGroup(null);
-       setSelectedActors([]);
-      }
-      const actor = actors.find(item => item.id === actorId);
-      startEditorDrag({ id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset });
-      event.currentTarget.setPointerCapture(event.pointerId);
+  const target = event.target as Element;
+  const pointerTarget = resolvePointerStartTarget(target);
+  const position = { x: event.clientX, y: event.clientY };
+
+  if (pointerTarget.kind === 'waypoint') {
+   const waypoint = pointerTarget.waypoint;
+   if (waypoint) {
+    startWaypoint(event.pointerId, waypoint);
+    setSelectedStep(waypoint.stepId);
+    setSelectedActor(null);
+    setSelectedGroup(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+   }
+   return;
+  }
+
+  if (pointerTarget.kind === 'connection' && tool !== 'multi') {
+   const from = pointerTarget.from;
+   if (!from) return;
+   startWire(event.pointerId);
+   startWirePreview(from, toWorld(position.x, position.y));
+   setSource(null);
+   event.currentTarget.setPointerCapture(event.pointerId);
+   event.preventDefault();
+   return;
+  }
+
+  if (tool === 'multi') {
+   const actorId = target.closest('[data-actor-id]')?.getAttribute('data-actor-id') ?? null;
+   const selection = resolveMultiSelectionStart(actorId, event.shiftKey, selectedActors, actors, toWorld(position.x, position.y));
+   setSelectedActors(selection.selectedActors);
+   // Shiftクリックは選択の反転のみ。ポインターをキャプチャしない。
+   if (!startMultiSelectionPointer(selection, event.pointerId, position.x, position.y)) return;
+   if (selection.kind === 'marquee' && selection.clearSingleSelection) {
+    setSelectedActor(null);
+    setSelectedStep(null);
+    setSelectedGroup(null);
+   }
+   event.currentTarget.setPointerCapture(event.pointerId);
+   event.preventDefault();
+   return;
+  }
+
+  if (tool !== 'move') return;
+  const resizeActorId = pointerTarget.kind === 'selection' ? pointerTarget.resizeActorId : null;
+  const resizeActor = actors.find(actor => actor.id === resizeActorId);
+  if (resizeActor) {
+   setSelectedActor(resizeActor.id);
+   setSelectedStep(null);
+   setSelectedGroup(null);
+   startEditorDrag(nodeResizeStart(resizeActor, event.pointerId, position, offset, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+   event.currentTarget.setPointerCapture(event.pointerId);
+   event.preventDefault();
+   return;
+  }
+
+  const resizeHandle = pointerTarget.kind === 'selection' && pointerTarget.resizeGroup;
+  const groupId = pointerTarget.kind === 'selection' ? pointerTarget.groupId : null;
+  const group = groups.find(item => item.id === groupId);
+  if (group) {
+   setSelectedGroup(group.id);
+   setSelectedActor(null);
+   setSelectedStep(null);
+   startEditorDrag(groupDragStart(group, actors, Boolean(resizeHandle), event.pointerId, position, offset));
+   event.currentTarget.setPointerCapture(event.pointerId);
+   return;
+  }
+
+  const { actorId, stepId } = pointerTarget.kind === 'selection' ? pointerTarget : resolveEditorSelection(target);
+  // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
+  if (actorId) {
+   setSelectedActor(actorId);
+   setSelectedStep(null);
+   setSelectedGroup(null);
+  } else if (stepId) {
+   setSelectedStep(stepId);
+   setSelectedActor(null);
+   setSelectedGroup(null);
+   return;
+  } else {
+   // 空白のクリックはすべての選択状態を解除する。
+   setSelectedActor(null);
+   setSelectedStep(null);
+   setSelectedGroup(null);
+   setSelectedActors([]);
+  }
+
+  const actor = actors.find(item => item.id === actorId);
+  startEditorDrag({
+   id: event.pointerId, actorId, x: position.x, y: position.y,
+   initial: actor?.position ?? { x: 0, y: 0 }, offset,
+  });
+  event.currentTarget.setPointerCapture(event.pointerId);
  };
 
  /** ポインター終了時に各操作の確定処理と一時状態の解除を行う。 */
