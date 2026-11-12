@@ -84,7 +84,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
  // 接続線・経由点・再生順の一時状態は専用フックで管理する。
- const { wirePointer, waypointDrag, orderDrag, reset: resetInteractionPointers } = useEditorInteractionPointers();
+ const { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, reset: resetInteractionPointers } = useEditorInteractionPointers();
  const [zoom, setZoom] = useState(1);
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
@@ -148,7 +148,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (pointerTarget.kind === 'waypoint') {
        const waypoint = pointerTarget.waypoint;
        if (waypoint) {
-        waypointDrag.current = { pointerId: event.pointerId, ...waypoint };
+        startWaypoint(event.pointerId, waypoint);
         setSelectedStep(waypoint.stepId); setSelectedActor(null); setSelectedGroup(null);
         event.currentTarget.setPointerCapture(event.pointerId);
        }
@@ -157,7 +157,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       if (pointerTarget.kind === 'connection' && tool !== 'multi') {
        const from = pointerTarget.from;
        if (!from) return;
-       wirePointer.current = event.pointerId;
+       startWire(event.pointerId);
        setWire({ from, ...toWorld(event.clientX, event.clientY) });
        setSource(null);
        event.currentTarget.setPointerCapture(event.pointerId);
@@ -233,14 +233,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const end = toWorld(event.clientX, event.clientY);
        setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
       }
-      if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
+      finishWaypoint(event.pointerId);
       if (orderDrag.current?.pointerId === event.pointerId) {
-       const dragOrder = orderDrag.current;
+       const dragOrder = finishOrder(event.pointerId)!;
        const point = toWorld(event.clientX, event.clientY);
        const destinationId = findPlaybackOrderDropTarget(steps, point, orderPoint);
        if (dragOrder.moved && destinationId) { moveOrder(dragOrder.source, destinationId); setOrderSource(null); }
        else if (!dragOrder.moved) chooseOrder(dragOrder.source);
-       orderDrag.current = null;
        setOrderCursor(null);
       }
       if (wirePointer.current === event.pointerId) {
@@ -250,7 +249,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        if (wire && target) addConnection(wire.from, target.id);
        else if (wire) setMessage('接続先ノードの上でドロップしてください。');
        setWire(null);
-       wirePointer.current = null;
+       finishWire(event.pointerId);
       }
       finishEditorDrag(event.pointerId);
  };
@@ -636,7 +635,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       {tool === 'multi' && marquee.current && marqueeEnd && <rect className="editor-selection-marquee" x={Math.min(marquee.current.start.x, marqueeEnd.x)} y={Math.min(marquee.current.start.y, marqueeEnd.y)} width={Math.abs(marqueeEnd.x - marquee.current.start.x)} height={Math.abs(marqueeEnd.y - marquee.current.start.y)} pointerEvents="none"/>}
 
        <EditorNodes actors={actors} selectedActors={selectedActors} tool={tool} source={source} selectedActor={selectedActor} nodeNumbers={nodeNumbers} onClickActor={clickActor} onDeleteActor={deleteActor}/>
-      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} orderRadius={orderRadius} onStartDrag={(stepId, pointerId, x, y) => { orderDrag.current = { pointerId, source: stepId, x, y, moved: false }; }} onChooseOrder={chooseOrder}/>
+      <PlaybackOrderMarkers orderMode={orderMode} steps={steps} orderCursor={orderCursor} orderDragSource={orderDrag.current?.source ?? null} orderSource={orderSource} orderPoint={orderPoint} orderRadius={orderRadius} onStartDrag={startOrder} onChooseOrder={chooseOrder}/>
      </g>
     </svg>
     <EditorContextMenu menu={contextMenu}
