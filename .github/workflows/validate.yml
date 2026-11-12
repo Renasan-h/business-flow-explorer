@@ -19,4 +19,5 @@ jobs:
           package-manager-cache: false
       # package-lock.jsonが未登録のためnpm ciではなくnpm installを使用する。
       - run: npm install --no-audit --no-fund
+      - run: npm test
       - run: npm run build
