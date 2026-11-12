@@ -428,6 +428,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   if (!target || (!skipConfirmation && !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`))) return;
   setActors(current => current.filter(actor => actor.id !== id));
   setSteps(current => removeActorConnections(current, id));
+  // 通信が削除された後に再生順の移動元が残らないよう解除する。
+  setOrderSource(null);
+  setOrderCursor(null);
   setGroups(current => removeActorFromGroups(current, id));
   setSelectedActor(current => current === id ? null : current);
   // 複数選択に削除済みノードを残さず、後続の一括移動対象から除外する。
@@ -443,6 +446,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const target = steps.find(step => step.id === id);
   if (!target || (!skipConfirmation && !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`))) return;
   setSteps(current => current.filter(step => step.id !== id));
+  setOrderSource(current => current === id ? null : current);
+  setOrderCursor(null);
   setSelectedStep(current => current === id ? null : current);
   setSelectedGroup(null);
   setMessage('再生ステップを削除しました。');
