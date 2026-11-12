@@ -36,6 +36,7 @@ import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderG
 import { reorderSteps } from './editor/reorderSteps';
 import { loadTemplateCatalog } from './editor/loadTemplateCatalog';
 import { prepareTemplateImport } from './editor/prepareTemplateImport';
+import { assertTemplateReferenceAvailable, createTemplateReference } from './editor/templateReferenceRegistration';
 import { writeEditorYaml } from './editor/writeEditorYaml';
 import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -516,12 +517,12 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   try {
    const path = templatePath.trim();
    const fragment = await loadEditorTemplate(mode, path, templateFile, scenarioPath);
-   if (mode === 'reference' && templateReferences.some(item => item.file === path)) throw new Error('同じ参照テンプレートは複数回読み込めません');
+   if (mode === 'reference') assertTemplateReferenceAvailable(path, templateReferences);
    const { newActors, newSteps, renamed } = prepareTemplateImport(fragment, mode, actors, steps);
    setActors(current => [...current, ...newActors]);
    setSteps(current => [...current, ...newSteps]);
    setNodeNumbers(current => ({ ...current, ...Object.fromEntries(newActors.map(item => [item.id, nextNodeNumber.current++])) }));
-   if (mode === 'reference') setTemplateReferences(current => [...current, { file: path, actorIds: newActors.map(item => item.id), stepIds: newSteps.map(item => item.id), original: JSON.stringify({ actors: newActors, steps: newSteps }) }]);
+   if (mode === 'reference') setTemplateReferences(current => [...current, createTemplateReference(path, newActors, newSteps)]);
    setMessage(mode === 'reference' ? 'サブシナリオ参照を追加しました。' : '直接読み込みが完了しました。' + (renamed ? ' 重複IDを' + renamed + '件変更しました。' : ''));
    closeTemplateImport();
   } catch (error) { setTemplateError(error instanceof Error ? error.message : String(error)); }
