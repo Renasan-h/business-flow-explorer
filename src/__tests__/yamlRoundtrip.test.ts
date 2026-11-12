@@ -3,6 +3,7 @@ import { parse } from 'yaml';
 import type { Scenario } from '../scenario';
 import { loadScenario, parseTemplateYaml } from '../scenario';
 import { prepareEditorYamlSave } from '../editor/prepareEditorYamlSave';
+import type { TemplateReference } from '../editor/serializeEditorScenario';
 
 const originalWindow = globalThis.window;
 const originalFetch = globalThis.fetch;
@@ -29,7 +30,7 @@ function fixture() {
   { id: 'system', name: 'システム', x: 100, y: 100, width: 600, height: 300, memberIds: ['web', 'api'] },
  ];
  const interfaces: NonNullable<Scenario['interfaces']> = [];
- return { actors, steps, metadata, groups, interfaces, templateReferences: [] };
+ return { actors, steps, metadata, groups, interfaces, templateReferences: [] as TemplateReference[] };
 }
 
 describe('YAML保存・再読み込み', () => {
