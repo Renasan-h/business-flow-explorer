@@ -52,3 +52,17 @@ export function moveSelectedActors(actors: Actor[], initial: DragOrigin[], delta
   return origin ? { ...actor, position: { x: origin.x + delta.x, y: origin.y + delta.y } } : actor;
  });
 }
+
+/** 範囲選択を確定する。Shift追加時は既存の選択順を保って重複を除く。 */
+export function completeMarqueeSelection(
+ actors: Actor[],
+ start: EditorPoint,
+ end: EditorPoint,
+ currentIds: string[],
+ additive: boolean,
+ nodeWidth: number,
+ nodeHeight: number,
+): string[] {
+ const matches = actorsInSelection(actors, selectionRectangle(start, end), nodeWidth, nodeHeight);
+ return additive ? [...new Set([...currentIds, ...matches])] : matches;
+}
