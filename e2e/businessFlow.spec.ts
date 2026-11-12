@@ -110,8 +110,9 @@ test('編集画面: ノードを実際にドラッグして位置を変更する
  const bounds = await rect.boundingBox();
  expect(bounds).not.toBeNull();
  if (!bounds) return;
- const startX = bounds.x + bounds.width / 2;
- const startY = bounds.y + bounds.height / 2;
+ // 中央のアイコン・テキストではなくノード背景を掴む。
+ const startX = bounds.x + 35;
+ const startY = bounds.y + 55;
  await page.mouse.move(startX, startY);
  await page.mouse.down();
  await page.mouse.move(startX + 85, startY + 40, { steps: 8 });
