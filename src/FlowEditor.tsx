@@ -4,6 +4,7 @@ import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImpor
 import { importedNodeNumbers } from './editor/importedNodeNumbers';
 import { withConnectionDirection } from './editor/connectionDirection';
 import { decideConnection } from './editor/decideConnection';
+import { removeActorConnections, removeActorFromGroups } from './editor/removeActorReferences';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -402,7 +403,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const target = actors.find(actor => actor.id === id);
   if (!target || (!skipConfirmation && !window.confirm(`ノード「${target.name}」を削除しますか？\n関連する通信ステップも削除されます。`))) return;
   setActors(current => current.filter(actor => actor.id !== id));
-  setSteps(current => current.filter(step => step.actions.every(action => action.from !== id && action.to !== id) && step.reverseFrom !== id && step.reverseTo !== id));
+  setSteps(current => removeActorConnections(current, id));
+  setGroups(current => removeActorFromGroups(current, id));
   setSelectedActor(current => current === id ? null : current);
   setSelectedStep(null);
   setSource(current => current === id ? null : current);
