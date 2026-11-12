@@ -65,6 +65,15 @@ export function useEditorInteractionPointers() {
  /** 接続線のドラッグ中かを判定する。 */
  const isWirePointer = (pointerId: number): boolean => wirePointer.current === pointerId;
 
+ /** 指定ポインターの経由点ドラッグ情報を取得する。 */
+ const activeWaypoint = (pointerId: number): WaypointPointer | null => {
+  const active = waypointDrag.current;
+  return active?.pointerId === pointerId ? active : null;
+ };
+
+ /** 指定ポインターの再生順ドラッグが進行中か判定する。 */
+ const isOrderPointer = (pointerId: number): boolean => orderDrag.current?.pointerId === pointerId;
+
  /** キャンセル時に通信・経由点・再生順のドラッグ状態を解除する。 */
  const reset = () => {
   wirePointer.current = null;
@@ -72,5 +81,5 @@ export function useEditorInteractionPointers() {
   orderDrag.current = null;
  };
 
- return { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder, isWirePointer, reset };
+ return { wirePointer, waypointDrag, orderDrag, startWaypoint, finishWaypoint, startWire, finishWire, startOrder, finishOrder, moveOrder, isWirePointer, activeWaypoint, isOrderPointer, reset };
 }
