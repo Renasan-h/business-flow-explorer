@@ -11,11 +11,22 @@ export function validateEditorScenario(actors: Actor[], steps: Step[], groups: G
  if (ids.size !== actors.length || actors.some(actor => !actor.id.trim() || !actor.name.trim())) {
   return 'ノードIDの重複または未入力があります。';
  }
+ // ノード座標とサイズの不正値は、YAML保存後の表示崩れを防ぐため事前に検出する。
+ if (actors.some(actor =>
+  !Number.isFinite(actor.position.x) || !Number.isFinite(actor.position.y) ||
+  (actor.width !== undefined && (!Number.isFinite(actor.width) || actor.width < 100 || actor.width > 800)) ||
+  (actor.height !== undefined && (!Number.isFinite(actor.height) || actor.height < 60 || actor.height > 500)))) {
+  return 'ノードの位置・サイズを確認してください。';
+ }
  if (new Set(steps.map(step => step.id)).size !== steps.length ||
   steps.some(step => !step.id.trim() ||
    // YAMLスキーマは通信アクションを最低1件要求する。空配列は保存前に検出する。
    step.actions.length === 0 ||
    step.actions.some(action => !ids.has(action.from) || !ids.has(action.to) || !Number.isFinite(action.durationMs) || action.durationMs <= 0) ||
+   // 経由点はYAMLスキーマ上100件以内で、各座標は有限値である必要がある。
+   [step.waypoints, step.reverseWaypoints].some(points =>
+    points !== undefined && (points.length > 100 ||
+     points.some(point => !Number.isFinite(point.x) || !Number.isFinite(point.y)))) ||
    (step.bidirectional && (!step.reverseFrom || !step.reverseTo || !ids.has(step.reverseFrom) || !ids.has(step.reverseTo))))) {
   return '通信のID・参照先・所要時間を確認してください。';
  }
