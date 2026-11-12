@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { readInterfaceFields } from './editor/readInterfaceFields';
-import { serializeEditorScenario, validateTemplateReferences } from './editor/serializeEditorScenario';
 import type { Scenario } from './scenario';
 import { loadEditorTemplate } from './editor/loadEditorTemplate';
 import FlowPreview from './FlowPreview';
@@ -37,9 +36,8 @@ import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderG
 import { reorderSteps } from './editor/reorderSteps';
 import { templateCatalogItems } from './editor/templateCatalog';
 import { prepareTemplateImport } from './editor/prepareTemplateImport';
-import { validateEditorScenario } from './editor/validateEditorScenario';
-import { editorScenarioFilename } from './editor/editorScenarioFilename';
 import { writeEditorYaml } from './editor/writeEditorYaml';
+import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
 import { insertWaypointBetweenNodes } from './editor/waypointInsertion';
@@ -475,16 +473,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   // 保存ダイアログ表示中の状態変化に左右されないよう、保存対象を固定する。
   const snapshotAtSave = snapshot();
   setMessage('');
-  const validationError = validateEditorScenario(actors, steps, groups);
-  if (validationError) { setMessage(validationError); return false; }
-  const data = { actors, steps, metadata, groups, interfaces, templateReferences };
-  const referenceError = validateTemplateReferences(data);
-  if (referenceError) { setMessage(referenceError); return false; }
-  const yaml = serializeEditorScenario(data);
-  // 既存編集では開いているシナリオのファイル名を優先する。
-  const filename = editorScenarioFilename(scenarioPath, metadata.id);
+  const prepared = prepareEditorYamlSave({ actors, steps, metadata, groups, interfaces, templateReferences }, scenarioPath);
+  if (!prepared.ok) { setMessage(prepared.error); return false; }
   try {
-   const result = await writeEditorYaml(filename, yaml);
+   const result = await writeEditorYaml(prepared.filename, prepared.yaml);
    setMessage(result === 'saved'
     ? 'YAMLを保存しました。Web上の元シナリオは自動更新されません。'
     : 'YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
