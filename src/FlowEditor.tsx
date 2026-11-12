@@ -238,11 +238,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
       finishWaypoint(event.pointerId);
       if (isOrderPointer(event.pointerId)) {
-       const dragOrder = finishOrder(event.pointerId)!;
+       const dragOrder = finishOrder(event.pointerId);
+       if (dragOrder) {
        const point = toWorld(event.clientX, event.clientY);
        const action = playbackOrderDropAction(steps, point, dragOrder.source, dragOrder.moved, orderPoint);
        if (action?.kind === 'reorder') { moveOrder(action.from, action.to); setOrderSource(null); }
        else if (action?.kind === 'choose') chooseOrder(action.source);
+       }
        setOrderCursor(null);
       }
       if (isWirePointer(event.pointerId)) {
@@ -274,10 +276,10 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        }));
        return;
       }
-      if (activeWaypoint(event.pointerId)) {
-       const target = activeWaypoint(event.pointerId)!;
+      const waypointTarget = activeWaypoint(event.pointerId);
+      if (waypointTarget) {
        const point = toWorld(event.clientX, event.clientY);
-       setSteps(current => moveDraggedWaypoint(current, target, point, { width: WIDTH, height: HEIGHT }));
+       setSteps(current => moveDraggedWaypoint(current, waypointTarget, point, { width: WIDTH, height: HEIGHT }));
        return;
       }
       if (isOrderPointer(event.pointerId)) {
@@ -304,8 +306,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
           : { ...item, ...next };
         }));
        // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
-       if (!current.resizeGroup && current.initialMembers?.length) {
-        setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, next, { width: WIDTH, height: HEIGHT }));
+       const members = current.initialMembers;
+       if (!current.resizeGroup && members?.length) {
+        setActors(items => moveGroupMembers(items, members, current.initial, next, { width: WIDTH, height: HEIGHT }));
        }
       } else if (current.actorId && current.resizeActor) {
        const size = current.initialSize;
