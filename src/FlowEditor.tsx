@@ -129,6 +129,17 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const svg = svgRef.current;
   return svg ? screenToWorldPoint(svg, x, y, offset, zoom) ?? { x: 0, y: 0 } : { x: 0, y: 0 };
  };
+ /** キャンセル時はすべての一時的なドラッグ状態を破棄する。 */
+ const handleCanvasPointerCancel = () => {
+  resetMultiSelectionPointer();
+  waypointDrag.current = null;
+  drag.current = null;
+  wirePointer.current = null;
+  setWire(null);
+  orderDrag.current = null;
+  setOrderCursor(null);
+ };
+
  /** SVG上の操作開始時に対象と操作モードを判定する。 */
  const handleCanvasPointerDown = (event: PointerEvent<SVGSVGElement>) => {
 
@@ -614,7 +625,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
      onPointerDown={handleCanvasPointerDown}
      onPointerMove={handleCanvasPointerMove}
      onPointerUp={handleCanvasPointerUp}
-     onPointerCancel={() => { resetMultiSelectionPointer(); waypointDrag.current = null; drag.current = null; wirePointer.current = null; setWire(null); orderDrag.current = null; setOrderCursor(null); }}> 
+     onPointerCancel={handleCanvasPointerCancel} 
      <g transform={`translate(${offset.x} ${offset.y}) scale(${zoom})`}>
       <EditorGroups groups={groups} selectedGroup={selectedGroup} tool={tool} onSelect={id => { setSelectedGroup(id); setSelectedActor(null); setSelectedStep(null); }}/>
       <EditorEdges actors={actors} steps={steps} showLines={showLines} selectedStep={selectedStep} tool={tool} onSelect={id => { setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); }}/>
