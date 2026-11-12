@@ -77,7 +77,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [orderCollapsed, setOrderCollapsed] = useState(false);
  const canvasRef = useRef<HTMLDivElement>(null);
  // 複数選択の一時的なポインター状態は専用フックで管理する。
- const { marquee, marqueeEnd, setMarqueeEnd, multiDrag, reset: resetMultiSelectionPointer } = useMultiSelectionPointerState();
+ const { marquee, marqueeEnd, setMarqueeEnd, multiDrag, start: startMultiSelectionPointer, finish: finishMultiSelectionPointer, reset: resetMultiSelectionPointer } = useMultiSelectionPointerState();
  const [source, setSource] = useState<string | null>(null);
  // ハンドルをドラッグ中だけ仮接続線を表示し、ドロップ時に正式なステップを作成する。
  const [wire, setWire] = useState<{ from: string; x: number; y: number } | null>(null);
@@ -459,19 +459,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
        const selection = resolveMultiSelectionStart(actorId, event.shiftKey, selectedActors, actors, toWorld(event.clientX, event.clientY));
        setSelectedActors(selection.selectedActors);
        // Shiftクリックは選択の反転のみ。ポインターをキャプチャしない。
-       if (selection.kind === 'toggle') return;
-       if (selection.kind === 'drag') {
-        multiDrag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, initial: selection.initial };
-       } else {
-        marquee.current = { pointerId: event.pointerId, start: selection.start, additive: selection.additive };
-        setMarqueeEnd(selection.start);
-        if (selection.clearSingleSelection) {
-         setSelectedActor(null);
-         setSelectedStep(null);
-         setSelectedGroup(null);
-        }
-       }
-       event.currentTarget.setPointerCapture(event.pointerId);
+      if (!startMultiSelectionPointer(selection, event.pointerId, event.clientX, event.clientY)) return;
+      if (selection.kind === 'marquee' && selection.clearSingleSelection) {
+       setSelectedActor(null);
+       setSelectedStep(null);
+       setSelectedGroup(null);
+      }
+      event.currentTarget.setPointerCapture(event.pointerId);
        event.preventDefault();
        return;
       }
@@ -580,14 +574,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       }
      }}
      onPointerUp={event => {
-      if (marquee.current?.pointerId === event.pointerId) {
-       const selection = marquee.current;
+      const selection = finishMultiSelectionPointer(event.pointerId);
+      if (selection) {
        const end = toWorld(event.clientX, event.clientY);
        setSelectedActors(current => completeMarqueeSelection(actors, selection.start, end, current, selection.additive, NODE_WIDTH, NODE_HEIGHT));
-       marquee.current = null;
-       setMarqueeEnd(null);
       }
-      if (multiDrag.current?.pointerId === event.pointerId) multiDrag.current = null;
       if (waypointDrag.current?.pointerId === event.pointerId) waypointDrag.current = null;
       if (orderDrag.current?.pointerId === event.pointerId) {
        const dragOrder = orderDrag.current;
