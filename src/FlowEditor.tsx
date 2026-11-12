@@ -129,6 +129,70 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const svg = svgRef.current;
   return svg ? screenToWorldPoint(svg, x, y, offset, zoom) ?? { x: 0, y: 0 } : { x: 0, y: 0 };
  };
+ /** SVG上の移動操作を優先順位に従って処理する。 */
+ const handleCanvasPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+
+      if (marquee.current?.pointerId === event.pointerId) {
+       setMarqueeEnd(toWorld(event.clientX, event.clientY));
+       return;
+      }
+      if (multiDrag.current?.pointerId === event.pointerId) {
+       const active = multiDrag.current;
+       const start = toWorld(active.x, active.y);
+       const end = toWorld(event.clientX, event.clientY);
+       // 複数ノードの相対位置とキャンバス境界を維持する。
+       setActors(current => dragSelectedActors(current, active.initial, start, end, {
+        width: WIDTH, height: HEIGHT, nodeWidth: NODE_WIDTH, nodeHeight: NODE_HEIGHT,
+       }));
+       return;
+      }
+      if (waypointDrag.current?.pointerId === event.pointerId) {
+       const { stepId, index, direction } = waypointDrag.current;
+       const position = clampWaypoint(toWorld(event.clientX, event.clientY), { width: WIDTH, height: HEIGHT });
+       setSteps(current => current.map(step => step.id === stepId ? moveWaypoint(step, direction, index, position) : step));
+       return;
+      }
+      if (orderDrag.current?.pointerId === event.pointerId) {
+       const active = orderDrag.current;
+       if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5) active.moved = true;
+       if (active.moved) setOrderCursor(toWorld(event.clientX, event.clientY));
+       return;
+      }
+      if (wirePointer.current === event.pointerId) {
+       setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
+       return;
+      }
+      const current = drag.current;
+      if (!current || current.id !== event.pointerId) return;
+      const delta = screenDragDelta(event.currentTarget, current.x, current.y, event.clientX, event.clientY, zoom);
+      if (!delta) return;
+      const { x: dx, y: dy } = delta;
+      if (current.groupId) {
+       const next = movedGroupOrigin(current.initial, { x: dx, y: dy });
+       setGroups(items => items.map(item => {
+         if (item.id !== current.groupId) return item;
+         return current.resizeGroup
+          ? { ...item, ...resizedGroupSize(current.initialSize ?? item, { x: dx, y: dy }) }
+          : { ...item, ...next };
+        }));
+       // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
+       if (!current.resizeGroup && current.initialMembers?.length) {
+        setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, next, { width: WIDTH, height: HEIGHT }));
+       }
+      } else if (current.actorId && current.resizeActor) {
+       const size = current.initialSize;
+       if (!size) return;
+       changeActor(current.actorId, resizedNodeSize(current.initial, size, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT }));
+      } else if (current.actorId) {
+       const actor = actors.find(item => item.id === current.actorId);
+       if (!actor) return;
+       const position = movedNodePosition(actor, current.initial, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT });
+       changeActor(current.actorId, { position });
+      } else {
+       setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
+      }
+ };
+
  // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
  const changeActor = (id: string, patch: Partial<Actor>) => setActors(current => current.map(actor => actor.id === id ? { ...actor, ...patch } : actor));
  const changeStep = (id: string, patch: Partial<Step>) => setSteps(current => current.map(step => step.id === id ? { ...step, ...patch } : step));
@@ -514,67 +578,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
       drag.current = { id: event.pointerId, actorId, x: event.clientX, y: event.clientY, initial: actor?.position ?? { x: 0, y: 0 }, offset };
       event.currentTarget.setPointerCapture(event.pointerId);
      }}
-     onPointerMove={event => {
-      if (marquee.current?.pointerId === event.pointerId) {
-       setMarqueeEnd(toWorld(event.clientX, event.clientY));
-       return;
-      }
-      if (multiDrag.current?.pointerId === event.pointerId) {
-       const active = multiDrag.current;
-       const start = toWorld(active.x, active.y);
-       const end = toWorld(event.clientX, event.clientY);
-       // 複数ノードの相対位置とキャンバス境界を維持する。
-       setActors(current => dragSelectedActors(current, active.initial, start, end, {
-        width: WIDTH, height: HEIGHT, nodeWidth: NODE_WIDTH, nodeHeight: NODE_HEIGHT,
-       }));
-       return;
-      }
-      if (waypointDrag.current?.pointerId === event.pointerId) {
-       const { stepId, index, direction } = waypointDrag.current;
-       const position = clampWaypoint(toWorld(event.clientX, event.clientY), { width: WIDTH, height: HEIGHT });
-       setSteps(current => current.map(step => step.id === stepId ? moveWaypoint(step, direction, index, position) : step));
-       return;
-      }
-      if (orderDrag.current?.pointerId === event.pointerId) {
-       const active = orderDrag.current;
-       if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 5) active.moved = true;
-       if (active.moved) setOrderCursor(toWorld(event.clientX, event.clientY));
-       return;
-      }
-      if (wirePointer.current === event.pointerId) {
-       setWire(current => current ? { ...current, ...toWorld(event.clientX, event.clientY) } : null);
-       return;
-      }
-      const current = drag.current;
-      if (!current || current.id !== event.pointerId) return;
-      const delta = screenDragDelta(event.currentTarget, current.x, current.y, event.clientX, event.clientY, zoom);
-      if (!delta) return;
-      const { x: dx, y: dy } = delta;
-      if (current.groupId) {
-       const next = movedGroupOrigin(current.initial, { x: dx, y: dy });
-       setGroups(items => items.map(item => {
-         if (item.id !== current.groupId) return item;
-         return current.resizeGroup
-          ? { ...item, ...resizedGroupSize(current.initialSize ?? item, { x: dx, y: dy }) }
-          : { ...item, ...next };
-        }));
-       // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
-       if (!current.resizeGroup && current.initialMembers?.length) {
-        setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, next, { width: WIDTH, height: HEIGHT }));
-       }
-      } else if (current.actorId && current.resizeActor) {
-       const size = current.initialSize;
-       if (!size) return;
-       changeActor(current.actorId, resizedNodeSize(current.initial, size, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT }));
-      } else if (current.actorId) {
-       const actor = actors.find(item => item.id === current.actorId);
-       if (!actor) return;
-       const position = movedNodePosition(actor, current.initial, { x: dx, y: dy }, { width: WIDTH, height: HEIGHT });
-       changeActor(current.actorId, { position });
-      } else {
-       setOffset({ x: current.offset.x + dx, y: current.offset.y + dy });
-      }
-     }}
+     onPointerMove={handleCanvasPointerMove}
      onPointerUp={event => {
       const selection = finishMultiSelectionPointer(event.pointerId);
       if (selection) {
