@@ -108,3 +108,10 @@ SVGの編集画面では、マウスの画面座標とノードのワールド�
 `description`、`environment`、`endpoint`、`tags`、`instanceName`、`ip`は任意項目です。既存YAMLに`icon`が残っていても読み込み可能ですが、表示には`type`の標準アイコンを使用し、編集後の保存時には`icon`を出力しません。
 
 新しい種類を増やす場合は`nodeCatalog.ts`を、対応する線画を追加する場合は`nodeIconShapes.ts`を編集してください。YAMLの検証は`scenario.ts`、編集UIは`FlowEditor.tsx`、表示は`App.tsx`と`FlowPreview.tsx`で共通の`nodeGlyph`を利用します。
+
+
+## 最新の開発状況とテスト（2026-11-13）
+
+現在の実装状況・未検証項目・優先順位は [開発状況・ロードマップ](development-status.md) を参照してください。Vitest・Playwrightの実行方法、CI構成、テスト追加ルールは [テスト・CIガイド](testing-guide.md) にまとめています。
+
+実画面の画像は [画面キャプチャ一覧](screenshot-checklist.md) に従って更新してください。本書の過去の「ビルド未実施」等の記述は当時の記録です。最新のCI実行状況はGitHub Actionsで確認してください。
