@@ -52,7 +52,7 @@ Playwrightは `playwright.config.ts` でローカルViteサーバーを起動し
 ## 5. 検証済み／未検証
 
 - **確認済み**：CIでVitest、TypeScript型チェック、Viteビルドが成功した履歴があります。
-- **要対応**：2026-11-13時点でPlaywright初回実行は3件中2件成功、1件（YAMLダウンロード検証）失敗。E2E全件成功とは扱いません。
+- **確認済み**：Playwright初回実行でYAML保存テストが失敗したため、ChromiumのFile System Access APIをテスト実行時のみ無効化し、ダウンロード経路を検証。修正後のCIでは全E2Eテストが成功しました（[実行結果](https://github.com/Renasan-h/business-flow-explorer/actions/runs/43279235957)）。
 - **追加予定**：実ポインター操作でのノード移動、通信線作成、範囲選択、領域リサイズ、折れ線ハンドル、ブラウザ幅変更、テーマ、表示ぼやけ。
 - **追加予定**：保存したYAMLを実際の配信ディレクトリに置いて再読み込みし、編集値が再現されることを検証する完全な往復E2E。
 
