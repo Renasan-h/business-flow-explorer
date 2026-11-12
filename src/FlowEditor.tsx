@@ -31,7 +31,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 
 import { connectionDropTarget, playbackOrderDropAction } from './editor/pointerDropActions';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
-import { clampNodePosition } from './editor/nodeGeometry';
+import { duplicateEditorActor } from './editor/duplicateEditorActor';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
 import { useEditorInteractionPointers } from './editor/useEditorInteractionPointers';
@@ -378,17 +378,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   let newId: string;
   do { newId = 'actor-' + crypto.randomUUID().slice(0, 8); } while (existingIds.has(newId));
   const number = nextNodeNumber.current++;
-  const copied: Actor = {
-   ...original,
-   id: newId,
-   name: original.name + ' (コピー)',
-   position: clampNodePosition(original, {
-    x: original.position.x + (original.position.x + (original.width ?? NODE_WIDTH) / 2 + 40 <= WIDTH ? 40 : -40),
-    y: original.position.y + (original.position.y + (original.height ?? NODE_HEIGHT) / 2 + 40 <= HEIGHT ? 40 : -40),
-   }, { width: WIDTH, height: HEIGHT }),
-   // tagsは配列なので、元ノードと参照を共有しない。
-   ...(original.tags ? { tags: [...original.tags] } : {}),
-  };
+  const copied = duplicateEditorActor(original, newId, { width: WIDTH, height: HEIGHT });
   setActors(current => [...current, copied]);
   setNodeNumbers(current => ({ ...current, [newId]: number }));
   setSelectedActor(newId);
