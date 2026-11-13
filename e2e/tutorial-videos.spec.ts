@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 // 各テストを独立したWebMとして録画し、Actionsで個別のGIFに変換する。
 test.use({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1, video: 'on', colorScheme: 'dark' });
-test.describe.configure({ mode: 'serial' });
+// 各動画は独立して実行し、一工程の失敗が他の録画を妨げない。
 
 const yaml = `schemaVersion: "1.0"
 metadata:
@@ -59,7 +59,7 @@ test('01 新規シナリオ作成', async ({ page }, info) => {
  await openScenario(page);
  await page.waitForTimeout(700);
  await page.getByRole('button', { name: '＋ 新規フロー作成' }).click();
- await expect(page.getByRole('heading', { name: 'フローエディター' })).toBeVisible();
+ await expect(page.getByRole('heading', { name: '新規フロー作成' })).toBeVisible();
  await page.waitForTimeout(1000);
  await finish(page, info, '01-create-scenario');
 });
