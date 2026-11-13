@@ -10,7 +10,8 @@
     "prebuild": "node scripts/generate-scenario-manifest.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "screenshots": "playwright test e2e/documentation.spec.ts --workers=1"
+    "screenshots": "playwright test e2e/documentation.spec.ts --workers=1",
+    "tutorial:gifs": "playwright test e2e/tutorial-videos.spec.ts --workers=1 --retries=0"
   },
   "dependencies": {
     "pixi.js": "^8.0.0",
