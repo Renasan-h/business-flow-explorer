@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEditorDirtySnapshot } from './editor/useEditorDirtySnapshot';
 import { readInterfaceFields } from './editor/readInterfaceFields';
 import { prepareEditorTemplateImport } from './editor/prepareEditorTemplateImport';
 import { importedNodeNumbers } from './editor/importedNodeNumbers';
@@ -92,15 +93,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [offset, setOffset] = useState({ x: 0, y: 0 });
  const [message, setMessage] = useState('');
  const [preview, setPreview] = useState(false);
- // データ変更だけを追跡し、ズームや選択操作は未保存扱いしない。
- // 編集中の実データを基準に初期スナップショットを作る。
- // initial と編集用stateで配列の正規化状態が異なる場合も誤検知しない。
- const snapshot = () => JSON.stringify({ actors, steps, metadata, groups, interfaces, templateReferences });
- const savedSnapshot = useRef<string | null>(null);
- if (savedSnapshot.current === null) savedSnapshot.current = snapshot();
+ // 編集データの未保存判定は専用フックへ委譲し、UI状態と切り離す。
+ const { snapshot, isDirty, markSaved } = useEditorDirtySnapshot({
+  actors, steps, metadata, groups, interfaces, templateReferences,
+ });
  // 保存・破棄・キャンセルを順に確認する。保存が失敗・中断された場合は編集画面に留まる。
  const requestExit = async () => {
-  if (snapshot() === savedSnapshot.current) { onClose(); return; }
+  if (!isDirty()) { onClose(); return; }
   if (window.confirm('未保存の変更があります。保存してから再生画面へ戻りますか？')) {
    if (await save()) onClose();
    return;
@@ -495,7 +494,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
    setMessage(result === 'saved'
     ? 'YAMLを保存しました。Web上の元シナリオは自動更新されません。'
     : 'YAMLをダウンロードしました。元シナリオの更新にはファイルの差し替えが必要です。');
-   savedSnapshot.current = snapshotAtSave;
+   markSaved(snapshotAtSave);
    return true;
   } catch (error) {
    if (error instanceof Error && error.name === 'AbortError') return false;
