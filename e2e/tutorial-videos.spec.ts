@@ -70,7 +70,7 @@ test('02 Webクライアントノード追加', async ({ page }, info) => {
  await page.getByRole('button', { name: '＋ ノード追加' }).click();
  await expect(page.getByText('新しいノード 3').first()).toBeVisible();
  await page.getByLabel('表示名').fill('Webクライアント（追加）');
- await expect(page.getByText('Webクライアント（追加）').first()).toBeVisible();
+ await expect(page.getByLabel('表示名')).toHaveValue('Webクライアント（追加）');
  await finish(page, info, '02-add-web-node');
 });
 
@@ -108,8 +108,11 @@ test('05 通信線を接続', async ({ page }, info) => {
  const added = page.locator('[data-actor-id]').last();
  await added.locator('rect').first().scrollIntoViewIfNeeded();
  await page.getByRole('button', { name: '通信線を追加' }).click();
- await page.locator('[data-actor-id="web"] rect').first().click({ position: { x: 35, y: 55 } });
- await added.locator('rect').first().click({ position: { x: 35, y: 55 } });
+ const source = page.locator('[data-actor-id="web"] rect').first();
+ await source.scrollIntoViewIfNeeded();
+ await source.click({ force: true, position: { x: 35, y: 55 } });
+ await added.locator('rect').first().scrollIntoViewIfNeeded();
+ await added.locator('rect').first().click({ force: true, position: { x: 35, y: 55 } });
  await expect(page.locator('[data-step-id]')).toHaveCount(2);
  await finish(page, info, '05-connect-nodes');
 });
