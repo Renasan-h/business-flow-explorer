@@ -32,6 +32,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Record seven independent operations
         run: npx playwright test e2e/tutorial-videos.spec.ts --workers=1 --retries=0
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Convert videos to optimized GIFs
         run: |
           mkdir -p docs/images/tutorial
