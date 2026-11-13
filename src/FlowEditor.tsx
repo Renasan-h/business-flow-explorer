@@ -39,7 +39,7 @@ import { useEditorInteractionPointers } from './editor/useEditorInteractionPoint
 import { useConnectionWirePreview } from './editor/useConnectionWirePreview';
 import { playbackOrderPoint, playbackOrderRadius } from './editor/playbackOrderGeometry';
 import { reorderSteps } from './editor/reorderSteps';
-import { loadTemplateCatalog } from './editor/loadTemplateCatalog';
+import { useTemplateCatalog } from './editor/useTemplateCatalog';
 import { writeEditorYaml } from './editor/writeEditorYaml';
 import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
@@ -71,8 +71,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  const [templatePath, setTemplatePath] = useState('');
  const [templateFile, setTemplateFile] = useState<File | null>(null);
  const [templateImportOpen, setTemplateImportOpen] = useState(false);
- const [templateCatalog, setTemplateCatalog] = useState<{ path: string; label: string }[]>([]);
- const [templateCatalogStatus, setTemplateCatalogStatus] = useState('');
+ const { catalog: templateCatalog, status: templateCatalogStatus } = useTemplateCatalog(templateImportOpen, scenarioPath);
  const [templateError, setTemplateError] = useState<string | null>(null);
  const [templateReferences, setTemplateReferences] = useState<{ file: string; actorIds: string[]; stepIds: string[]; original: string }[]>([]);
  const [tool, setTool] = useState<Tool>('move');
@@ -503,27 +502,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
  };
  const [showLines, setShowLines] = useState(true);
- useEffect(() => {
-  if (!templateImportOpen) return;
-  let cancelled = false;
-  setTemplateCatalog([]);
-  setTemplateCatalogStatus('templateフォルダを読み込み中…');
-  loadTemplateCatalog(scenarioPath)
-   .then(items => {
-    if (cancelled) return;
-    setTemplateCatalog(items);
-    setTemplateCatalogStatus(items.length ? '' : '現在のベースディレクトリのtemplateフォルダにYAMLがありません。');
-   })
-   .catch(error => { if (!cancelled) { setTemplateCatalog([]); setTemplateCatalogStatus(error instanceof Error ? error.message : String(error)); } });
-  return () => { cancelled = true; };
- }, [templateImportOpen, scenarioPath]);
  const closeTemplateImport = () => {
   setTemplateImportOpen(false);
   setTemplatePath('');
   setTemplateFile(null);
   setTemplateError(null);
-  setTemplateCatalog([]);
-  setTemplateCatalogStatus('');
  };
  const importTemplate = async (mode: 'inline' | 'reference') => {
   setTemplateError(null);
