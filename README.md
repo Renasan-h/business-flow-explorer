@@ -23,6 +23,39 @@
 
 従来の表示例（Technical / Illustration）は [旧画像一覧](docs/screenshot-checklist.md) を参照してください。
 
+## シナリオ作成チュートリアル（実画面GIF）
+
+PlaywrightがChromium上の実アプリを操作・録画し、FFmpegでGIFに変換した7本の短い操作例です。各GIFは独立して再生されます。
+
+### 1. 新規シナリオを作成
+![新規フロー作成ボタンからエディターを開く](docs/images/tutorial/01-create-scenario.gif)
+
+### 2. Webクライアントノードを追加
+![Webクライアントノードを追加し名前を編集する](docs/images/tutorial/02-add-web-node.gif)
+
+### 3. APIサーバーノードを追加
+![APIサーバーノードを追加して種類を変更する](docs/images/tutorial/03-add-api-node.gif)
+
+### 4. ノードをドラッグして配置
+![ノードをマウスでドラッグする](docs/images/tutorial/04-drag-node.gif)
+
+### 5. 通信線を接続
+![通信線追加モードで2つのノードを接続する](docs/images/tutorial/05-connect-nodes.gif)
+
+### 6. 通信内容を設定
+![通信設定の処理名と説明を変更する](docs/images/tutorial/06-edit-connection.gif)
+
+### 7. プレビューで動作確認
+![編集内容をプレビュー画面で確認する](docs/images/tutorial/07-preview.gif)
+
+撮影には個人データを含まない固定シナリオを使用します。7本のGIFはそれぞれの操作を独立して示すため、必ずしも同一編集セッションの連続記録ではありません。
+
+```bash
+npm run tutorial:gifs
+```
+
+このコマンドはPlaywrightで7本のWebMを録画します。GIFへの変換とGitHubへのコミットは [Generate tutorial GIFs](.github/workflows/tutorial-gifs.yml) で自動実行されます。
+
 ## 主な機能
 
 - シナリオを選択して、ノード間の通信をステップごとにアニメーション表示
