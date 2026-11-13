@@ -1,0 +1,57 @@
+name: Generate tutorial GIFs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/tutorial-videos.spec.ts'
+      - '.github/workflows/tutorial-gifs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tutorial-gifs
+  cancel-in-progress: false
+
+jobs:
+  gif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Record seven independent operations
+        run: npx playwright test e2e/tutorial-videos.spec.ts --workers=1 --retries=0
+      - name: Convert videos to optimized GIFs
+        run: |
+          mkdir -p docs/images/tutorial
+          for video in test-results/tutorial-videos/*.webm; do
+            name="$(basename "$video" .webm)"
+            ffmpeg -hide_banner -loglevel error -y -i "$video" -filter_complex "[0:v]fps=8,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3" -loop 0 "docs/images/tutorial/${name}.gif"
+          done
+          test "$(find docs/images/tutorial -name '*.gif' | wc -l)" -eq 7
+      - name: Upload GIF artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorial-gifs
+          path: docs/images/tutorial/*.gif
+          if-no-files-found: error
+      - name: Commit generated GIFs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images/tutorial/*.gif
+          if ! git diff --cached --quiet; then
+            git commit -m "[BusinessFlowExplorer]Playwright操作ガイドGIF7本を更新 [skip ci]"
+            git push origin HEAD:main
+          fi
