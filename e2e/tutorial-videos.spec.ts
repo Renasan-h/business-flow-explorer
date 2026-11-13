@@ -122,7 +122,7 @@ test('06 通信内容を設定', async ({ page }, info) => {
  await expect(page.getByText('通信設定').first()).toBeVisible();
  await page.getByLabel('処理名').fill('注文情報を送信');
  await page.getByLabel('説明').fill('WebクライアントからAPIサーバーに注文データを送信します');
- await expect(page.getByDisplayValue('注文情報を送信')).toBeVisible();
+ await expect(page.getByLabel('処理名')).toHaveValue('注文情報を送信');
  await finish(page, info, '06-edit-connection');
 });
 
@@ -131,6 +131,6 @@ test('07 プレビューで動作確認', async ({ page }, info) => {
  await page.getByRole('button', { name: '▶ プレビュー' }).click();
  await expect(page.getByRole('heading', { name: 'プレビュー：注文処理シナリオ' })).toBeVisible();
  await page.waitForTimeout(800);
- await page.getByRole('button', { name: '次へ' }).click().catch(() => {});
+ await expect(page.getByRole('button', { name: '編集画面に戻る' })).toBeVisible();
  await finish(page, info, '07-preview');
 });
