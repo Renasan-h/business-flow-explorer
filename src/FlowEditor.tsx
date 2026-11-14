@@ -45,7 +45,7 @@ import { writeEditorYaml } from './editor/writeEditorYaml';
 import { prepareEditorYamlSave } from './editor/prepareEditorYamlSave';
 import { screenDragDelta, screenToWorldPoint } from './editor/coordinates';
 import { boundedGroupOrigin, visibleCanvasCenter } from './editor/visibleCanvasPlacement';
-import { insertWaypointBetweenNodes } from './editor/waypointInsertion';
+import { waypointAddition } from './editor/waypointAddition';
 import { moveDraggedWaypoint, waypointMenuState } from './editor/waypointEditing';
 
 type Actor = Scenario['actors'][number];
@@ -363,22 +363,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
  );
  /** 接続元・接続先ノードの中点に経由点を追加する。 */
  const addWaypoint = (id: string, direction: 'forward' | 'reverse') => {
-  const step = steps.find(item => item.id === id);
-  if (!step) return;
-  const action = step.actions[0];
-  const fromId = direction === 'reverse' ? step.reverseFrom : action?.from;
-  const toId = direction === 'reverse' ? step.reverseTo : action?.to;
-  if (!fromId || !toId || (direction === 'reverse' && !step.bidirectional)) return;
-  const from = actors.find(actor => actor.id === fromId);
-  const to = actors.find(actor => actor.id === toId);
-  if (!from || !to) return;
-  const field = direction === 'reverse' ? 'reverseWaypoints' : 'waypoints';
-  const existing = step[field] ?? [];
-  if (existing.length >= 100) return;
-  // 1点目はノード間の中点、2点目以降は最も長い未分割区間の中点に配置する。
-  const waypoints = insertWaypointBetweenNodes(from.position, to.position, existing);
-  if (waypoints.length === existing.length) return;
-  changeStep(id, { routing: 'orthogonal', [field]: waypoints });
+  const patch = waypointAddition(steps.find(item => item.id === id), actors, direction);
+  if (!patch) return;
+  changeStep(id, patch);
   setSelectedStep(id); setSelectedActor(null); setSelectedGroup(null); setContextMenu(null);
  };
  /** 指定方向の経由点を解除する。 */
