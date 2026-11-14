@@ -1,4 +1,4 @@
-import { createPortal } from 'react';
+import { createPortal } from 'react-dom';
 
 /** 右クリックした対象ごとの操作メニュー。データの変更と確認は親に委譲する。 */
 export type EditorContextMenuState = {
