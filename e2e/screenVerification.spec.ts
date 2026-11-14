@@ -308,8 +308,10 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  // SVGの直下にある経由線を右クリックし、親EditorCanvasまでイベントを伝播させる。
  // g要素を直接dispatchEventすると、経路判定がブラウザーのターゲットと異なる場合がある。
  const edge = page.locator('[data-step-id="request"]').first();
+ // スクロールコンテナーの外にあるSVGでもメニューの表示位置はブラウザー内に固定する。
+ // テスト座標は画面内の固定点を用い、画面外に配置した要素へのクリック待機を避ける。
  await edge.locator('path').first().dispatchEvent('contextmenu', {
-  bubbles: true, cancelable: true, clientX: 420, clientY: 320, button: 2,
+  bubbles: true, cancelable: true, clientX: 100, clientY: 100, button: 2,
  });
  const menu = page.getByRole('menu');
  await expect(menu).toBeVisible();
