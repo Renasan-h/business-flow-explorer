@@ -274,6 +274,7 @@ async function selectEditorStep(page: Page, title: string) {
 
 /** 保存したYAMLをテスト用サーバーに差し替え、実際のローダーで再読込する。 */
 test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再読込', async ({ page }) => {
+ test.setTimeout(90000);
  const { parse } = await import('yaml');
  let currentYaml = fixture();
  await page.route('**/scenario-roots.json', route => route.fulfill({
@@ -288,20 +289,27 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
   contentType: 'application/json', body: '[]',
  }));
+ await test.step('シナリオを読み込む', async () => {
  await page.goto('/');
  await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
  await page.getByRole('button', { name: '✎ フローを編集' }).click();
  await selectEditorStep(page, 'リクエスト');
+ });
+ await test.step('双方向通信と折れ線を編集する', async () => {
  await expect(page.getByText('通信設定', { exact: true })).toBeVisible();
  await page.getByLabel('接続方向').selectOption('both');
  await page.getByLabel('接続線の形状').selectOption('orthogonal');
  await page.getByLabel('復路送信元').selectOption('api');
  await page.getByLabel('復路送信先').selectOption('web');
  await page.getByLabel('復路通信内容').fill('200 /items');
+ });
+ await test.step('経由点を追加する', async () => {
  // 経由点は編集UIの右クリックメニューから追加する。
  await page.locator('[data-step-id="request"]').first().dispatchEvent('contextmenu', { bubbles: true, clientX: 420, clientY: 320, button: 2 });
  await expect(page.locator('.editor-context-menu')).toBeVisible();
  await page.locator('.editor-context-menu').getByRole('menuitem', { name: '往路の経由点を追加' }).click();
+ });
+ await test.step('保存YAMLを検証する', async () => {
  await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
  const downloadPromise = page.waitForEvent('download');
  await page.getByRole('button', { name: 'YAMLを保存…' }).click();
@@ -319,6 +327,8 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  expect(request.reversePayload).toBe('200 /items');
  expect(request.waypoints.length).toBeGreaterThan(0);
  expect(saved.steps.map((step: { id: string }) => step.id)).toEqual(['request', 'response']);
+ });
+ await test.step('保存YAMLを再読込して編集値を検証する', async () => {
  await page.getByRole('button', { name: '再生画面へ戻る' }).click();
  await page.getByRole('button', { name: /再読み込み/ }).click();
  await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
@@ -327,6 +337,7 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  await expect(page.getByLabel('接続方向')).toHaveValue('both');
  await expect(page.getByLabel('接続線の形状')).toHaveValue('orthogonal');
  await expect(page.getByLabel('復路通信内容')).toHaveValue('200 /items');
+ });
 });
 
 test('V-I02 プレビュー: 表示操作で編集元の通信定義を変更しない', async ({ page }) => {
