@@ -33,6 +33,7 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 import { connectionDropTarget, playbackOrderDropAction } from './editor/pointerDropActions';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
 import { duplicateEditorActor } from './editor/duplicateEditorActor';
+import { createEditorActor } from './editor/createEditorActor';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
 import { useEditorDragPointerState } from './editor/useEditorDragPointerState';
 import { useEditorInteractionPointers } from './editor/useEditorInteractionPointers';
@@ -392,8 +393,8 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setNodeNumbers(current => ({ ...current, [id]: number }));
   // ノードと領域の新規作成で、表示中キャンバスの中心座標を共通利用する。
   const center = visibleCanvasCenter(svgRef.current, canvasRef.current, offset, zoom, { x: WIDTH / 2, y: HEIGHT / 2 });
-  const position = { x: Math.max(NODE_WIDTH / 2, Math.min(WIDTH - NODE_WIDTH / 2, center.x)), y: Math.max(NODE_HEIGHT / 2, Math.min(HEIGHT - NODE_HEIGHT / 2, center.y)) };
-  setActors(current => [...current, { id, name: '新しいノード ' + number, type: 'service', position }]);
+  const actor = createEditorActor(id, number, center, { width: WIDTH, height: HEIGHT }, { width: NODE_WIDTH, height: NODE_HEIGHT });
+  setActors(current => [...current, actor]);
   setSelectedActor(id);
   setSelectedStep(null);
   setSelectedGroup(null);
