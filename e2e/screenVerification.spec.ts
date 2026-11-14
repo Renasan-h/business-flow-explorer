@@ -305,9 +305,16 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  });
  await test.step('経由点を追加する', async () => {
  // 経由点は編集UIの右クリックメニューから追加する。
- await page.locator('[data-step-id="request"]').first().dispatchEvent('contextmenu', { bubbles: true, clientX: 420, clientY: 320, button: 2 });
- await expect(page.locator('.editor-context-menu')).toBeVisible();
- await page.locator('.editor-context-menu').getByRole('menuitem', { name: '往路の経由点を追加' }).click();
+ // SVGの直下にある経由線を右クリックし、親EditorCanvasまでイベントを伝播させる。
+ // g要素を直接dispatchEventすると、経路判定がブラウザーのターゲットと異なる場合がある。
+ const edge = page.locator('[data-step-id="request"]').first();
+ await edge.locator('path').first().dispatchEvent('contextmenu', {
+  bubbles: true, cancelable: true, clientX: 420, clientY: 320, button: 2,
+ });
+ const menu = page.getByRole('menu');
+ await expect(menu).toBeVisible();
+ await expect(menu.getByRole('menuitem', { name: '往路の経由点を追加' })).toBeVisible();
+ await menu.getByRole('menuitem', { name: '往路の経由点を追加' }).click();
  });
  await test.step('保存YAMLを検証する', async () => {
  await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
