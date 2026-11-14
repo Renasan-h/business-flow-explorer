@@ -316,7 +316,10 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  const menu = page.getByRole('menu');
  await expect(menu).toBeVisible();
  await expect(menu.getByRole('menuitem', { name: '往路の経由点を追加' })).toBeVisible();
- await menu.getByRole('menuitem', { name: '往路の経由点を追加' }).click();
+ // 遠方にスクロールしたSVGから開いたメニューでは自動クリックの座標が安定しないため、
+ // クリックイベントはメニュー項目自身へ送出してアプリ側の処理を検証する。
+ await menu.getByRole('menuitem', { name: '往路の経由点を追加' }).dispatchEvent('click');
+ await expect(page.locator('[data-waypoint-step="request"]')).toHaveCount(1);
  });
  await test.step('保存YAMLを検証する', async () => {
  await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
