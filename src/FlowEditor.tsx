@@ -31,7 +31,8 @@ import { completeMarqueeSelection, dragSelectedActors } from './editor/multiSele
 import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointerState';
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 
-import { connectionDropTarget, playbackOrderDropAction } from './editor/pointerDropActions';
+import { playbackOrderDropAction } from './editor/pointerDropActions';
+import { resolveWireDrop } from './editor/resolveWireDrop';
 import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, updateDraggedGroup } from './editor/dragGeometry';
 import { duplicateEditorActor } from './editor/duplicateEditorActor';
 import { createEditorActor } from './editor/createEditorActor';
@@ -269,9 +270,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
   // SVGがポインターをキャプチャしているため、接続先は座標で判定する。
   if (finishWire(event.pointerId)) {
-   const targetId = connectionDropTarget(actors, toWorld(event.clientX, event.clientY));
-   if (wire && targetId) addConnection(wire.from, targetId);
-   else if (wire) setMessage('接続先ノードの上でドロップしてください。');
+   const result = resolveWireDrop(actors, wire?.from ?? null, toWorld(event.clientX, event.clientY));
+   if (result.kind === 'connect') addConnection(result.from, result.to);
+   else if (result.kind === 'invalid') setMessage(result.message);
    clearWirePreview();
   }
 
