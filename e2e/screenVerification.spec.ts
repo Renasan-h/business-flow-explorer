@@ -240,3 +240,27 @@ test('V-B02 プレビュー: 再生停止と表示倍率変更', async ({ page }
  await page.getByRole('button', { name: '表示リセット' }).click();
  await expect(page.locator('.preview-toolbar')).toContainText('100%');
 });
+
+
+test('C-D01 C-B01 編集: テンプレートダイアログの表示・キャンセル', async ({ page }) => {
+ await openEditor(page);
+ await page.getByRole('button', { name: 'テンプレートの読み込み…' }).click();
+ const dialog = page.getByRole('dialog', { name: 'テンプレートエクスプローラー' });
+ await expect(dialog).toBeVisible();
+ await expect(dialog.getByRole('group', { name: 'テンプレートファイル一覧' })).toBeVisible();
+ await expect(dialog.getByRole('button', { name: '直接読込' })).toBeDisabled();
+ await expect(dialog.getByRole('button', { name: 'サブシナリオ参照' })).toBeDisabled();
+ await dialog.getByRole('button', { name: 'キャンセル' }).click();
+ await expect(dialog).toHaveCount(0);
+});
+
+test('C-D01 C-B01 編集: IF定義ダイアログの項目追加と閉じる操作', async ({ page }) => {
+ await openEditor(page);
+ await page.getByRole('button', { name: '＋ IF定義', exact: true }).click();
+ const dialog = page.getByRole('dialog', { name: 'IF定義の編集' });
+ await expect(dialog).toBeVisible();
+ await dialog.getByRole('button', { name: '＋ 項目追加' }).click();
+ await expect(dialog.getByLabel('項目名')).toHaveCount(1);
+ await dialog.getByRole('button', { name: 'IF定義画面を閉じる' }).click();
+ await expect(dialog).toHaveCount(0);
+});
