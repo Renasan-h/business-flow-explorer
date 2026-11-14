@@ -380,3 +380,41 @@ test('P-I04 再生: 接続先が存在しないYAMLはエラー表示する', as
  await page.goto('/');
  await expect(page.getByText(/参照先actorが存在しません/)).toBeVisible();
 });
+
+
+/** 不正なYAML構文が画面のエラー表示へ伝播することを実ブラウザで検証する。 */
+test('P-I04 再生: YAML構文不正を画面に表示する', async ({ page }) => {
+ await page.route('**/scenario-roots.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify([{ id: '0', label: '検証ディレクトリ' }]),
+ }));
+ await page.route('**/scenarios/0/manifest.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify(['/scenarios/0/screen.yaml']),
+ }));
+ await page.route('**/scenarios/0/screen.yaml', route => route.fulfill({
+  contentType: 'application/x-yaml', body: 'schemaVersion: "1.0"\nmetadata: [broken\n',
+ }));
+ await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
+  contentType: 'application/json', body: '[]',
+ }));
+ await page.goto('/');
+ await expect(page.getByText(/Flow collection must end|flow collection|YAMLParseError|unexpected end|YAML/i).first()).toBeVisible();
+});
+
+/** 参照ファイルからシナリオルート外への移動を禁止する。 */
+test('C-I01 再生: サブシナリオの範囲外参照を拒否する', async ({ page }) => {
+ await page.route('**/scenario-roots.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify([{ id: '0', label: '検証ディレクトリ' }]),
+ }));
+ await page.route('**/scenarios/0/manifest.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify(['/scenarios/0/screen.yaml']),
+ }));
+ const malicious = fixture().replace('  - id: response\n', '  - file: ../../../outside.yaml\n  - id: response\n');
+ await page.route('**/scenarios/0/screen.yaml', route => route.fulfill({
+  contentType: 'application/x-yaml', body: malicious,
+ }));
+ await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
+  contentType: 'application/json', body: '[]',
+ }));
+ await page.goto('/');
+ await expect(page.getByText(/参照先は \/scenarios\/ 内のファイルに限定されます/)).toBeVisible();
+});
