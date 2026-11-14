@@ -264,3 +264,90 @@ test('C-D01 C-B01 編集: IF定義ダイアログの項目追加と閉じる操�
  await dialog.getByRole('button', { name: 'IF定義画面を閉じる' }).click();
  await expect(dialog).toHaveCount(0);
 });
+
+
+/** 保存したYAMLをテスト用サーバーに差し替え、実際のローダーで再読込する。 */
+test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再読込', async ({ page }) => {
+ const { parse } = await import('yaml');
+ let currentYaml = fixture();
+ await page.route('**/scenario-roots.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify([{ id: '0', label: '検証ディレクトリ' }]),
+ }));
+ await page.route('**/scenarios/0/manifest.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify(['/scenarios/0/screen.yaml']),
+ }));
+ await page.route('**/scenarios/0/screen.yaml', route => route.fulfill({
+  contentType: 'application/x-yaml', body: currentYaml,
+ }));
+ await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
+  contentType: 'application/json', body: '[]',
+ }));
+ await page.goto('/');
+ await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ await page.locator('[data-step-id="request"]').first().click();
+ await expect(page.getByText('通信設定', { exact: true })).toBeVisible();
+ await page.getByLabel('接続方向').selectOption('both');
+ await page.getByLabel('接続線の形状').selectOption('orthogonal');
+ await page.getByLabel('復路送信元').selectOption('api');
+ await page.getByLabel('復路送信先').selectOption('web');
+ await page.getByLabel('復路通信内容').fill('200 /items');
+ // 経由点は編集UIの右クリックメニューから追加する。
+ await page.locator('[data-step-id="request"]').first().click({ button: 'right' });
+ await expect(page.locator('.editor-context-menu')).toBeVisible();
+ await page.locator('.editor-context-menu').getByText('経由点を追加', { exact: false }).first().click();
+ await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
+ const downloadPromise = page.waitForEvent('download');
+ await page.getByRole('button', { name: 'YAMLを保存…' }).click();
+ const download = await downloadPromise;
+ const stream = await download.createReadStream();
+ const chunks: Buffer[] = [];
+ for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+ currentYaml = Buffer.concat(chunks).toString('utf8');
+ const saved = parse(currentYaml);
+ const request = saved.steps.find((step: { id: string }) => step.id === 'request');
+ expect(request.bidirectional).toBe(true);
+ expect(request.routing).toBe('orthogonal');
+ expect(request.reverseFrom).toBe('api');
+ expect(request.reverseTo).toBe('web');
+ expect(request.reversePayload).toBe('200 /items');
+ expect(request.waypoints.length).toBeGreaterThan(0);
+ expect(saved.steps.map((step: { id: string }) => step.id)).toEqual(['request', 'response']);
+ await page.getByRole('button', { name: '再生画面へ戻る' }).click();
+ await page.getByRole('button', { name: /再読み込み/ }).click();
+ await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ await page.locator('[data-step-id="request"]').first().click();
+ await expect(page.getByLabel('接続方向')).toHaveValue('both');
+ await expect(page.getByLabel('接続線の形状')).toHaveValue('orthogonal');
+ await expect(page.getByLabel('復路通信内容')).toHaveValue('200 /items');
+});
+
+test('V-I02 プレビュー: 表示操作で編集元の通信定義を変更しない', async ({ page }) => {
+ await openPreview(page);
+ await page.getByRole('button', { name: '次へ', exact: true }).click();
+ await page.getByRole('button', { name: '2x' }).click();
+ await page.getByRole('button', { name: '編集画面に戻る' }).click();
+ await page.locator('[data-step-id="request"]').first().click();
+ await expect(page.getByLabel('通信内容')).toHaveValue('GET /items');
+ await expect(page.getByLabel('接続方向')).toHaveValue('one');
+ await page.getByRole('button', { name: '▶ プレビュー' }).click();
+ await expect(page.locator('.preview-step-info')).toContainText('GET /items');
+});
+
+test('P-I04 再生: 接続先が存在しないYAMLはエラー表示する', async ({ page }) => {
+ await page.route('**/scenario-roots.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify([{ id: '0', label: '検証ディレクトリ' }]),
+ }));
+ await page.route('**/scenarios/0/manifest.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify(['/scenarios/0/screen.yaml']),
+ }));
+ await page.route('**/scenarios/0/screen.yaml', route => route.fulfill({
+  contentType: 'application/x-yaml', body: fixture().replace('to: api, payload:', 'to: missing, payload:'),
+ }));
+ await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
+  contentType: 'application/json', body: '[]',
+ }));
+ await page.goto('/');
+ await expect(page.getByText(/参照先actorが存在しません/)).toBeVisible();
+});
