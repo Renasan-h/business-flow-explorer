@@ -266,6 +266,12 @@ test('C-D01 C-B01 編集: IF定義ダイアログの項目追加と閉じる操�
 });
 
 
+/** SVG通信線はスクロール外になる場合があるため、再生順パネルで選択する。 */
+async function selectEditorStep(page: Page, title: string) {
+ await page.getByRole('complementary', { name: '再生順' }).getByRole('button', { name: '1. ' + title }).click();
+ await expect(page.getByText('通信設定', { exact: true })).toBeVisible();
+}
+
 /** 保存したYAMLをテスト用サーバーに差し替え、実際のローダーで再読込する。 */
 test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再読込', async ({ page }) => {
  const { parse } = await import('yaml');
@@ -285,7 +291,7 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  await page.goto('/');
  await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
  await page.getByRole('button', { name: '✎ フローを編集' }).click();
- await page.locator('[data-step-id="request"]').first().click();
+ await selectEditorStep(page, 'リクエスト');
  await expect(page.getByText('通信設定', { exact: true })).toBeVisible();
  await page.getByLabel('接続方向').selectOption('both');
  await page.getByLabel('接続線の形状').selectOption('orthogonal');
@@ -293,7 +299,7 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  await page.getByLabel('復路送信先').selectOption('web');
  await page.getByLabel('復路通信内容').fill('200 /items');
  // 経由点は編集UIの右クリックメニューから追加する。
- await page.locator('[data-step-id="request"]').first().click({ button: 'right' });
+ await page.locator('[data-step-id="request"]').first().dispatchEvent('contextmenu', { bubbles: true, clientX: 420, clientY: 320, button: 2 });
  await expect(page.locator('.editor-context-menu')).toBeVisible();
  await page.locator('.editor-context-menu').getByRole('menuitem', { name: '往路の経由点を追加' }).click();
  await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
@@ -317,7 +323,7 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  await page.getByRole('button', { name: /再読み込み/ }).click();
  await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
  await page.getByRole('button', { name: '✎ フローを編集' }).click();
- await page.locator('[data-step-id="request"]').first().click();
+ await selectEditorStep(page, 'リクエスト');
  await expect(page.getByLabel('接続方向')).toHaveValue('both');
  await expect(page.getByLabel('接続線の形状')).toHaveValue('orthogonal');
  await expect(page.getByLabel('復路通信内容')).toHaveValue('200 /items');
@@ -328,7 +334,7 @@ test('V-I02 プレビュー: 表示操作で編集元の通信定義を変更し
  await page.getByRole('button', { name: '次へ', exact: true }).click();
  await page.getByRole('button', { name: '2x' }).click();
  await page.getByRole('button', { name: '編集画面に戻る' }).click();
- await page.locator('[data-step-id="request"]').first().click();
+ await selectEditorStep(page, 'リクエスト');
  await expect(page.getByLabel('通信内容')).toHaveValue('GET /items');
  await expect(page.getByLabel('接続方向')).toHaveValue('one');
  await page.getByRole('button', { name: '▶ プレビュー' }).click();
