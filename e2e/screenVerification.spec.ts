@@ -418,3 +418,60 @@ test('C-I01 再生: サブシナリオの範囲外参照を拒否する', async 
  await page.goto('/');
  await expect(page.getByText(/参照先は \/scenarios\/ 内のファイルに限定されます/)).toBeVisible();
 });
+
+
+/** 新規フローを保存し、同じYAMLをHTTP経由で再読込して通信関係を照合する。 */
+test('N-I02 新規作成: YAML保存と再読込でノード・通信の構造が一致する', async ({ page }) => {
+ test.setTimeout(90000);
+ const { parse } = await import('yaml');
+ let currentYaml = fixture();
+ await page.route('**/scenario-roots.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify([{ id: '0', label: '検証ディレクトリ' }]),
+ }));
+ await page.route('**/scenarios/0/manifest.json', route => route.fulfill({
+  contentType: 'application/json', body: JSON.stringify(['/scenarios/0/screen.yaml']),
+ }));
+ await page.route('**/scenarios/0/screen.yaml', route => route.fulfill({
+  contentType: 'application/x-yaml', body: currentYaml,
+ }));
+ await page.route('**/scenarios/0/catalog.json', route => route.fulfill({
+  contentType: 'application/json', body: '[]',
+ }));
+ await page.goto('/');
+ await expect(page.getByRole('heading', { name: '画面検証フロー' })).toBeVisible();
+ await page.getByRole('button', { name: '＋ 新規フロー作成' }).click();
+ await page.getByRole('button', { name: '＋ ノード追加' }).click();
+ await page.getByRole('button', { name: '＋ ノード追加' }).click();
+ await expect(page.locator('[data-actor-id]')).toHaveCount(2);
+ const actorIds = await page.locator('[data-actor-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-actor-id')!));
+ expect(new Set(actorIds).size).toBe(2);
+ await page.getByRole('button', { name: '通信線を追加' }).click();
+ await page.locator('[data-actor-id]').nth(0).dispatchEvent('click');
+ await page.locator('[data-actor-id]').nth(1).dispatchEvent('click');
+ await expect(page.getByRole('complementary', { name: '再生順' })).toContainText('通信');
+
+ await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
+ const downloadPromise = page.waitForEvent('download');
+ await page.getByRole('button', { name: 'YAMLを保存…' }).click();
+ const download = await downloadPromise;
+ const stream = await download.createReadStream();
+ const chunks: Buffer[] = [];
+ for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+ currentYaml = Buffer.concat(chunks).toString('utf8');
+ const saved = parse(currentYaml);
+ expect(saved.actors.map((actor: { id: string }) => actor.id)).toEqual(actorIds);
+ expect(saved.steps).toHaveLength(1);
+ expect(saved.steps[0].actions[0].from).toBe(actorIds[0]);
+ expect(saved.steps[0].actions[0].to).toBe(actorIds[1]);
+
+ // 保存済みYAMLを同じシナリオURLへ返し、実際の読み込み経路で再構築する。
+ await page.reload();
+ await expect(page.getByRole('heading', { name: saved.metadata.title })).toBeVisible();
+ await page.getByRole('button', { name: '✎ フローを編集' }).click();
+ const reloadedIds = await page.locator('[data-actor-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-actor-id')!));
+ expect(reloadedIds).toEqual(actorIds);
+ await expect(page.getByRole('complementary', { name: '再生順' })).toContainText(saved.steps[0].title);
+ await page.getByRole('complementary', { name: '再生順' }).getByRole('button', { name: '1. ' + saved.steps[0].title }).click();
+ await expect(page.getByLabel('往路送信元')).toHaveValue(actorIds[0]);
+ await expect(page.getByLabel('往路送信先')).toHaveValue(actorIds[1]);
+});
