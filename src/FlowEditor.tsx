@@ -32,7 +32,7 @@ import { useMultiSelectionPointerState } from './editor/useMultiSelectionPointer
 import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart';
 
 import { connectionDropTarget, playbackOrderDropAction } from './editor/pointerDropActions';
-import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, resizedGroupSize } from './editor/dragGeometry';
+import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, updateDraggedGroup } from './editor/dragGeometry';
 import { duplicateEditorActor } from './editor/duplicateEditorActor';
 import { createEditorActor } from './editor/createEditorActor';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
@@ -323,12 +323,7 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
 
   if (current.groupId) {
    const next = movedGroupOrigin(current.initial, delta);
-   setGroups(items => items.map(item => {
-    if (item.id !== current.groupId) return item;
-    return current.resizeGroup
-     ? { ...item, ...resizedGroupSize(current.initialSize ?? item, delta) }
-     : { ...item, ...next };
-   }));
+   setGroups(items => updateDraggedGroup(items, current.groupId!, current.initial, current.initialSize, delta, Boolean(current.resizeGroup)));
    // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
    const members = current.initialMembers;
    if (!current.resizeGroup && members?.length) {
