@@ -1,3 +1,5 @@
+import { createPortal } from 'react';
+
 /** 右クリックした対象ごとの操作メニュー。データの変更と確認は親に委譲する。 */
 export type EditorContextMenuState = {
  x: number;
@@ -25,7 +27,7 @@ export default function EditorContextMenu({ menu, onEditActor, onResizeActor, ac
  onResetView: () => void;
 }) {
  if (!menu) return null;
- return <div className="editor-context-menu" role="menu" style={{ left: menu.x, top: menu.y }} onPointerDown={event => event.stopPropagation()}>
+ return createPortal(<div className="editor-context-menu" role="menu" style={{ left: menu.x, top: menu.y }} onPointerDown={event => event.stopPropagation()}>
   {menu.actorId ? <>
    <button type="button" role="menuitem" onClick={() => onEditActor(menu.actorId!)}>ノードを編集</button>
    <details className="editor-context-size"><summary>サイズを数値指定…</summary>
@@ -57,5 +59,5 @@ export default function EditorContextMenu({ menu, onEditActor, onResizeActor, ac
    <button type="button" role="menuitem" onClick={onAddActor}>ノードを追加</button>
    <button type="button" role="menuitem" onClick={onResetView}>表示をリセット</button>
   </>}
- </div>;
+ </div>, document.body);
 }
