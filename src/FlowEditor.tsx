@@ -25,6 +25,7 @@ import EditorEdges from './editor/EditorEdges';
 import PlaybackOrderMarkers from './editor/PlaybackOrderMarkers';
 import EditorContextMenu, { type EditorContextMenuState } from './editor/EditorContextMenu';
 import { resolveEditorSelection } from './editor/selection';
+import { resolveCanvasSelection } from './editor/resolveCanvasSelection';
 import { resolvePointerStartTarget } from './editor/pointerStartTargets';
 import { useEditorWheelZoom } from './editor/useEditorWheelZoom';
 import { completeMarqueeSelection, dragSelectedActors } from './editor/multiSelection';
@@ -217,23 +218,13 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   }
 
   const { actorId, stepId } = pointerTarget.kind === 'selection' ? pointerTarget : resolveEditorSelection(target);
-  // SVGのポインターキャプチャ後はclickがSVGへ再ターゲットされるため、選択を先に確定する。
-  if (actorId) {
-   setSelectedActor(actorId);
-   setSelectedStep(null);
-   setSelectedGroup(null);
-  } else if (stepId) {
-   setSelectedStep(stepId);
-   setSelectedActor(null);
-   setSelectedGroup(null);
-   return;
-  } else {
-   // 空白のクリックはすべての選択状態を解除する。
-   setSelectedActor(null);
-   setSelectedStep(null);
-   setSelectedGroup(null);
-   setSelectedActors([]);
-  }
+  // キャプチャ後のclick再ターゲットを避け、ポインター開始時に選択を確定する。
+  const selection = resolveCanvasSelection(actorId, stepId);
+  setSelectedActor(selection.selectedActor);
+  setSelectedStep(selection.selectedStep);
+  setSelectedGroup(selection.selectedGroup);
+  if (selection.kind === 'step') return;
+  if (selection.kind === 'empty') setSelectedActors([]);
 
   const actor = actors.find(item => item.id === actorId);
   startEditorDrag({
