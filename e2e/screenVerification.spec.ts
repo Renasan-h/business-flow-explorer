@@ -295,7 +295,7 @@ test('E-I04 編集: 双方向通信・経由点・再生順のYAML保存と再�
  // 経由点は編集UIの右クリックメニューから追加する。
  await page.locator('[data-step-id="request"]').first().click({ button: 'right' });
  await expect(page.locator('.editor-context-menu')).toBeVisible();
- await page.locator('.editor-context-menu').getByText('経由点を追加', { exact: false }).first().click();
+ await page.locator('.editor-context-menu').getByRole('menuitem', { name: '往路の経由点を追加' }).click();
  await page.evaluate(() => Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }));
  const downloadPromise = page.waitForEvent('download');
  await page.getByRole('button', { name: 'YAMLを保存…' }).click();
