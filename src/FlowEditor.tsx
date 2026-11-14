@@ -33,7 +33,8 @@ import { resolveMultiSelectionStart } from './editor/multiSelectionPointerStart'
 
 import { playbackOrderDropAction } from './editor/pointerDropActions';
 import { resolveWireDrop } from './editor/resolveWireDrop';
-import { movedGroupOrigin, moveGroupMembers, movedNodePosition, resizedNodeSize, updateDraggedGroup } from './editor/dragGeometry';
+import { moveGroupMembers, updateDraggedGroup } from './editor/dragGeometry';
+import { resolveEditorDragMove } from './editor/resolveEditorDragMove';
 import { duplicateEditorActor } from './editor/duplicateEditorActor';
 import { createEditorActor } from './editor/createEditorActor';
 import { groupDragStart, nodeResizeStart } from './editor/dragStartState';
@@ -322,33 +323,20 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const delta = screenDragDelta(event.currentTarget, current.x, current.y, clientX, clientY, zoom);
   if (!delta) return;
 
-  if (current.groupId) {
-   const next = movedGroupOrigin(current.initial, delta);
-   setGroups(items => updateDraggedGroup(items, current.groupId!, current.initial, current.initialSize, delta, Boolean(current.resizeGroup)));
-   // 領域移動時はドラッグ開始時の座標を基準に所属ノードを移動する。
-   const members = current.initialMembers;
-   if (!current.resizeGroup && members?.length) {
-    setActors(items => moveGroupMembers(items, members, current.initial, next, { width: WIDTH, height: HEIGHT }));
+  const result = resolveEditorDragMove(current, delta, actors, { width: WIDTH, height: HEIGHT });
+  if (result.kind === 'group') {
+   setGroups(items => updateDraggedGroup(items, result.id, current.initial, current.initialSize, delta, result.resize));
+   // 領域移動時のみ所属ノードを開始位置から移動する。
+   if (!result.resize && current.initialMembers?.length) {
+    setActors(items => moveGroupMembers(items, current.initialMembers!, current.initial, result.next, { width: WIDTH, height: HEIGHT }));
    }
-   return;
+  } else if (result.kind === 'actor-resize') {
+   changeActor(result.id, result.size);
+  } else if (result.kind === 'actor-move') {
+   changeActor(result.id, { position: result.position });
+  } else if (result.kind === 'pan') {
+   setOffset(result.offset);
   }
-
-  if (current.actorId && current.resizeActor) {
-   const size = current.initialSize;
-   if (!size) return;
-   changeActor(current.actorId, resizedNodeSize(current.initial, size, delta, { width: WIDTH, height: HEIGHT }));
-   return;
-  }
-
-  if (current.actorId) {
-   const actor = actors.find(item => item.id === current.actorId);
-   if (!actor) return;
-   const position = movedNodePosition(actor, current.initial, delta, { width: WIDTH, height: HEIGHT });
-   changeActor(current.actorId, { position });
-   return;
-  }
-
-  setOffset({ x: current.offset.x + delta.x, y: current.offset.y + delta.y });
  };
 
  // React stateは直接変更せず、IDが一致した要素だけを新しいオブジェクトへ置き換える。
