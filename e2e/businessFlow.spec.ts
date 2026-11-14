@@ -182,3 +182,43 @@ test('編集画面: 領域コンテナのリサイズと通信線表示切替', 
  await page.getByRole('checkbox', { name: '通信線表示' }).check();
  await expect(page.locator('[data-step-id="request"]')).toHaveCount(1);
 });
+
+
+test('再生画面: リサイズ後もPixiJS描画バッファと表示領域が一致する', async ({ page }) => {
+ await openFixture(page);
+ const host = page.locator('.scene-size-wrapper .scene');
+ const wrapper = page.locator('.scene-size-wrapper');
+ const canvas = host.locator('canvas');
+ await expect(canvas).toBeVisible();
+
+ // 初期描画後に外枠を変更し、ResizeObserverによるレンダラーの追従を確認する。
+ await wrapper.evaluate(element => {
+  const wrapperElement = element as HTMLElement;
+  wrapperElement.style.width = '720px';
+  wrapperElement.style.height = '460px';
+ });
+ await expect.poll(async () => canvas.evaluate(element => {
+  const parent = element.parentElement;
+  if (!parent) return false;
+  const canvasRect = element.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+  return Math.abs(canvasRect.width - parentRect.width) <= 1
+   && Math.abs(canvasRect.height - parentRect.height) <= 1
+   && Math.abs((element as HTMLCanvasElement).width / window.devicePixelRatio - parentRect.width) <= 2;
+ })).toBe(true);
+
+ // 再度拡張してもCanvasが固定サイズのまま残らないことを確認する。
+ await wrapper.evaluate(element => {
+  const wrapperElement = element as HTMLElement;
+  wrapperElement.style.width = '940px';
+  wrapperElement.style.height = '540px';
+ });
+ await expect.poll(async () => canvas.evaluate(element => {
+  const parent = element.parentElement;
+  if (!parent) return false;
+  const rect = element.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+  return Math.abs(rect.width - parentRect.width) <= 1
+   && Math.abs(rect.height - parentRect.height) <= 1;
+ })).toBe(true);
+});
