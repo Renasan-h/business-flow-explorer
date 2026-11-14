@@ -49,3 +49,24 @@ export function resizedGroupSize(initial: Size, delta: Point): Size {
 export function movedNodePosition(actor: Actor, initial: Point, delta: Point, bounds: Size): Point {
  return clampNodePosition(actor, { x: initial.x + delta.x, y: initial.y + delta.y }, bounds);
 }
+
+/**
+ * 領域の移動・サイズ変更をドラッグ開始時の値から計算する。
+ * 移動とリサイズを同時適用しないことで、イベント処理側の分岐を簡潔に保つ。
+ */
+export function updateDraggedGroup<T extends Point & Size & { id: string }>(
+ groups: T[],
+ id: string,
+ initial: Point,
+ initialSize: Size | undefined,
+ delta: Point,
+ resize: boolean,
+): T[] {
+ const next = movedGroupOrigin(initial, delta);
+ return groups.map(group => {
+  if (group.id !== id) return group;
+  return resize
+   ? { ...group, ...resizedGroupSize(initialSize ?? group, delta) }
+   : { ...group, ...next };
+ });
+}
