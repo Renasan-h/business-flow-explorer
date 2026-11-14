@@ -201,10 +201,12 @@ test('再生画面: リサイズ後もPixiJS描画バッファと表示領域が
   const parent = element.parentElement;
   if (!parent) return false;
   const canvasRect = element.getBoundingClientRect();
-  const parentRect = parent.getBoundingClientRect();
-  return Math.abs(canvasRect.width - parentRect.width) <= 1
-   && Math.abs(canvasRect.height - parentRect.height) <= 1
-   && Math.abs((element as HTMLCanvasElement).width / window.devicePixelRatio - parentRect.width) <= 2;
+  const parentWidth = parent.clientWidth;
+  const parentHeight = parent.clientHeight;
+  const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+  return Math.abs(canvasRect.width - parentWidth) <= 1
+   && Math.abs(canvasRect.height - parentHeight) <= 1
+   && Math.abs((element as HTMLCanvasElement).width / dpr - parentWidth) <= 2;
  })).toBe(true);
 
  // 再度拡張してもCanvasが固定サイズのまま残らないことを確認する。
@@ -217,8 +219,7 @@ test('再生画面: リサイズ後もPixiJS描画バッファと表示領域が
   const parent = element.parentElement;
   if (!parent) return false;
   const rect = element.getBoundingClientRect();
-  const parentRect = parent.getBoundingClientRect();
-  return Math.abs(rect.width - parentRect.width) <= 1
-   && Math.abs(rect.height - parentRect.height) <= 1;
+  return Math.abs(rect.width - parent.clientWidth) <= 1
+   && Math.abs(rect.height - parent.clientHeight) <= 1;
  })).toBe(true);
 });
