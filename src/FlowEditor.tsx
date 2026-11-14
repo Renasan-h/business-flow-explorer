@@ -6,6 +6,7 @@ import { importedNodeNumbers } from './editor/importedNodeNumbers';
 import { withConnectionDirection } from './editor/connectionDirection';
 import { decideConnection } from './editor/decideConnection';
 import { removeActorConnections, removeActorFromGroups } from './editor/removeActorReferences';
+import { selectionAfterActorDeletion, selectionAfterStepDeletion } from './editor/deletionSelection';
 import type { Scenario } from './scenario';
 import FlowPreview from './FlowPreview';
 import EditorPanel from './editor/EditorPanel';
@@ -418,11 +419,11 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   setOrderSource(null);
   setOrderCursor(null);
   setGroups(current => removeActorFromGroups(current, id));
-  setSelectedActor(current => current === id ? null : current);
-  // 複数選択に削除済みノードを残さず、後続の一括移動対象から除外する。
-  setSelectedActors(current => current.filter(actorId => actorId !== id));
+  // 削除したノードだけを選択・接続開始状態から除外する。
+  setSelectedActor(current => selectionAfterActorDeletion(id, { selectedActor: current, selectedActors: [], source: null }).selectedActor);
+  setSelectedActors(current => selectionAfterActorDeletion(id, { selectedActor: null, selectedActors: current, source: null }).selectedActors);
   setSelectedStep(null);
-  setSource(current => current === id ? null : current);
+  setSource(current => selectionAfterActorDeletion(id, { selectedActor: null, selectedActors: [], source: current }).source);
   clearWirePreview();
   setContextMenu(null);
   setMessage('ノードと関連する通信を削除しました。');
@@ -432,9 +433,9 @@ export default function FlowEditor({ initial, onClose, scenarioPath }: { initial
   const target = steps.find(step => step.id === id);
   if (!target || (!skipConfirmation && !window.confirm(`再生ステップ「${target.title}」を削除しますか？\nこの操作は保存前の編集内容に反映されます。`))) return;
   setSteps(current => current.filter(step => step.id !== id));
-  setOrderSource(current => current === id ? null : current);
+  setOrderSource(current => selectionAfterStepDeletion(id, { selectedStep: null, orderSource: current }).orderSource);
   setOrderCursor(null);
-  setSelectedStep(current => current === id ? null : current);
+  setSelectedStep(current => selectionAfterStepDeletion(id, { selectedStep: current, orderSource: null }).selectedStep);
   setSelectedGroup(null);
   setMessage('再生ステップを削除しました。');
  };
