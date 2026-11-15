@@ -1,0 +1,56 @@
+# 申請受付・書類登録（正常系の通信例）
+steps:
+  - id: enterprise-01-01
+    title: 法人申請フォーム送信
+    description: 申請受付・書類登録における requester から web への通信です。
+    actions:
+      - type: transfer
+        from: requester
+        to: web
+        payload: "法人申請フォーム送信"
+        durationMs: 1100
+  - id: enterprise-01-02
+    title: 申請データ検証要求
+    description: 申請受付・書類登録における web から api への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: api
+        payload: "申請データ検証要求"
+        durationMs: 1100
+  - id: enterprise-01-03
+    title: SELECT A_TBL 契約プラン
+    description: 申請受付・書類登録における api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "SELECT A_TBL 契約プラン"
+        durationMs: 1100
+  - id: enterprise-01-04
+    title: INSERT B_TBL 申請受付
+    description: 申請受付・書類登録における api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "INSERT B_TBL 申請受付"
+        durationMs: 1100
+  - id: enterprise-01-05
+    title: 申請添付書類アップロード
+    description: 申請受付・書類登録における api から storage への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: storage
+        payload: "申請添付書類アップロード"
+        durationMs: 1100
+  - id: enterprise-01-06
+    title: 書類保管ID応答
+    description: 申請受付・書類登録における storage から api への通信です。
+    actions:
+      - type: transfer
+        from: storage
+        to: api
+        payload: "書類保管ID応答"
+        durationMs: 1100

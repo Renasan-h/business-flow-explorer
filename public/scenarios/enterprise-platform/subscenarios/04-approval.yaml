@@ -1,0 +1,83 @@
+# 社内承認・契約確定（正常系の通信例）
+steps:
+  - id: enterprise-04-01
+    title: 承認画面アクセス
+    description: 社内承認・契約確定における approver から web への通信です。
+    actions:
+      - type: transfer
+        from: approver
+        to: web
+        payload: "承認画面アクセス"
+        durationMs: 1100
+  - id: enterprise-04-02
+    title: 承認対象取得
+    description: 社内承認・契約確定における web から api への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: api
+        payload: "承認対象取得"
+        durationMs: 1100
+  - id: enterprise-04-03
+    title: SELECT Y_TBL 審査結果
+    description: 社内承認・契約確定における api から db2 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db2
+        payload: "SELECT Y_TBL 審査結果"
+        durationMs: 1100
+  - id: enterprise-04-04
+    title: 契約承認
+    description: 社内承認・契約確定における approver から web への通信です。
+    actions:
+      - type: transfer
+        from: approver
+        to: web
+        payload: "契約承認"
+        durationMs: 1100
+  - id: enterprise-04-05
+    title: 承認決裁登録
+    description: 社内承認・契約確定における web から api への通信です。
+    actions:
+      - type: transfer
+        from: web
+        to: api
+        payload: "承認決裁登録"
+        durationMs: 1100
+  - id: enterprise-04-06
+    title: INSERT D_TBL 契約確定
+    description: 社内承認・契約確定における api から db1 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db1
+        payload: "INSERT D_TBL 契約確定"
+        durationMs: 1100
+  - id: enterprise-04-07
+    title: 承認証跡記録
+    description: 社内承認・契約確定における api から auditdb への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: auditdb
+        payload: "承認証跡記録"
+        durationMs: 1100
+  - id: enterprise-04-08
+    title: 承認完了通知
+    description: 社内承認・契約確定における api から mail への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: mail
+        payload: "承認完了通知"
+        durationMs: 1100
+  - id: enterprise-04-09
+    title: 契約承認メール
+    description: 社内承認・契約確定における mail から requester への通信です。
+    actions:
+      - type: transfer
+        from: mail
+        to: requester
+        payload: "契約承認メール"
+        durationMs: 1100

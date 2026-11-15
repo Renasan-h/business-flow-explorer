@@ -1,0 +1,5 @@
+# 再利用可能なActor定義
+actors:
+  - id: db
+    name: DB1
+    type: database

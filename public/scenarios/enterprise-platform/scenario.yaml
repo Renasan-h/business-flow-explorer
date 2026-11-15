@@ -1,0 +1,53 @@
+# 16 Actor・8サブシナリオの企業向け統合契約プラットフォーム
+schemaVersion: "1.0"
+metadata:
+  id: enterprise-platform
+  title: 企業統合契約・審査・請求・開通・監視
+  description: 法人契約サンプルの約2倍の規模で本人確認・OTP・承認・与信・決済・ERP・バッチ・監査を可視化する正常系シナリオ
+  category: enterprise
+actorFiles:
+  - actors/actors.yaml
+steps:
+  - file: subscenarios/01-intake.yaml
+  - file: subscenarios/02-identity.yaml
+    handoff:
+      from: api
+      to: api
+      payload: "本人確認・OTPへ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/03-screening.yaml
+    handoff:
+      from: db1
+      to: api
+      payload: "与信審査・リスク判定へ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/04-approval.yaml
+    handoff:
+      from: approver
+      to: approver
+      payload: "社内承認・契約確定へ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/05-billing.yaml
+    handoff:
+      from: requester
+      to: api
+      payload: "決済登録・請求準備へ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/06-provisioning.yaml
+    handoff:
+      from: auditdb
+      to: api
+      payload: "開通バッチ・外部サービス連携へ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/07-settlement.yaml
+    handoff:
+      from: api
+      to: api
+      payload: "初回決済・会計連携へ処理を引き継ぐ"
+      durationMs: 900
+  - file: subscenarios/08-operations.yaml
+    handoff:
+      from: requester
+      to: operator
+      payload: "運用監視・定期照合へ処理を引き継ぐ"
+      durationMs: 900

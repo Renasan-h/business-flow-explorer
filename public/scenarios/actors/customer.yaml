@@ -1,0 +1,5 @@
+# 再利用可能なActor定義
+actors:
+  - id: customer
+    name: 顧客
+    type: person

@@ -1,0 +1,284 @@
+schemaVersion: "1.0"
+metadata:
+  id: new-flow
+  title: 新規業務フロー
+  description: ""
+  category: 入会/test
+groups: []
+interfaces: []
+actors:
+  - id: actor-1185cd59
+    name: ページ
+    type: browser
+    position:
+      x: 75
+      y: 264.97814008924695
+  - id: actor-29fb2519
+    name: バッチサーバー
+    type: batch
+    position:
+      x: 1325
+      y: 381.90255991617835
+  - id: actor-649dd550
+    name: DB
+    type: database
+    position:
+      x: 1325
+      y: 157.27352311876083
+  - id: actor-8c2fbb51
+    name: ユーザー
+    type: person
+    position:
+      x: 75
+      y: 61.07240422566731
+  - id: actor-8a54e5d7
+    name: GW
+    instanceName: gw-dev-x
+    type: server
+    description: GW経由で外部システムを呼び出す
+    environment: 開発
+    endpoint: GW#XX
+    position:
+      x: 1322.2222900390625
+      y: 649.1666870117188
+  - id: actor-7ad1febe
+    name: 本確
+    type: decision
+    position:
+      x: 300.0000457763672
+      y: 266.38893127441406
+  - id: actor-2c0b6edf
+    name: 外部本人確認
+    type: external
+    position:
+      x: 295.8333282470703
+      y: 515.5555725097656
+  - id: actor-7c8362a9
+    name: 外部連携
+    type: service
+    position:
+      x: 1325
+      y: 816.9444274902344
+  - id: actor-df84867e
+    name: メール送信
+    type: service
+    position:
+      x: 982.8551635742188
+      y: 652.2222290039062
+  - id: actor-f87b7243
+    name: 本確アプリ
+    type: service
+    position:
+      x: 537.3928833007812
+      y: 513.8890075683594
+  - id: actor-71e61951
+    name: 新しいノード 11
+    type: service
+    position:
+      x: 538.8888549804688
+      y: 268.61114501953125
+  - id: actor-a5213c20
+    name: PL
+    type: decision
+    position:
+      x: 755.5554809570312
+      y: 255.27780151367188
+  - id: actor-7af9fd1c
+    name: 新しいノード 13
+    type: external
+    position:
+      x: 754.1667175292969
+      y: 515.5555725097656
+  - id: actor-8f62b167
+    name: 新しいノード 14
+    type: service
+    position:
+      x: 980.5555725097656
+      y: 252.22219848632812
+  - id: actor-71ef0619
+    name: PL直バッチ
+    type: decision
+    position:
+      x: 980.5556030273438
+      y: 512.3393249511719
+  - id: actor-15f9d04d
+    name: 新しいノード 16
+    type: external
+    position:
+      x: 301.5496520996094
+      y: 63.055564880371094
+steps:
+  - id: connection-d940d754
+    title: cus to site
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-8c2fbb51
+        to: actor-1185cd59
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-65187c9e
+    title: 本確遷移
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-1185cd59
+        to: actor-7ad1febe
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-d2bac865
+    title: する
+    description: ""
+    branchLabel: する
+    actions:
+      - type: transfer
+        from: actor-7ad1febe
+        to: actor-2c0b6edf
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-1a51060c
+    title: アプリ遷移
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-2c0b6edf
+        to: actor-f87b7243
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-072902d1
+    title: DB登録
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-29fb2519
+        to: actor-649dd550
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-4bf75023
+    title: ＧＷアクセス
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-29fb2519
+        to: actor-8a54e5d7
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-3171be58
+    title: 外部連携
+    description: ""
+    bidirectional: true
+    reverseFrom: actor-7c8362a9
+    reverseTo: actor-8a54e5d7
+    actions:
+      - type: transfer
+        from: actor-8a54e5d7
+        to: actor-7c8362a9
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-e1d3dcc1
+    title: メール送信依頼
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-8a54e5d7
+        to: actor-df84867e
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-8f462440
+    title: しない
+    description: ""
+    branchLabel: しない
+    actions:
+      - type: transfer
+        from: actor-7ad1febe
+        to: actor-71e61951
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-901879d6
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-f87b7243
+        to: actor-71e61951
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-79e292b6
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-71e61951
+        to: actor-a5213c20
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-5ae26c8a
+    title: 新しい通信
+    description: ""
+    branchLabel: する
+    actions:
+      - type: transfer
+        from: actor-a5213c20
+        to: actor-7af9fd1c
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-56230322
+    title: ""
+    description: ""
+    branchLabel: しない
+    actions:
+      - type: transfer
+        from: actor-a5213c20
+        to: actor-8f62b167
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-8696ec26
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-7af9fd1c
+        to: actor-71ef0619
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-970228c6
+    title: 新しい通信
+    description: ""
+    branchLabel: 画面操作
+    actions:
+      - type: transfer
+        from: actor-71ef0619
+        to: actor-8f62b167
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-c2a3ccc5
+    title: 新しい通信
+    description: ""
+    branchLabel: 直
+    actions:
+      - type: transfer
+        from: actor-71ef0619
+        to: actor-29fb2519
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-02ae23db
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-8f62b167
+        to: actor-29fb2519
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-de4fb3c2
+    title: 新しい通信
+    description: ""
+    bidirectional: true
+    reverseFrom: actor-1185cd59
+    reverseTo: actor-15f9d04d
+    actions:
+      - type: transfer
+        from: actor-15f9d04d
+        to: actor-1185cd59
+        payload: 通信内容
+        durationMs: 1200

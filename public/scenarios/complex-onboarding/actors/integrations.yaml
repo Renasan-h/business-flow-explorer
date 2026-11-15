@@ -1,0 +1,13 @@
+actors:
+  - id: otp
+    name: OTP認証サービス
+    type: service
+  - id: mail
+    name: メール送信サーバー
+    type: server
+  - id: external
+    name: 外部審査システム
+    type: service
+  - id: batch
+    name: バッチサーバー
+    type: server

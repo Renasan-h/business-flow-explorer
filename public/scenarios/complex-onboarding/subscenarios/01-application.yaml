@@ -1,0 +1,27 @@
+# 申込画面の表示と仮登録
+steps:
+  - id: onboarding-01
+    title: 申込画面へアクセス
+    description: 申込担当者がWebサーバーに画面を要求します。
+    actions:
+      - { type: transfer, from: applicant, to: web, payload: "GET /contracts/new", durationMs: 1100 }
+  - id: onboarding-02
+    title: 申込初期化API
+    description: WebサーバーからAPIサーバーへ初期表示を要求します。
+    actions:
+      - { type: transfer, from: web, to: api, payload: "GET /api/contracts/initial", durationMs: 1000 }
+  - id: onboarding-03
+    title: DB1 A TBL マスタ参照
+    description: 契約プランと申込条件を参照します。
+    actions:
+      - { type: transfer, from: api, to: db1, payload: "SELECT A_TBL (契約プラン)", durationMs: 1200 }
+  - id: onboarding-04
+    title: 申込内容を送信
+    description: 申込担当者が法人情報を送信します。
+    actions:
+      - { type: transfer, from: applicant, to: web, payload: "POST /contracts/application", durationMs: 1300 }
+  - id: onboarding-05
+    title: DB1 B TBL 仮登録
+    description: 申込情報を仮登録し受付番号を発行します。
+    actions:
+      - { type: transfer, from: api, to: db1, payload: "INSERT B_TBL (仮申込)", durationMs: 1200 }

@@ -1,0 +1,32 @@
+# バッチ処理・外部プロビジョニング・完了通知
+steps:
+  - id: onboarding-19
+    title: DB2 Z TBL バッチ対象取得
+    description: バッチサーバーが未処理の利用開始キューを取得します。
+    actions:
+      - { type: transfer, from: batch, to: db2, payload: "SELECT Z_TBL (未処理キュー)", durationMs: 1200 }
+  - id: onboarding-20
+    title: 外部システムへ利用開始登録
+    description: バッチサーバーが外部システムへアカウント開通を要求します。
+    actions:
+      - { type: transfer, from: batch, to: external, payload: "POST /provisioning/activate", durationMs: 1500 }
+  - id: onboarding-21
+    title: 外部開通結果の返却
+    description: 外部システムが開通完了をバッチサーバーへ返却します。
+    actions:
+      - { type: transfer, from: external, to: batch, payload: "開通結果: 完了", durationMs: 1300 }
+  - id: onboarding-22
+    title: DB2 Z TBL バッチ完了更新
+    description: キューの処理状態を完了に更新します。
+    actions:
+      - { type: transfer, from: batch, to: db2, payload: "UPDATE Z_TBL (完了)", durationMs: 1100 }
+  - id: onboarding-23
+    title: 完了メール送信要求
+    description: バッチサーバーからメール送信サーバーへ完了通知を依頼します。
+    actions:
+      - { type: transfer, from: batch, to: mail, payload: "利用開始完了メール配信要求", durationMs: 1100 }
+  - id: onboarding-24
+    title: 利用開始完了メール受信
+    description: 申込担当者へ利用開始完了を通知します。
+    actions:
+      - { type: transfer, from: mail, to: applicant, payload: "契約・利用開始完了通知", durationMs: 1300 }

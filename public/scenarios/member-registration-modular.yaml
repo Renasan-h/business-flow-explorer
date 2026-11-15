@@ -1,0 +1,22 @@
+schemaVersion: "1.0"
+metadata:
+  id: member-registration-modular
+  title: 会員登録（分割シナリオ例）
+  description: stepsに記載した順番でサブシナリオを再生するサンプル
+  category: membership
+actorFiles:
+  - actors/member-actors.yaml
+steps:
+  - file: fragments/member-access.yaml
+  - file: fragments/member-initial-data.yaml
+    handoff:
+      from: web
+      to: api
+      payload: 初期表示データ取得要求
+      durationMs: 1200
+  - file: fragments/member-confirm.yaml
+    handoff:
+      from: db
+      to: web
+      payload: 初期表示データ取得結果
+      durationMs: 1200

@@ -1,0 +1,575 @@
+:root{font-family:Inter,system-ui,"Noto Sans JP",sans-serif;color:#e4edfa;background:#0b1220}*{box-sizing:border-box}body{margin:0}button{font:inherit;cursor:pointer;border:1px solid #344765;background:#18243b;color:#dce8fb;border-radius:9px;padding:10px 13px}button:hover{border-color:#5c9be0}button:disabled{opacity:.35;cursor:default}button.selected{background:#17528a;border-color:#38bdf8;color:#fff}.app header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #24344d}.app header span,.hint{color:#8ca3c0;font-size:12px}.layout{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:calc(100vh - 68px)}aside{padding:25px 18px;border-right:1px solid #24344d}aside button{display:block;width:100%;margin:10px 0;text-align:left}main{padding:24px;max-width:1250px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:25px;margin:0}h3{font-size:16px}.top p{color:#91a6c0;margin:7px 0 18px}.switch{display:flex;gap:6px}.scene{width:100%;overflow:hidden;background:#0a1427;border:1px solid #314763;border-radius:18px;display:flex;justify-content:center}.scene canvas{display:block;max-width:100%;height:auto}.controls{display:flex;gap:10px;align-items:center;margin:16px 0;flex-wrap:wrap}.controls span{margin-left:auto;color:#8ca3c0}.steps{display:flex;gap:8px;flex-wrap:wrap}.steps button{font-size:12px}.explanation{background:#141f32;border:1px solid #283c58;padding:18px 22px;border-radius:14px;margin-top:18px}.explanation h2{margin:0;font-size:18px}.explanation p{color:#b5c8de}.explanation code{color:#67e8f9}.error{color:#fca5a5}@media(max-width:800px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #24344d}.top{align-items:flex-start;flex-direction:column}.app header span{display:none}main{padding:14px}}
+/* 再生速度をプルダウンではなく、ワンクリックで選べるセグメントボタンにする。 */
+.playback-speed{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.playback-speed-label{font-size:13px;color:#a9bfda;white-space:nowrap}.speed-options{display:inline-flex;gap:3px;padding:4px;border:1px solid #344765;border-radius:12px;background:#101b2e}.speed-options button{padding:7px 12px;border:1px solid transparent;background:transparent;border-radius:8px;font-size:13px;min-width:48px}.speed-options button:hover{background:#223957}.speed-options button.selected{background:#17528a;border-color:#38bdf8;color:#fff}.speed-options button:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}
+
+/* 画面全体の配色をCSS変数で管理し、テーマ変更時に一括切り替えする。 */
+:root{color-scheme:dark;--page:#0b1220;--text:#e4edfa;--button-bg:#18243b;--button-text:#dce8fb;--button-border:#344765;--border:#24344d;--muted:#8ca3c0;--secondary:#91a6c0;--panel:#141f32;--panel-border:#283c58;--selected:#17528a;--selected-border:#38bdf8;--selected-text:#fff;--segment-bg:#101b2e;--segment-hover:#223957;--code:#67e8f9}
+:root[data-theme="light"]{color-scheme:light;--page:#f6f8fc;--text:#18283d;--button-bg:#fff;--button-text:#263d62;--button-border:#c6d2e1;--border:#d9e1ec;--muted:#536982;--secondary:#536982;--panel:#fff;--panel-border:#d5e0eb;--selected:#dceafe;--selected-border:#3975c6;--selected-text:#17437c;--segment-bg:#e9eff7;--segment-hover:#d9e7f9;--code:#075e85}
+:root{background:var(--page);color:var(--text)}
+button{background:var(--button-bg);color:var(--button-text);border-color:var(--button-border)}
+button.selected,.speed-options button.selected{background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.app header,aside{border-color:var(--border)}
+.app header span,.hint,.controls span{color:var(--muted)}
+.top p,.playback-speed-label{color:var(--secondary)}
+.explanation{background:var(--panel);border-color:var(--panel-border)}
+.explanation p{color:var(--secondary)}
+.explanation code{color:var(--code)}
+.speed-options{background:var(--segment-bg);border-color:var(--button-border)}
+.speed-options button{color:var(--button-text)}
+.speed-options button:hover{background:var(--segment-hover)}
+.scene{background:var(--panel);border-color:var(--panel-border)}
+.header-actions{display:flex;align-items:center;gap:18px}
+.theme-switch{display:flex;gap:3px;padding:3px;background:var(--segment-bg);border:1px solid var(--button-border);border-radius:12px}
+.theme-switch button{font-size:12px;padding:7px 11px;border-color:transparent;background:transparent}
+.theme-switch button.selected{background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.theme-switch button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
+@media(max-width:800px){aside{border-color:var(--border)}.header-actions{gap:8px}.app header{padding:14px}}
+
+/* テーマをルート要素だけでなくページ全域へ適用し、スクロール領域も統一する。 */
+html,body,#root,.app{min-height:100%;background:var(--page);color:var(--text)}
+body{min-height:100vh}
+#root,.app{min-height:100vh}
+.app header{background:var(--page)}
+.layout{background:var(--page)}
+aside{background:var(--page)}
+main{background:var(--page)}
+button:hover:not(:disabled){border-color:var(--selected-border)}
+button:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
+:root[data-theme="light"] .error{color:#b42318}
+:root[data-theme="light"] .scene{background:#f0f5fc}
+:root[data-theme="light"] .switch button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .steps button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .controls button:not(.selected){background:var(--button-bg);color:var(--button-text)}
+:root[data-theme="light"] .explanation{box-shadow:0 1px 3px rgba(22,42,70,.05)}
+
+/* 大規模フローはキャンバス幅を優先し、通信経路の表示方法を切り替えられるようにする。 */
+main{max-width:1500px}
+.scene-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:12px 0;color:var(--secondary);font-size:13px}
+.scene-toolbar .switch button{padding:8px 12px;font-size:12px}
+.scene{min-height:320px}
+.scene canvas{width:100%;max-width:1100px;height:auto;object-fit:contain}
+@media(max-width:800px){.scene-toolbar{justify-content:space-between;flex-wrap:wrap}.scene{min-height:0}}
+
+/* 大規模シナリオ: キャンバスは親幅に追従し、ドラッグ操作をブラウザの選択動作から分離する。 */
+.scene{touch-action:none;user-select:none;cursor:grab;min-height:0}
+.scene:active{cursor:grabbing}
+.viewport-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px}
+.viewport-controls button{min-width:38px;padding:7px 10px}
+.viewport-controls span{font-size:13px;color:var(--secondary);min-width:48px;text-align:center}
+.viewport-controls .viewport-hint{min-width:0;margin-left:10px}
+@media(max-width:800px){.viewport-controls{justify-content:flex-start;flex-wrap:wrap}.viewport-controls .viewport-hint{margin-left:0}}
+
+/* フローエディター: 大規模な図面と設定パネルを分離する。 */
+.flow-editor{padding:18px;min-height:100vh;background:var(--page);color:var(--text)}
+.editor-header,.editor-header-actions,.editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.editor-header h2{margin:0}.editor-header p{font-size:13px;color:var(--secondary)}
+.editor-toolbar{justify-content:flex-start;margin:16px 0}.editor-toolbar span{font-size:13px;color:var(--secondary)}
+.editor-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+.editor-canvas{border:1px solid var(--panel-border);border-radius:14px;overflow:hidden;background:#101b2e;min-width:0}
+.editor-canvas svg{display:block;width:100%;height:auto;min-height:460px;touch-action:none;user-select:none;cursor:grab}
+.editor-canvas svg:active{cursor:grabbing}.editor-node,.editor-edge{cursor:pointer}
+.editor-inspector{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto;border:1px solid var(--panel-border);border-radius:14px;padding:14px;background:var(--panel)}
+.editor-inspector h3{margin:16px 0 8px}.editor-inspector label{display:block;font-size:12px;color:var(--secondary);margin:10px 0}
+.editor-inspector input,.editor-inspector textarea,.editor-inspector select{display:block;width:100%;padding:9px;margin-top:5px;border:1px solid var(--button-border);border-radius:7px;background:var(--page);color:var(--text);font:inherit}
+.editor-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.editor-step-list{display:grid;gap:5px}.editor-step-list>div{display:flex;gap:3px}.editor-step-list button:first-child{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-step-list button{padding:7px}
+.editor-message{color:var(--secondary)}
+@media(max-width:1000px){.editor-layout{grid-template-columns:1fr}.editor-inspector{position:static;max-height:none}}
+
+/* 新規フロー作成はシナリオ一覧の先頭に独立した操作として配置する。 */
+aside .new-flow-button{border-style:dashed;border-color:var(--selected-border);font-weight:600}
+
+/* 接続ハンドルはノード移動とは異なる操作であることを明示する。 */
+.editor-connection-handle{cursor:crosshair}
+
+/* 編集中のフローを保存前に確認するプレビュー画面。 */
+.preview-screen{padding:18px;min-height:100vh;background:var(--page);color:var(--text)}
+.preview-header,.preview-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.preview-header{justify-content:space-between}
+.preview-header h2{margin:0}.preview-header p{color:var(--secondary);font-size:13px}
+.preview-toolbar{margin:16px 0}
+.preview-toolbar label{display:flex;align-items:center;gap:6px;font-size:13px}
+.preview-toolbar select{padding:7px}
+.preview-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+.preview-canvas{display:block;width:100%;height:auto;min-height:420px;background:#101b2e;border:1px solid var(--panel-border);border-radius:14px;touch-action:none;cursor:grab}
+.preview-canvas:active{cursor:grabbing}
+.preview-step-info{padding:14px;border:1px solid var(--panel-border);border-radius:12px;margin-top:10px}
+.preview-step-info p{margin:6px 0;color:var(--secondary)}
+.preview-steps{display:grid;gap:6px;max-height:75vh;overflow:auto;padding:12px;border:1px solid var(--panel-border);border-radius:12px}
+.preview-steps h3{margin:0 0 8px}.preview-steps button{text-align:left}
+@media(max-width:1000px){.preview-layout{grid-template-columns:1fr}.preview-steps{max-height:250px}}
+
+/* 再生順のドラッグ＆ドロップ操作と挿入先の視認性。 */
+.editor-reorder-hint{font-size:12px;color:var(--secondary);margin:4px 0 10px}
+.editor-step-drag-handle{display:flex;align-items:center;justify-content:center;min-width:28px;cursor:grab;user-select:none;touch-action:none;color:var(--secondary);font-size:20px}
+.editor-step-drag-handle:active{cursor:grabbing}
+.editor-step-drop-target{outline:2px dashed #22d3ee;outline-offset:2px;border-radius:5px}
+
+/* 再生順一覧の削除操作を移動ボタンと視覚的に区別する。 */
+.editor-step-list .editor-step-delete{color:#f87171;border-color:#b45353;min-width:30px;font-weight:700}
+.editor-step-list .editor-step-delete:hover{background:#5b242e;color:#fff}
+
+/* 狭い設定パネルでも削除ボタンを押し出さず、常時表示する。 */
+.editor-step-list>div{display:grid;grid-template-columns:22px minmax(0,1fr) 27px 27px 43px;gap:3px;align-items:center;min-width:0}
+.editor-step-list>div>button{min-width:0;padding:6px 2px}
+.editor-step-list>div>button:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.editor-step-list>div>.editor-step-delete{min-width:43px;padding:6px 3px;white-space:nowrap}
+.editor-step-drag-handle{min-width:22px}
+.preview-step-row{display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:6px;align-items:center}
+.preview-step-row>button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.preview-step-row>.preview-step-delete{color:#f87171;border-color:#b45353;padding:7px 4px;font-size:12px}
+.preview-step-row>.preview-step-delete:hover{background:#5b242e;color:#fff}
+
+/* エディター・プレビューの戻る操作を画面幅に依存せず表示する。 */
+.editor-header-actions,.preview-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.editor-header,.preview-header{align-items:flex-start}
+.editor-header-actions>button:first-child,.preview-header-actions>button:last-child{white-space:nowrap;border-color:#22d3ee}
+@media(max-width:800px){.editor-header,.preview-header{flex-wrap:wrap}.editor-header-actions,.preview-header-actions{width:100%}}
+
+/* 狭いウィンドウ・ブラウザ拡大時に操作群がはみ出さないための共通ルール。 */
+.app,.flow-editor,.preview-screen{min-width:0;max-width:100%}
+.layout>*,.editor-layout>*,.preview-layout>*,.top>*,.editor-header>*,.preview-header>*{min-width:0}
+.app header,.top,.editor-header,.preview-header{flex-wrap:wrap}
+.top .switch,.editor-header-actions,.preview-header-actions,.editor-toolbar,.preview-toolbar,.scene-toolbar,.viewport-controls{flex-wrap:wrap;max-width:100%}
+.editor-canvas,.preview-canvas,.scene{min-width:0;max-width:100%;overflow:hidden}
+.editor-canvas svg,.preview-canvas{display:block;width:100%;height:auto}
+.editor-inspector{min-width:0;overflow-x:hidden}
+.editor-inspector input,.editor-inspector select,.editor-inspector textarea{max-width:100%;min-width:0}
+.editor-step-list>div{width:100%;max-width:100%;overflow:hidden}
+.preview-steps{min-width:0}
+.preview-step-row{min-width:0}
+.preview-step-row>button:first-child{min-width:0}
+.controls>span{margin-left:0}
+.viewport-hint{font-size:12px;white-space:normal}
+@media(max-width:1200px){
+ .editor-layout{grid-template-columns:minmax(0,1fr) minmax(270px,310px)}
+ .preview-layout{grid-template-columns:minmax(0,1fr) minmax(240px,280px)}
+}
+@media(max-width:1000px){
+ .editor-layout,.preview-layout{grid-template-columns:minmax(0,1fr)}
+ .editor-inspector{position:static;max-height:none}
+}
+@media(max-width:600px){
+ .app header,main,.flow-editor,.preview-screen{padding:12px}
+ .editor-toolbar button,.preview-toolbar button,.controls button{padding:7px 9px}
+ .editor-header-actions,.preview-header-actions{justify-content:flex-start}
+}
+
+/* アイコン選択は実際の線画を並べ、形状と名称を一緒に確認できるようにする。 */
+.editor-icon-field{margin:12px 0;color:var(--secondary);font-size:12px}
+.editor-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;margin-top:7px}
+.editor-icon-grid button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:65px;padding:6px 3px;margin:0;text-align:center}
+.editor-icon-grid button svg{width:32px;height:32px;color:var(--text)}
+.editor-icon-grid button small{font-size:10px;line-height:1.2;overflow-wrap:anywhere}
+.editor-icon-grid button.selected svg{color:#7dd3fc}
+
+/* 複製は削除と視覚的に区別し、ノード設定からすぐ実行できるようにする。 */
+.editor-inspector .editor-duplicate-node{border-color:#38bdf8;background:#12446a;color:#e0f2fe;font-weight:600}
+.editor-inspector .editor-duplicate-node:hover{background:#175b8e}
+
+/* キャンバスの右クリックメニュー。スクロールやズームに依存しないCSS座標で配置する。 */
+.editor-canvas{position:relative}
+.editor-context-menu{position:fixed;z-index:1000;width:190px;max-width:100%;padding:5px;border:1px solid #52779e;border-radius:9px;background:#16263e;box-shadow:0 12px 28px #0008;display:flex;flex-direction:column;gap:2px}
+.editor-context-menu button{display:block;width:100%;margin:0;padding:10px 12px;border:0;background:transparent;color:#edf6ff;text-align:left;border-radius:5px;font-size:13px}
+.editor-context-menu button:hover,.editor-context-menu button:focus-visible{background:#284866;outline:2px solid #7dd3fc;outline-offset:-2px}
+.editor-context-menu button.danger{color:#fda4af}
+.editor-context-menu button.danger:hover{background:#662636;color:#fff}
+.editor-node-delete{cursor:pointer;outline:none}
+.editor-node-delete:hover circle,.editor-node-delete:focus-visible circle{fill:#dc2649;stroke:#fff;stroke-width:2.5}
+
+/* 再生前に分岐先を確定する。狭い画面では選択欄を折り返す。 */
+.branch-selector{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;padding:12px 14px;margin:10px 0;border:1px solid #54718e;border-radius:10px;background:rgba(45,83,119,.16)}
+.branch-selector strong{font-size:13px}
+.branch-selector label{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px}
+.branch-selector select{max-width:100%;min-width:120px;padding:7px 10px;border-radius:6px}
+
+/* 設定セクションはHTML標準のdetailsを使い、キーボードでも開閉できる。 */
+.editor-inspector .editor-section{margin:10px 0;border:1px solid #486786;border-radius:9px;padding:0 10px 10px;min-width:0}
+.editor-inspector .editor-section:not([open]){padding-bottom:0}
+.editor-inspector .editor-section>summary{cursor:pointer;list-style:revert;padding:12px 4px;font-weight:700;user-select:none}
+.editor-inspector .editor-section>summary:hover{color:#7dd3fc}
+.editor-inspector .editor-section>summary:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+
+/* 再生順は設定欄と同じ高さに並べ、各パネルを独立スクロールにする。 */
+@media (min-width: 1251px) {
+ .editor-layout{grid-template-columns:minmax(0,1fr) minmax(270px,310px) minmax(280px,330px)}
+ .editor-order-panel{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto}
+}
+.editor-order-panel{min-width:0;overflow-x:hidden;border:1px solid var(--panel-border);border-radius:14px;padding:14px;background:var(--panel)}
+.editor-order-panel .editor-section{margin:0;border:1px solid #486786;border-radius:9px;padding:0 10px 10px;min-width:0}
+.editor-order-panel .editor-section:not([open]){padding-bottom:0}
+.editor-order-panel .editor-section>summary{cursor:pointer;padding:12px 4px;font-weight:700}
+.editor-order-panel .editor-section>summary:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+@media (max-width:1250px) {
+ .editor-order-panel{position:static;max-height:420px;overflow-y:auto}
+}
+
+/* 編集キャンバスを設定パネルと同じ行に押し込まず、上段いっぱいに広げる。 */
+.editor-layout{grid-template-columns:minmax(0,1fr) minmax(280px,360px);align-items:start}
+.editor-layout>.editor-canvas{grid-column:1 / -1;width:100%}
+.editor-layout>.editor-inspector{grid-column:1;position:static;max-height:none}
+.editor-layout>.editor-order-panel{grid-column:2;position:static;max-height:none}
+.editor-canvas svg{min-height:600px}
+@media(max-width:900px){
+ .editor-layout{grid-template-columns:minmax(0,1fr)}
+ .editor-layout>.editor-canvas,.editor-layout>.editor-inspector,.editor-layout>.editor-order-panel{grid-column:1}
+ .editor-canvas svg{min-height:420px}
+}
+/* 再生ボタン群はキャンバスの直前に配置する。 */
+.controls{margin:12px 0}
+.preview-toolbar .playback-speed{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.preview-toolbar .speed-options{display:flex;gap:4px;flex-wrap:wrap}
+.preview-toolbar .speed-options button{width:auto;margin:0}
+
+/* デスクトップでは再生操作と表示倍率を1段に配置。狭い画面だけ折り返す。 */
+.scene-action-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;min-width:0}
+.scene-action-bar .controls{order:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap;margin:0;min-width:0}
+.scene-action-bar .controls>span{margin-left:0;white-space:nowrap;font-size:12px}
+.scene-action-bar .controls button{white-space:nowrap}
+.scene-action-bar .playback-speed{flex-wrap:nowrap;gap:6px}
+.scene-action-bar .speed-options{flex-wrap:nowrap}
+.scene-action-bar .speed-options button{min-width:40px;padding:7px 8px}
+.scene-action-bar .viewport-controls{order:1;display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:nowrap;margin:0;min-width:0}
+.scene-action-bar .viewport-controls button{min-width:34px;padding:7px 8px;white-space:nowrap}
+.scene-action-bar .viewport-controls span{min-width:36px;white-space:nowrap}
+.scene-action-bar .viewport-controls .viewport-hint{margin-left:4px;white-space:nowrap;font-size:11px}
+@media(max-width:1250px){
+ .scene-action-bar{flex-wrap:wrap;justify-content:flex-start}
+ .scene-action-bar .controls,.scene-action-bar .viewport-controls{flex-wrap:wrap}
+}
+
+/* シナリオのステップ選択とノード表示領域を明確に分離する。 */
+.scene-size-wrapper{margin:0 auto;width:100%;max-width:100%;min-width:0}
+.scene-size-wrapper .scene{width:100%;margin:0}
+.steps{margin-top:20px;padding-top:16px;border-top:1px solid var(--panel-border);row-gap:10px}
+/* キャンバス幅の調整はズームとは独立し、中央揃えで縮小する。 */
+.scene-action-bar .viewport-size-control{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--secondary)}
+.scene-action-bar .viewport-size-control input{width:90px;min-width:55px;accent-color:var(--selected-border);cursor:pointer}
+.scene-action-bar .viewport-size-control output{min-width:36px;font-variant-numeric:tabular-nums;text-align:right}
+@media(max-width:1250px){.scene-action-bar .viewport-size-control input{width:110px}}
+
+/* 右下のネイティブリサイズハンドルで幅・高さを直接変更する。 */
+.scene-size-wrapper{
+ width:min(100%,1100px);height:620px;min-width:min(320px,100%);min-height:240px;
+ max-width:100%;max-height:85vh;resize:both;overflow:auto;
+ margin:0 auto;position:relative;border-radius:18px;
+}
+.scene-size-wrapper .scene{width:100%;height:100%;min-height:0;overflow:hidden}
+/* キャンバスの縦横比は保持。余白が生じてもノードが変形しない。 */
+.scene-size-wrapper .scene canvas{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+.scene-size-wrapper::after{content:"";position:absolute;right:5px;bottom:5px;width:14px;height:14px;pointer-events:none;
+ background:repeating-linear-gradient(135deg,transparent 0 3px,var(--secondary) 3px 4px,transparent 4px 7px);opacity:.8}
+@media(max-width:800px){.scene-size-wrapper{width:100%;height:min(56vw,420px);min-height:220px}}
+
+/* 編集画面：キャンバスの横に設定・再生順を常時配置する（狭い画面のみ縦積み）。 */
+.editor-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px) minmax(250px,300px);gap:16px;align-items:start}
+.editor-layout>.editor-canvas{grid-column:1;grid-row:1 / span 2;width:100%;height:650px;min-width:0;min-height:260px;max-width:100%;max-height:85vh;resize:both;overflow:auto;position:relative}
+.editor-layout>.editor-inspector{grid-column:2;grid-row:1;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto}
+.editor-layout>.editor-order-panel{grid-column:3;grid-row:1;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto}
+.editor-layout>.editor-canvas>svg{display:block;width:100%;height:100%;min-height:0;object-fit:contain}
+.editor-layout>.editor-canvas::after{content:"";position:absolute;right:5px;bottom:5px;width:14px;height:14px;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 3px,var(--secondary) 3px 4px,transparent 4px 7px);opacity:.8}
+@media(max-width:1250px) and (min-width:761px){
+ .editor-layout{grid-template-columns:minmax(0,1fr) minmax(250px,320px)}
+ .editor-layout>.editor-canvas{grid-column:1;grid-row:1 / span 2}
+ .editor-layout>.editor-inspector{grid-column:2;grid-row:1;position:static;max-height:65vh}
+ .editor-layout>.editor-order-panel{grid-column:2;grid-row:2;position:static;max-height:45vh}
+}
+@media(max-width:760px){
+ .editor-layout{grid-template-columns:minmax(0,1fr)}
+ .editor-layout>.editor-canvas{grid-column:1;grid-row:1;height:420px;min-height:240px}
+ .editor-layout>.editor-inspector{grid-column:1;grid-row:2;position:static;max-height:none}
+ .editor-layout>.editor-order-panel{grid-column:1;grid-row:3;position:static;max-height:420px}
+}
+
+/* 再生画面のノード詳細はキャンバスを覆い過ぎない右側ドロワーで表示する。 */
+.node-details-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(4,10,20,.45);display:flex;justify-content:flex-end}
+.node-details-panel{box-sizing:border-box;width:min(440px,100vw);height:100%;overflow-y:auto;padding:24px;background:var(--panel,#17243a);color:var(--text,#e4edfa);box-shadow:-8px 0 32px rgba(0,0,0,.24);overflow-wrap:anywhere}
+.node-details-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.node-details-heading h2{margin:0}
+.node-details-heading button{min-width:38px}
+.node-details-panel p{padding:10px 0;border-bottom:1px solid rgba(128,150,180,.2);white-space:pre-wrap}
+.node-details-swatch{display:inline-block;width:16px;height:16px;border:1px solid currentColor;border-radius:4px;vertical-align:middle}
+
+/* 大規模なフローは縮小して押し込まず、スクロール可能なワールドとして編集する。 */
+.editor-layout>.editor-canvas{overflow:auto;overscroll-behavior:contain}
+.editor-layout>.editor-canvas>svg{width:3600px;height:1800px;max-width:none;max-height:none;min-width:3600px;min-height:1800px;object-fit:fill}
+/* カテゴリを折りたたみ、階層名（金融/送金処理等）をそのまま表示する。 */
+.scenario-category{margin:8px 0;border:1px solid rgba(128,150,180,.22);border-radius:8px;padding:7px}
+.scenario-category>summary{cursor:pointer;font-weight:600;padding:5px;overflow-wrap:anywhere}
+.scenario-category>button{display:block;width:100%;text-align:left;margin:5px 0}
+
+.editor-order-marker{cursor:pointer;outline:none}
+.editor-order-marker:focus-visible circle{stroke:#fff;stroke-width:4}
+
+.scenario-subcategory{margin:6px 0 6px 12px;padding:6px;border-left:2px solid var(--panel-border)}
+.scenario-subcategory>summary{cursor:pointer;font-size:13px}
+.scenario-subcategory>button{width:100%;text-align:left;margin:5px 0}
+.if-definition-editor label{display:block;margin:12px 0;font-size:13px}
+.if-definition-editor input:not([type=checkbox]),.if-definition-editor textarea{display:block;width:100%;margin-top:5px;padding:9px;border:1px solid var(--button-border);border-radius:7px;background:var(--page);color:var(--text)}
+.if-field{padding:12px;border:1px solid var(--panel-border);border-radius:9px;margin:10px 0}
+.editor-group{cursor:pointer}
+
+/* 領域に属するノードを複数選択して一括移動するための設定 */
+.group-members{margin:12px 0;padding:10px;border:1px solid rgba(128,150,180,.3);border-radius:8px;max-height:210px;overflow-y:auto}
+.group-members legend{font-weight:600;padding:0 5px}
+.group-members label{display:flex;align-items:center;gap:8px;margin:5px 0}
+.group-members input[type=checkbox]{width:auto;flex:none}
+.editor-group-resize{cursor:nwse-resize}
+
+/* テンプレートの入力と操作をひとまとまりにし、他のツールバー操作と区別する。 */
+.template-import{display:flex;align-items:stretch;gap:12px;padding:10px 12px;border:1px solid rgba(125,150,185,.38);border-radius:12px;background:rgba(100,135,185,.08);min-width:340px;max-width:650px;flex:1 1 490px}
+.template-import-source{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.template-import-title{font-weight:700;font-size:12px;letter-spacing:.04em}
+.template-import-file{display:flex;gap:6px;align-items:center;min-width:0}
+.template-import-file>input:not([type=file]){min-width:0;flex:1;width:100%;padding:9px 10px;border:1px solid rgba(125,150,185,.5);border-radius:7px;background:var(--panel,#152239);color:var(--text,#e4edfa)}
+.template-import-hidden{display:none}
+.template-import .template-import-browse{white-space:nowrap;flex-shrink:0}
+.template-import-selected{display:flex;gap:8px;align-items:center;font-size:12px;overflow-wrap:anywhere}
+.template-import-selected button{padding:1px 7px;min-width:auto}
+.template-import-actions{display:flex;flex-direction:column;gap:7px;justify-content:center;min-width:156px}
+.template-import-actions>button{width:100%;padding:9px 11px;text-align:center;white-space:normal}
+.template-import-actions>button:first-child{background:rgba(35,125,210,.22);border-color:rgba(70,150,240,.6)}
+@media(max-width:700px){.template-import{min-width:0;flex-basis:100%;flex-wrap:wrap}.template-import-actions{width:100%;flex-direction:column}}
+
+/* テンプレート読込はツールバーから開く独立モーダルで操作する。 */
+.template-import-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(5,12,25,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.template-import-dialog{position:relative;display:flex;flex-direction:column;gap:20px;width:min(560px,100%);max-height:min(90vh,720px);overflow-y:auto;padding:28px;border:1px solid rgba(130,160,200,.4);border-radius:16px;background:var(--panel,#182338);color:var(--text,#e4edfa);box-shadow:0 24px 80px rgba(0,0,0,.42)}
+.template-import-dialog .template-import-source{display:flex;flex-direction:column;gap:16px}
+.template-import-dialog .template-import-title{font-size:20px;font-weight:700;letter-spacing:0}
+.template-import-dialog .template-import-file{display:flex;flex-wrap:wrap;gap:10px}
+.template-import-dialog .template-import-file>input:not([type=file]){min-width:210px;flex:1 1 250px}
+.template-import-dialog .template-import-actions{display:flex;flex-direction:column;gap:10px;width:100%}
+.template-import-dialog .template-import-actions>button{width:100%;min-height:44px;font-weight:600}
+.template-import-error{width:min(560px,100%);margin:10px 0 0;padding:12px;border:1px solid #f87171;border-radius:8px;background:#451a1a;color:#fecaca}
+.template-import-close{position:fixed;top:max(20px,calc(50% - 230px));right:max(20px,calc(50% - 250px));z-index:1101;border:0;background:transparent;color:var(--text,#e4edfa);font-size:25px;cursor:pointer}
+@media(max-width:600px){.template-import-dialog{padding:22px}.template-import-close{top:24px;right:24px}}
+
+.template-import-dialog{position:relative}
+.template-import-dialog .template-import-close{position:absolute;top:12px;right:14px;font-size:24px;padding:3px 9px;border-radius:8px}
+.template-import-dialog .template-import-error{width:100%;margin:0}
+
+/* エディターはビューポート内で完結させ、各ペインだけスクロールする。 */
+html,body,#root{height:100%;overflow:hidden}
+.flow-editor{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:12px;gap:10px}
+.flow-editor>.editor-header{flex:0 0 auto;min-height:0}
+.flow-editor>.editor-toolbar{flex:0 0 auto;max-height:120px;overflow:auto;overscroll-behavior:contain}
+.flow-editor>.editor-layout{flex:1 1 auto;min-height:0;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,300px) minmax(240px,300px);grid-template-rows:minmax(0,1fr);align-items:stretch;gap:10px;overflow:hidden}
+.flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1;width:100%;height:100%;max-height:none;min-height:0;resize:none;overflow:auto;overscroll-behavior:contain}
+.flow-editor>.editor-layout>.editor-inspector{grid-column:2;grid-row:1;position:static;max-height:none;min-height:0;overflow:auto;overscroll-behavior:contain}
+.flow-editor>.editor-layout>.editor-order-panel{grid-column:3;grid-row:1;position:static;max-height:none;min-height:0;overflow:auto;overscroll-behavior:contain}
+.flow-editor>.editor-layout>.editor-canvas::after{display:none}
+@media(max-width:1150px){.flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr) minmax(230px,300px);grid-template-rows:minmax(0,1fr) minmax(120px,32%)}.flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1 / 3}.flow-editor>.editor-layout>.editor-inspector{grid-column:2;grid-row:1}.flow-editor>.editor-layout>.editor-order-panel{grid-column:2;grid-row:2}}
+@media(max-width:700px){.flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(180px,1fr) minmax(120px,35%) minmax(100px,25%)}.flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1}.flow-editor>.editor-layout>.editor-inspector{grid-column:1;grid-row:2}.flow-editor>.editor-layout>.editor-order-panel{grid-column:1;grid-row:3}.flow-editor>.editor-toolbar{max-height:105px}}
+/* 再生画面も全体スクロールを廃止し、シナリオ一覧・内容を個別にスクロール。 */
+.app{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.app>header{flex:0 0 auto}
+.app>.layout{flex:1 1 auto;min-height:0;overflow:hidden}
+.app>.layout>aside{min-height:0;overflow:auto;overscroll-behavior:contain}
+.app>.layout>main{min-height:0;max-height:100%;overflow:auto;overscroll-behavior:contain}
+/* IF定義の項目は1行に収め、列見出しを共有する。 */
+.node-details-panel[aria-label="IF定義の編集"]{width:min(850px,96vw);max-width:96vw;overflow:auto}
+.node-details-panel[aria-label="IF定義の編集"] .node-details-heading button.if-panel-close{display:grid;place-items:center;width:36px;height:36px;min-width:36px;padding:0;line-height:1;font-size:21px;flex:0 0 36px}
+.if-field-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}
+.if-field-toolbar h3{margin:0}
+.if-file-import{display:inline-flex!important;align-items:center;gap:6px;cursor:pointer;border:1px solid var(--button-border);padding:8px 12px;border-radius:8px;margin:0!important}
+.if-file-import input{display:none!important}
+.if-fields-header,.if-field{display:grid;grid-template-columns:minmax(125px,1.3fr) minmax(90px,1fr) minmax(145px,2fr) 64px 96px;gap:8px;align-items:center}
+.if-fields-header{font-size:12px;color:var(--muted);padding:8px 10px;font-weight:600}
+.if-field{margin:4px 0;padding:7px 9px;border:1px solid var(--panel-border);border-radius:7px}
+.if-field label{display:flex;align-items:center;justify-content:center;min-width:0;margin:0!important}
+.if-field label input:not([type=checkbox]){width:100%;min-width:0;margin:0;padding:7px}
+.if-field label input[type=checkbox]{width:18px;height:18px}
+.if-field button{margin:0!important;padding:7px 6px!important;width:100%;font-size:12px}
+.if-definition-editor{min-width:0}
+@media(max-width:650px){.node-details-panel[aria-label="IF定義の編集"]{width:100vw;max-width:100vw}.if-definition-editor{overflow-x:auto}.if-fields-header,.if-field{min-width:600px}}
+
+/* 再帰カテゴリ: 階層ごとに字下げし、深い階層でも横幅を消費しすぎない。 */
+.scenario-category,.scenario-subcategory{min-width:0;max-width:100%}
+.scenario-subcategory{margin:5px 0 5px 8px;padding:4px 0 4px 8px;border-left:1px solid var(--panel-border);border-radius:0}
+.scenario-category>summary,.scenario-subcategory>summary{overflow-wrap:anywhere;cursor:pointer}
+.scenario-category button,.scenario-subcategory button{max-width:100%;overflow-wrap:anywhere}
+
+/* 選択中の折れ線だけ経由点ハンドルを表示し、ドラッグで編集する。 */
+.editor-waypoint{cursor:grab;touch-action:none}
+.editor-waypoint:active{cursor:grabbing}
+.editor-waypoint-settings{display:flex;flex-direction:column;gap:8px;margin:12px 0;padding:12px;border:1px solid var(--panel-border);border-radius:10px}
+.editor-waypoint-settings>p{margin:0;font-size:12px;color:var(--muted)}
+.editor-waypoint-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.editor-waypoint-row button{width:auto;margin:0;padding:6px 10px}
+
+/* インスペクターと再生順のペインを独立して折りたたみ、キャンバスに幅を返す。 */
+.flow-editor>.editor-layout{--inspector-width:300px;--order-width:300px;grid-template-columns:minmax(0,1fr) var(--inspector-width) var(--order-width)}
+.flow-editor>.editor-layout.inspector-collapsed{--inspector-width:46px}
+.flow-editor>.editor-layout.order-collapsed{--order-width:46px}
+.flow-editor>.editor-layout>.editor-inspector,.flow-editor>.editor-layout>.editor-order-panel{padding:8px;min-width:0}
+.editor-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 4px 10px}
+.editor-panel-heading strong{font-size:13px}
+.editor-panel-heading button{padding:5px 7px;white-space:nowrap;font-size:12px}
+.editor-inspector.is-collapsed,.editor-order-panel.is-collapsed{overflow:hidden!important}
+.is-collapsed>.editor-panel-heading{display:flex;flex-direction:column;align-items:center;gap:10px}
+.is-collapsed>.editor-panel-heading strong{writing-mode:vertical-rl;white-space:nowrap}
+.is-collapsed>.editor-panel-heading button{writing-mode:vertical-rl;white-space:nowrap}
+.editor-node-multiselected>rect{stroke:#f97316!important;stroke-width:4!important}
+.editor-selection-marquee{fill:rgba(34,211,238,.12);stroke:#22d3ee;stroke-width:2;stroke-dasharray:7 5}
+@media(max-width:1150px) and (min-width:701px){
+ .flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr) var(--inspector-width) var(--order-width);grid-template-rows:minmax(0,1fr)}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector{grid-column:2;grid-row:1}
+ .flow-editor>.editor-layout>.editor-order-panel{grid-column:3;grid-row:1}
+}
+@media(max-width:700px){
+ .flow-editor>.editor-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(180px,1fr) auto auto}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector{grid-column:1;grid-row:2;max-height:28vh}
+ .flow-editor>.editor-layout>.editor-order-panel{grid-column:1;grid-row:3;max-height:25vh}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed{height:38px;max-height:38px}
+ .is-collapsed>.editor-panel-heading{flex-direction:row}
+ .is-collapsed>.editor-panel-heading strong,.is-collapsed>.editor-panel-heading button{writing-mode:horizontal-tb}
+}
+
+/* Eclipse風: 最小化したペインをキャンバスの右端に細いドックとしてまとめる。 */
+.flow-editor>.editor-layout{--dock-width:44px;--expanded-width:minmax(230px,300px);grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--expanded-width)}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed){grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--dock-width)}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed)>.editor-order-panel{grid-column:2}
+.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed)>.editor-inspector{grid-column:3}
+.flow-editor>.editor-layout.order-collapsed:not(.inspector-collapsed){grid-template-columns:minmax(0,1fr) var(--expanded-width) var(--dock-width)}
+.flow-editor>.editor-layout.inspector-collapsed.order-collapsed{grid-template-columns:minmax(0,1fr) var(--dock-width) var(--dock-width)}
+.flow-editor>.editor-layout>.editor-inspector.is-collapsed,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed{padding:6px 3px;overflow:hidden!important}
+.editor-panel-heading{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 2px 10px}
+.editor-panel-heading strong{font-size:13px;white-space:nowrap}
+.editor-panel-heading .editor-panel-toggle{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;min-width:30px;max-width:30px;min-height:30px;margin:0;padding:0;border-radius:6px;font-size:15px;line-height:1;writing-mode:horizontal-tb;cursor:pointer}
+.editor-panel-heading .editor-panel-toggle:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+.is-collapsed>.editor-panel-heading{display:flex;flex-direction:column;align-items:center;gap:12px}
+.is-collapsed>.editor-panel-heading strong{writing-mode:vertical-rl;white-space:nowrap;order:2}
+.is-collapsed>.editor-panel-heading .editor-panel-toggle{writing-mode:horizontal-tb;order:1}
+.editor-inspector .editor-color-field{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.editor-inspector .editor-color-field>span:first-child{flex:0 0 auto;white-space:nowrap}
+.editor-inspector .editor-color-field input[type="color"]{appearance:auto;display:block;box-sizing:border-box;flex:0 0 52px;width:52px!important;min-width:52px!important;max-width:52px!important;height:36px!important;min-height:36px!important;padding:3px!important;margin:0!important;border:1px solid #64748b;border-radius:6px;background:transparent;cursor:pointer}
+.editor-inspector .editor-color-field input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.editor-inspector .editor-color-field input[type="color"]::-webkit-color-swatch{border:0;border-radius:3px}
+.editor-inspector .editor-color-field .editor-color-value{font-size:12px;white-space:nowrap;font-family:monospace}
+@media(max-width:700px){
+ .flow-editor>.editor-layout,.flow-editor>.editor-layout.inspector-collapsed:not(.order-collapsed),.flow-editor>.editor-layout.order-collapsed:not(.inspector-collapsed),.flow-editor>.editor-layout.inspector-collapsed.order-collapsed{grid-template-columns:minmax(0,1fr) var(--dock-width) var(--dock-width);grid-template-rows:minmax(180px,1fr) auto auto}
+ .flow-editor>.editor-layout>.editor-canvas{grid-column:1 / 4;grid-row:1}
+ .flow-editor>.editor-layout>.editor-inspector:not(.is-collapsed){grid-column:1 / 4;grid-row:2}
+ .flow-editor>.editor-layout>.editor-order-panel:not(.is-collapsed){grid-column:1 / 4;grid-row:3}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed{grid-column:2;grid-row:2 / 4;height:auto;max-height:none}
+ .flow-editor>.editor-layout>.editor-order-panel.is-collapsed{grid-column:3;grid-row:2 / 4;height:auto;max-height:none}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed>.editor-panel-heading,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed>.editor-panel-heading{flex-direction:column}
+ .flow-editor>.editor-layout>.editor-inspector.is-collapsed strong,.flow-editor>.editor-layout>.editor-order-panel.is-collapsed strong{writing-mode:vertical-rl}
+}
+
+/* Responsive playback: keep navigation and step details reachable within the viewport. */
+.scenario-menu-toggle,.scenario-menu-close,.scenario-menu-backdrop{display:none}
+.scenario-sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.scenario-sidebar-heading h3{margin:0 0 12px}
+.app>.layout>main{min-width:0;overflow-x:hidden;overflow-y:auto}
+.app .steps{min-width:0;max-width:100%;overflow-x:auto;flex-wrap:nowrap;padding:6px 0 10px;scrollbar-width:thin}
+.app .steps>button{flex:0 0 auto;max-width:min(300px,75vw);white-space:normal;overflow-wrap:anywhere}
+.app .explanation{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.app .explanation code{display:block;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap}
+.app .scene-action-bar,.app .controls,.app .scene-toolbar{min-width:0;max-width:100%;flex-wrap:wrap}
+.app .scene-size-wrapper{max-width:100%}
+
+/* Preview: reserve space for the current step below the canvas instead of letting
+   the SVG's intrinsic height push the details outside the visible region. */
+.preview-screen{min-width:0;max-width:100%;min-height:100dvh;overflow-x:hidden}
+.preview-layout{min-width:0;max-width:100%;align-items:start}
+.preview-layout>div:first-child{display:flex;flex-direction:column;min-width:0;min-height:0}
+.preview-canvas{display:block;width:100%;height:clamp(220px,48dvh,560px);min-height:0;flex:none}
+.preview-step-info{flex:none;min-width:0;max-width:100%;max-height:30dvh;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain}
+.preview-step-info p{white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-steps{min-width:0;max-height:min(68dvh,640px);overflow-y:auto}
+.preview-header,.preview-toolbar{min-width:0;max-width:100%}
+
+@media(max-width:1000px){
+ .app>.layout{grid-template-columns:minmax(0,1fr)}
+ .app>.layout>.scenario-sidebar{display:none;position:fixed;inset:0 auto 0 0;width:min(340px,88vw);max-width:88vw;z-index:1101;overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--panel-border,#344765);border-bottom:0;box-shadow:8px 0 32px #0008;padding:20px;background:var(--page,#0b1220)}
+ .app>.layout>.scenario-sidebar.is-open{display:block}
+ .scenario-menu-toggle{display:inline-flex;align-items:center;gap:9px;margin:0 0 14px;min-height:40px}
+ .scenario-menu-close{display:inline-flex;align-items:center;justify-content:center}
+ .scenario-menu-backdrop{display:block;position:fixed;inset:0;z-index:1100;background:#0009;border:0;border-radius:0;padding:0;margin:0}
+ .app>.layout>main{width:100%;max-width:100%;min-width:0}
+ .preview-layout{grid-template-columns:minmax(0,1fr)}
+ .preview-canvas{height:clamp(210px,42dvh,440px)}
+ .preview-steps{max-height:260px}
+}
+@media(max-width:600px){
+ .preview-canvas{height:clamp(180px,34dvh,340px)}
+ .preview-step-info{max-height:32dvh}
+ .app .scene-size-wrapper{width:100%;min-height:200px}
+ .app .top,.app .scene-action-bar{min-width:0}
+ .app .controls>span{margin-left:0}
+}
+
+/* STEPのIFリンクは再生を中断せず、画面左の前面ドロワーを開く。 */
+.if-playback-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.if-definition-link{display:inline-flex;align-items:center;max-width:100%;overflow-wrap:anywhere;text-align:left;border-color:var(--selected-border,#38bdf8);color:var(--text,#e4edfa);text-decoration:underline;text-underline-offset:3px}
+.if-definition-link:hover{background:var(--selected-bg,#17528a)}
+.if-definition-backdrop{position:fixed;inset:0;z-index:1300;display:flex;align-items:stretch;justify-content:flex-start;background:#0009}
+.if-definition-backdrop>.if-definition-drawer{position:relative;inset:auto;transform:none;margin:0;width:min(460px,92vw);max-width:92vw;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;border-radius:0;border-right:1px solid var(--panel-border,#344765);box-shadow:8px 0 32px #0007;background:var(--page,#0b1220);color:var(--text,#e4edfa);padding:20px}
+.if-definition-drawer p{overflow-wrap:anywhere}
+@media(max-width:600px){.if-definition-backdrop>.if-definition-drawer{width:min(420px,94vw);max-width:94vw;padding:14px}}
+
+/* 複数選択ツールの説明は操作ボタンの上に遅延表示する。 */
+.editor-tool-tooltip-anchor{position:relative;display:inline-flex;align-items:center;isolation:isolate}
+.editor-tool-tooltip-anchor>button{width:100%}
+.editor-tool-tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translate(-50%,5px);width:max-content;max-width:min(380px,85vw);padding:9px 12px;border-radius:8px;border:1px solid var(--panel-border,#344765);background:var(--page,#0b1220);color:var(--text,#e4edfa);box-shadow:0 8px 22px #0007;font-size:12px;line-height:1.6;white-space:normal;overflow-wrap:anywhere;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;transition-delay:0s;z-index:2000}
+.editor-tool-tooltip-anchor:hover .editor-tool-tooltip,.editor-tool-tooltip-anchor:focus-within .editor-tool-tooltip{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:.55s,.55s,0s}
+.editor-title-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;min-width:0}
+.editor-title-line h2{margin:0}
+.editor-target-path{font-size:12px;color:var(--secondary,#8ca3c0);overflow-wrap:anywhere}
+
+/* STEP通信内容とIF操作を独立したブロックにして、長い通信内容でも重ならない。 */
+.app .explanation{display:flow-root}
+.app .explanation>code{display:block;position:static;float:none;width:100%;height:auto;min-height:0;max-height:none;margin:12px 0 0;padding:12px 14px;box-sizing:border-box;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.app .explanation>.if-playback-links{position:static;clear:both;display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;width:100%;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--panel-border,#344765)}
+.app .explanation>.if-playback-links>.if-definition-link{flex:0 1 auto;margin:0;max-width:100%;min-height:36px}
+.preview-step-info>.if-definition-link{display:inline-flex;position:static;margin-top:10px;max-width:100%}
+
+/* aside button{width:100%} の影響を受けない共通の×ボタン。 */
+button.icon-close-button,
+aside button.icon-close-button,
+.node-details-heading button.icon-close-button,
+.scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center;flex:0 0 34px;width:34px;min-width:34px;max-width:34px;height:34px;min-height:34px;padding:0;margin:0;border-radius:8px;line-height:1;font-size:20px;white-space:nowrap}
+.node-details-heading{min-width:0}
+.node-details-heading h2{min-width:0;overflow-wrap:anywhere}
+
+/* 再生キャンバスの比率を維持し、CSSによる非等方スケールや文字の補間を避ける。 */
+.scene-size-wrapper .scene{display:flex;align-items:center;justify-content:center}
+.scene-size-wrapper .scene canvas{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;flex:none}
+.app .explanation,.app .steps,.app .scene-toolbar{filter:none;transform:none}
+
+/* PixiJSがResizeObserverで表示領域と同じサイズの描画バッファを確保する。
+   canvasのCSS縮小やobject-fitによる補間は行わない。 */
+.scene-size-wrapper .scene{display:block;width:100%;height:100%;overflow:hidden}
+.scene-size-wrapper .scene canvas{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:fill}
+
+/* サイドバーの閉じる操作はハンバーガー表示時だけ必要。共通アイコン規則より優先する。 */
+@media (min-width:1001px){
+ .app .scenario-sidebar-heading button.scenario-menu-close{display:none}
+}
+@media (max-width:1000px){
+ .app .scenario-sidebar-heading button.scenario-menu-close{display:inline-grid;place-items:center}
+}
+
+/* ノードのサイズ変更操作と任意の数値入力 */
+.editor-node-resize{cursor:nwse-resize}
+.editor-context-size{padding:6px 10px;color:var(--text)}
+.editor-context-size summary{cursor:pointer}
+.editor-context-size form{display:grid;gap:6px;padding-top:8px}
+.editor-context-size label{display:grid;gap:3px;font-size:12px}
+.editor-context-size input{width:100%;min-width:0;padding:5px;background:var(--page);color:var(--text);border:1px solid var(--panel-border);border-radius:4px}
+
+
+/* ヘッダー: タイトル横の表示中ディレクトリ切替 */
+.app header .header-brand{display:flex;align-items:center;gap:20px;min-width:0;flex:1 1 auto}
+.app header .header-brand>strong{white-space:nowrap;flex:0 0 auto}
+.app header .header-directory{display:flex;align-items:center;gap:9px;min-width:0;max-width:min(45vw,530px);color:var(--muted);font-size:12px}
+.app header .header-directory>span{white-space:nowrap;color:var(--muted);font-size:12px}
+.app header .header-directory select{appearance:none;-webkit-appearance:none;min-width:120px;width:clamp(160px,25vw,340px);max-width:100%;height:36px;padding:7px 32px 7px 11px;border:1px solid var(--button-border);border-radius:9px;background-color:var(--button-bg);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238ca3c0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;color:var(--button-text);font:inherit;font-size:12px;cursor:pointer;text-overflow:ellipsis}
+.app header .header-directory select:hover{border-color:var(--selected-border)}
+.app header .header-directory select:focus-visible{outline:2px solid var(--selected-border);outline-offset:2px}
+.app header .header-directory select:disabled{opacity:.55;cursor:default}
+.app header .header-directory select option{background:var(--panel);color:var(--text)}
+@media(max-width:900px){.app header{flex-wrap:wrap;gap:12px}.app header .header-brand{flex-wrap:wrap;gap:10px}.app header .header-directory{max-width:100%}.app header .header-directory select{width:clamp(150px,40vw,320px)}}

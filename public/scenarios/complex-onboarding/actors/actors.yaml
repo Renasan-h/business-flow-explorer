@@ -1,0 +1,6 @@
+# この業務フロー専用のActor構成。個別定義を再利用する。
+actors:
+  - file: client.yaml
+  - file: application.yaml
+  - file: databases.yaml
+  - file: integrations.yaml

@@ -1,0 +1,235 @@
+schemaVersion: "1.0"
+metadata:
+  id: new-flow
+  title: 新規業務フロー
+  description: ""
+  category: 入会/test2
+groups: []
+interfaces: []
+actors:
+  - id: actor-08fd2d98
+    name: 新しいノード 1
+    type: service
+    position:
+      x: 75
+      y: 332.49998474121094
+  - id: actor-5ae9e50a
+    name: 新しいノード 2
+    type: database
+    position:
+      x: 75
+      y: 134.4444122314453
+  - id: actor-dd3199ab
+    name: 新しいノード 3
+    type: service
+    position:
+      x: 284.72218322753906
+      y: 333.6111145019531
+  - id: actor-91e4a44a
+    name: 新しいノード 4
+    type: database
+    position:
+      x: 284.72216796875
+      y: 134.1666717529297
+  - id: actor-202f308a
+    name: 新しいノード 5
+    type: service
+    position:
+      x: 509.7221984863281
+      y: 329.1666564941406
+  - id: actor-83ea6464
+    name: 新しいノード 6
+    type: database
+    position:
+      x: 512.5
+      y: 142.22222137451172
+  - id: actor-77282568
+    name: 新しいノード 7
+    type: service
+    position:
+      x: 770.8333435058594
+      y: 335.8333435058594
+  - id: actor-cfe73cc9
+    name: 新しいノード 8
+    type: database
+    position:
+      x: 763.8888854980469
+      y: 146.11109924316406
+  - id: actor-8376b51b
+    name: 新しいノード 9
+    type: service
+    position:
+      x: 1006.9444274902344
+      y: 338.3333740234375
+  - id: actor-c6dd82de
+    name: 新しいノード 10
+    type: service
+    position:
+      x: 1219.4444580078125
+      y: 343.0555419921875
+  - id: actor-29d0d686
+    name: 新しいノード 11
+    instanceName: バッチサーバー
+    type: batch
+    environment: 開発
+    endpoint: FT#1
+    position:
+      x: 1215.27783203125
+      y: 485.27777099609375
+  - id: actor-07bf4379
+    name: 新しいノード 12
+    type: server
+    position:
+      x: 1220.8333740234375
+      y: 628.888916015625
+  - id: actor-1596404c
+    name: 新しいノード 13
+    type: external
+    position:
+      x: 998.6111450195312
+      y: 559.9999694824219
+  - id: actor-35042da4
+    name: 新しいノード 14
+    type: database
+    position:
+      x: 1219.444580078125
+      y: 795.2777709960938
+  - id: actor-f1e75c6b
+    name: 新しいノード 15
+    type: service
+    position:
+      x: 848.6111450195312
+      y: 791.6666259765625
+steps:
+  - id: connection-2b06c155
+    title: 新しい通信
+    description: ""
+    bidirectional: true
+    reverseFrom: actor-08fd2d98
+    reverseTo: actor-5ae9e50a
+    actions:
+      - type: transfer
+        from: actor-5ae9e50a
+        to: actor-08fd2d98
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-d13c0464
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-08fd2d98
+        to: actor-dd3199ab
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-6d759ba8
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-dd3199ab
+        to: actor-91e4a44a
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-a3f68e17
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-dd3199ab
+        to: actor-202f308a
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-6bd1a396
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-202f308a
+        to: actor-83ea6464
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-bf83084d
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-202f308a
+        to: actor-77282568
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-d92e3501
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-77282568
+        to: actor-cfe73cc9
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-5dd880e7
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-77282568
+        to: actor-8376b51b
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-3a1618c4
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-8376b51b
+        to: actor-c6dd82de
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-9271e3b5
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-c6dd82de
+        to: actor-29d0d686
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-92ef7d99
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-29d0d686
+        to: actor-07bf4379
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-7f7b2546
+    title: 新しい通信
+    description: ""
+    bidirectional: true
+    reverseFrom: actor-1596404c
+    reverseTo: actor-07bf4379
+    actions:
+      - type: transfer
+        from: actor-07bf4379
+        to: actor-1596404c
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-6e3eff9b
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-07bf4379
+        to: actor-35042da4
+        payload: 通信内容
+        durationMs: 1200
+  - id: connection-72ed4d34
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-07bf4379
+        to: actor-f1e75c6b
+        payload: 通信内容
+        durationMs: 1200

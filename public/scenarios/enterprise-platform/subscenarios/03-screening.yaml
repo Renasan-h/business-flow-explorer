@@ -1,0 +1,65 @@
+# 与信審査・リスク判定（正常系の通信例）
+steps:
+  - id: enterprise-03-01
+    title: 与信審査依頼
+    description: 与信審査・リスク判定における api から external への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: external
+        payload: "与信審査依頼"
+        durationMs: 1100
+  - id: enterprise-03-02
+    title: 与信審査結果
+    description: 与信審査・リスク判定における external から api への通信です。
+    actions:
+      - type: transfer
+        from: external
+        to: api
+        payload: "与信審査結果"
+        durationMs: 1100
+  - id: enterprise-03-03
+    title: INSERT X_TBL 外部照会履歴
+    description: 与信審査・リスク判定における api から db2 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db2
+        payload: "INSERT X_TBL 外部照会履歴"
+        durationMs: 1100
+  - id: enterprise-03-04
+    title: INSERT Y_TBL リスクスコア
+    description: 与信審査・リスク判定における api から db2 への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: db2
+        payload: "INSERT Y_TBL リスクスコア"
+        durationMs: 1100
+  - id: enterprise-03-05
+    title: 審査操作監査ログ
+    description: 与信審査・リスク判定における api から auditdb への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: auditdb
+        payload: "審査操作監査ログ"
+        durationMs: 1100
+  - id: enterprise-03-06
+    title: 承認依頼通知
+    description: 与信審査・リスク判定における api から mail への通信です。
+    actions:
+      - type: transfer
+        from: api
+        to: mail
+        payload: "承認依頼通知"
+        durationMs: 1100
+  - id: enterprise-03-07
+    title: 審査結果確認依頼
+    description: 与信審査・リスク判定における mail から approver への通信です。
+    actions:
+      - type: transfer
+        from: mail
+        to: approver
+        payload: "審査結果確認依頼"
+        durationMs: 1100

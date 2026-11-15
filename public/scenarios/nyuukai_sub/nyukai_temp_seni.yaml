@@ -1,0 +1,147 @@
+schemaVersion: "1.0"
+metadata:
+  id: new-flow
+  title: 新規業務フロー
+  description: ""
+  category: custom
+groups: []
+interfaces: []
+actors:
+  - id: actor-6accd3a8
+    name: 新しいノード 1
+    type: person
+    position:
+      x: 1422
+      y: 644.5
+  - id: actor-88ddac6e
+    name: top画面
+    type: browser
+    position:
+      x: 1422
+      y: 837.5
+  - id: actor-f05e85d3
+    name: A画面
+    type: browser
+    position:
+      x: 1641
+      y: 839.5
+  - id: actor-11a5eef3
+    name: B画面
+    type: browser
+    position:
+      x: 1854
+      y: 840.5
+  - id: actor-b6f4db61
+    name: C画面
+    type: browser
+    position:
+      x: 2080
+      y: 841.5
+  - id: actor-5302ad89
+    name: 新しいノード 6
+    type: database
+    position:
+      x: 1226
+      y: 839
+  - id: actor-78e61f67
+    name: 新しいノード 7
+    type: database
+    position:
+      x: 1643
+      y: 965
+  - id: actor-84e4d9be
+    name: 新しいノード 8
+    type: database
+    position:
+      x: 1854
+      y: 963
+  - id: actor-00824522
+    name: 新しいノード 9
+    type: service
+    position:
+      x: 2080
+      y: 962
+steps:
+  - id: connection-36d61bf8
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-6accd3a8
+        to: actor-88ddac6e
+        payload: 通信内容
+        durationMs: 1200
+    order: 1
+  - id: connection-b34d9101
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-88ddac6e
+        to: actor-5302ad89
+        payload: 通信内容
+        durationMs: 1200
+    bidirectional: true
+    reverseFrom: actor-5302ad89
+    reverseTo: actor-88ddac6e
+    order: 2
+  - id: connection-4d730a05
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-88ddac6e
+        to: actor-f05e85d3
+        payload: 通信内容
+        durationMs: 1200
+    order: 4
+  - id: connection-3f4addfb
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-f05e85d3
+        to: actor-78e61f67
+        payload: 通信内容
+        durationMs: 1200
+    order: 6
+  - id: connection-da2305b4
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-f05e85d3
+        to: actor-11a5eef3
+        payload: 通信内容
+        durationMs: 1200
+    order: 5
+  - id: connection-9f6af40c
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-11a5eef3
+        to: actor-84e4d9be
+        payload: 通信内容
+        durationMs: 1200
+    order: 7
+  - id: connection-8d2dabe5
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-11a5eef3
+        to: actor-b6f4db61
+        payload: 通信内容
+        durationMs: 1200
+    order: 3
+  - id: connection-1a26569d
+    title: 新しい通信
+    description: ""
+    actions:
+      - type: transfer
+        from: actor-b6f4db61
+        to: actor-00824522
+        payload: 通信内容
+        durationMs: 1200
+    order: 8

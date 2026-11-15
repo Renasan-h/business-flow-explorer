@@ -1,0 +1,6 @@
+# 本シナリオ専用のActor定義
+actors:
+  - file: users.yaml
+  - file: front.yaml
+  - file: data.yaml
+  - file: integrations.yaml

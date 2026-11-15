@@ -1,0 +1,7 @@
+actors:
+  - id: web
+    name: Webサーバー
+    type: server
+  - id: api
+    name: APIサーバー
+    type: service

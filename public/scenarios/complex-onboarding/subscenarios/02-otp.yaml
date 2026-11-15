@@ -1,0 +1,32 @@
+# OTP発行・メール送信・検証
+steps:
+  - id: onboarding-06
+    title: OTP発行要求
+    description: APIサーバーがOTP認証サービスへワンタイムコードの発行を要求します。
+    actions:
+      - { type: transfer, from: api, to: otp, payload: "POST /otp/issue", durationMs: 1000 }
+  - id: onboarding-07
+    title: OTPメール送信
+    description: OTP認証サービスからメール送信サーバーへ配信を依頼します。
+    actions:
+      - { type: transfer, from: otp, to: mail, payload: "OTP通知メール配信要求", durationMs: 1100 }
+  - id: onboarding-08
+    title: OTPメール受信
+    description: 申込担当者に認証メールが届きます。
+    actions:
+      - { type: transfer, from: mail, to: applicant, payload: "ワンタイムコード通知", durationMs: 1300 }
+  - id: onboarding-09
+    title: OTPコード入力
+    description: 申込担当者がWeb画面に認証コードを入力します。
+    actions:
+      - { type: transfer, from: applicant, to: web, payload: "POST /contracts/otp", durationMs: 1100 }
+  - id: onboarding-10
+    title: OTP検証
+    description: APIサーバーが認証サービスにコード照合を要求します。
+    actions:
+      - { type: transfer, from: api, to: otp, payload: "POST /otp/verify", durationMs: 1000 }
+  - id: onboarding-11
+    title: DB1 C TBL 認証履歴記録
+    description: OTP検証成功を履歴テーブルへ記録します。
+    actions:
+      - { type: transfer, from: api, to: db1, payload: "INSERT C_TBL (OTP認証履歴)", durationMs: 1100 }

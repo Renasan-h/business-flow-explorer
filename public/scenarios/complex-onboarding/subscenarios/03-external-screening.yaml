@@ -1,0 +1,22 @@
+# 外部システムへの審査依頼と結果の反映
+steps:
+  - id: onboarding-12
+    title: 外部審査依頼
+    description: APIサーバーから外部審査システムへ法人審査を依頼します。
+    actions:
+      - { type: transfer, from: api, to: external, payload: "POST /screenings (審査依頼)", durationMs: 1500 }
+  - id: onboarding-13
+    title: 審査結果受信
+    description: 外部審査システムからAPIサーバーへ結果が返却されます。
+    actions:
+      - { type: transfer, from: external, to: api, payload: "審査結果: 承認", durationMs: 1400 }
+  - id: onboarding-14
+    title: DB2 X TBL 外部照会履歴保存
+    description: 外部システムへの照会IDと応答情報を記録します。
+    actions:
+      - { type: transfer, from: api, to: db2, payload: "INSERT X_TBL (外部照会履歴)", durationMs: 1100 }
+  - id: onboarding-15
+    title: DB2 Y TBL 審査結果保存
+    description: 審査ステータスと判定理由を保存します。
+    actions:
+      - { type: transfer, from: api, to: db2, payload: "INSERT Y_TBL (審査結果)", durationMs: 1200 }

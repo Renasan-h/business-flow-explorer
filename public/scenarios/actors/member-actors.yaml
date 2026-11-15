@@ -1,0 +1,6 @@
+# シナリオで必要なActorだけを選択して組み立てる。
+actors:
+  - file: customer.yaml
+  - file: web.yaml
+  - file: api.yaml
+  - file: db.yaml
